@@ -12,6 +12,16 @@ The image contains the Project Zomboid dedicated server, Build 42 stable
 line, installed at build time (root §3.2). One container, one server
 instance.
 
+The image pins the game's state root to a **fixed, documented absolute
+path**, using the game's cache-dir option, independent of `$HOME`. The
+reason: under root §3.4 the container may run as a uid with no passwd entry
+and no usable `$HOME`, exactly where Java's home-directory resolution is
+fragile — a `$HOME`-derived state root would move or silently land
+somewhere unmounted in that case, while a fixed path gives operators one
+stable mount point. The concrete path is the implementation's choice and
+becomes a documented fact of the image. A missing or unwritable state root
+is a loud fatal before the game starts, never a fallback path.
+
 ## 2. Facts about the PZ dedicated server
 
 Verified 2026-08-12; the implementation must re-verify against the build it
@@ -31,7 +41,8 @@ ships, and any correction lands in the image documentation.
 - All persistent state — saves, the server's SQLite databases (including
   admin accounts), configuration, logs, downloaded workshop mods — lives
   under one game-managed directory (`~/Zomboid` by default; relocatable via
-  the game's cache-dir option). This is the single state root of root §5.1.
+  the game's cache-dir option, which is how the image pins it, §1). This is
+  the single state root of root §5.1.
 - Server configuration is a per-server-name INI file plus sandbox-settings
   files under that state root. **The game rewrites these files** (adding
   defaults, persisting in-game admin changes) — the root §5.3 rewrite
@@ -39,13 +50,22 @@ ships, and any correction lands in the image documentation.
 - Admin credentials live in the server database, created on first boot.
   With no database and no admin password provided, the server **prompts
   interactively** — in a container, a silent hang.
-- Networking: one main **UDP game port (default 16261)** which also answers
-  the Steam query protocol, plus a **second UDP port (default 16262)** for
-  direct player connections. Both are **advertised** in the root §5.2
-  sense (Steam server browser registration), and both are settable in the
-  game's configuration. **RCON on TCP (default 27015)**, enabled only when
-  an RCON password is configured, freely remappable; RCON provides `save`,
-  `quit`, and server messages.
+- Networking: one main **UDP game port (default 16261)**, plus a **second
+  UDP port (default 16262)** for direct player connections. Both are
+  **advertised** in the root §5.2 sense (Steam server browser
+  registration), and both are settable in the game's configuration.
+  **RCON on TCP (default 27015)**, enabled only when an RCON password is
+  configured, freely remappable; RCON provides `save`, `quit`, and server
+  messages.
+- **Open port facts, to settle before the port table and healthcheck are
+  final** (community documentation says both resolve favorably, but it is
+  not authoritative): (a) whether the Steam query protocol is answered on
+  the main game port, as reported for current builds — the healthcheck
+  target (§6) and the `GAME_PORT` description (§3) inherit the answer;
+  (b) whether the legacy `SteamPort1`/`SteamPort2` settings (defaults
+  8766/8767 UDP) still open listeners on Build 42 — reported unnecessary
+  on modern builds, but if present they belong in the port table
+  (root §5.2 documents *every* port).
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -54,6 +74,10 @@ ships, and any correction lands in the image documentation.
   foreground **and** writes log files under the state root — the root §5.5
   relay is not needed; log-file rotation ownership must still be
   documented.
+- Whether the server **echoes credential values** (join, RCON or admin
+  password) into its startup console output is to be verified at
+  implementation: it decides whether the entrypoint may hand the game
+  straight to stdout or must interpose the root §5.4 redaction.
 - The game has a **native backup feature**: INI settings for backups on
   start, periodically, and on version change, written as archives inside
   the state root. To verify at implementation, like every fact above.
@@ -71,13 +95,20 @@ should be:
 | `SERVER_PASSWORD` | Join password | Optional (open server without it) |
 | `RCON_PASSWORD` | Enables and protects RCON | Optional (RCON stays off without it) |
 | `RCON_PORT` | RCON TCP port | Optional (default 27015) |
-| `GAME_PORT` | Main UDP port (game + Steam query) | Optional (default 16261) |
+| `GAME_PORT` | Main UDP port (game traffic; expected to answer Steam query too — open item, §2) | Optional (default 16261) |
 | `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
 | `MAX_HEAP` | JVM maximum heap | Optional (documented default), with the §2 warning that it must sit below the container memory limit |
 
 Exact names are a recommended default; whatever ships is what the
 documentation states, and per root §5.3 the list does not grow to mirror
 game settings — everything else is the INI's job.
+
+One consequence of the game's own behavior, stated plainly (root §5.4's
+non-persistence "should" cannot be honored here): the game reads its INI
+from inside the state root and rewrites it, and offers no ephemeral-copy
+option — so credentials applied from the environment **persist into the
+mounted INI**, and from there into whatever backups the operator takes.
+The image documentation says so.
 
 ## 4. First boot
 
@@ -90,7 +121,17 @@ starts:
 | No | No | **Fatal before game start**, message naming the variable — a hang or an adminless public server are both unacceptable |
 | No | Yes | Create the admin account via the game's non-interactive mechanism; start |
 | Yes | No | Start; credentials already in the database |
-| Yes | Yes | Start; apply the password to the existing account if the game supports it non-interactively, otherwise log a clear warning that the value was ignored — the one forbidden outcome is silently diverging env and effective credentials |
+| Yes | Yes | Start; apply the password to the existing account if the game supports it non-interactively, otherwise emit a prominent warning **at every start** that the value is ignored (credentials live in the database) |
+
+The warning in the last row is a deliberate exception to the "warnings are
+not enough" stance of root §5.4, with the reasoning that stance demands:
+making this case fatal would break the normal deployment — a compose file
+sets `ADMIN_PASSWORD` once and keeps it set forever, so every restart after
+first boot would die — and the image cannot distinguish an unchanged value
+from a rotated one, because it cannot read the game's password hashes. The
+divergence risk is confined to an operator who rotates the variable and
+never reads logs; the per-start (not once-only) warning is what keeps that
+divergence discoverable.
 
 ## 5. Shutdown
 
@@ -104,14 +145,15 @@ players lengthen saves.
 
 ## 6. Health
 
-The HEALTHCHECK queries the Steam query protocol on the game port
-(root §5.5). World load on large Build 42 maps takes minutes: the
+The HEALTHCHECK queries the Steam query protocol on the port the §2
+verification confirms (expected: the main game port). World load on large
+Build 42 maps takes minutes: the
 `start_period` must absorb that so a starting server is not reported
 unhealthy, while a loaded-then-hung server is.
 
 ## 7. Workshop mods
 
-Supported the way the game does it natively (D-010): the server downloads
+Supported the way the game does it natively: the server downloads
 the mods listed in its configuration at startup into the state root, where
 they persist. The image neither bakes mods nor manages them; documentation
 states this, including the consequence that first start after adding mods

@@ -55,7 +55,7 @@ libraries (`lib32gcc-s1` on Debian-family systems) and certificates for
 Steam's TLS endpoints, and it does not run on musl — Alpine-class bases are
 ruled out, and images are **linux/amd64 only**. The realistic size floor is
 a Debian/Ubuntu slim base; Debian 13 slim (`trixie-slim`) is the smallest
-mainstream option and the project's chosen base for every stage (D-004).
+mainstream option and the project's chosen base for every stage.
 
 **2.2 steamcmd self-updates on launch and has no published versions.** Every
 run may touch the network and mutate its own installation. Consequence: the
@@ -79,14 +79,15 @@ period, then `SIGKILL`s the server mid-write, with nothing in any log. This
 is why §5.6 is the strictest section of the conventions.
 
 **2.5 Steam query protocol.** Steam-registered servers answer the A2S query
-protocol (serving status, player count) on their game port. It is the
-correct liveness probe: a hung server keeps its process alive but stops
-answering queries.
+protocol (serving status, player count) — some on the game port itself,
+others on a dedicated query port; which one is a per-game fact that belongs
+in the game's port table (§5.2). It is the correct liveness probe either
+way: a hung server keeps its process alive but stops answering queries.
 
 **2.6 Registry.** Images are published publicly on GHCR under
 `ghcr.io/<owner>` — free for public images, credential-less pulls, native
 CI integration. The concrete owner is resolved at implementation time from
-the repository's GitHub remote (D-013).
+the repository's GitHub remote.
 
 **2.7 Dedicated servers load Steam client libraries at runtime.** Many
 Linux dedicated servers dlopen `steamclient.so`, typically resolved via
@@ -107,9 +108,9 @@ adding only that game's runtime dependencies — including the Steam client
 libraries the game loads at runtime (§2.7), which the builder stage
 provides. steamcmd never appears in a game image — its only runtime use
 would be in-place game updates, which the versioning model deliberately
-forbids (D-002).
+forbids.
 
-**3.2 The game is baked in at build time** (D-003). An image that installs
+**3.2 The game is baked in at build time**. An image that installs
 at runtime has a meaningless tag, unreproducible content, minutes-long cold
 starts, and a Steam dependency at every deploy. Baked images start in
 seconds, and their tags honestly say which game version is inside — which is
@@ -208,8 +209,11 @@ document honestly and to expose what the game does offer:
   and two instances of that game cannot share a host — as a stated
   limitation rather than a surprise. A fixed advertised port costs
   flexibility; it does not break a single-instance deploy.
-- The game must listen on `0.0.0.0`; binding narrower breaks port
-  publication for no isolation gain inside a private network namespace.
+- The image's shipped or effective configuration must make the game listen
+  on `0.0.0.0` wherever the bind address is configurable; a game that
+  binds narrower and cannot be told otherwise is documented as a
+  limitation. Binding narrower breaks port publication for no isolation
+  gain inside a private network namespace.
 - Admin interfaces (RCON and relatives) are documented separately from
   player-facing ports, with an explicit warning that they must never be
   exposed publicly. The image must not enable an admin listener with a
@@ -218,7 +222,7 @@ document honestly and to expose what the game does offer:
 ### 5.3 Configuration
 
 - The game's **native configuration files are the authoritative interface**
-  (D-011). The image must be fully operable with a mounted configuration and
+ . The image must be fully operable with a mounted configuration and
   not a single game-specific environment variable set.
 - Environment variables are **optional overrides**: when set, the entrypoint
   applies them to the effective configuration at startup. When unset, the
@@ -255,8 +259,11 @@ document honestly and to expose what the game does offer:
 ### 5.5 Observability
 
 - The game's output goes to **stdout/stderr, unfiltered** — the container
-  runtime owns collection and rotation. Log files the game insists on
-  writing are declared under §5.1 so operators can deal with them.
+  runtime owns collection and rotation. Unfiltered has exactly one
+  exception, which takes precedence: the §5.4 redaction of credential
+  values, for games that echo their configuration at startup. Log files the
+  game insists on writing are declared under §5.1 so operators can deal
+  with them.
 - When the game cannot send its primary output to stdout/stderr, the
   entrypoint should relay the log file(s) there, following across the
   game's own rotation; a static symlink onto the stdout device is an
@@ -266,7 +273,7 @@ document honestly and to expose what the game does offer:
   unrotated log the operator does not know about fills the state disk
   slowly and silently, and a full state disk corrupts saves.
 - Each image declares a **HEALTHCHECK that probes the game protocol**
-  (Steam query, D-012), not the process: a hung server is alive and
+  (Steam query), not the process: a hung server is alive and
   unhealthy, and process-level checks call it healthy. The check must not
   report healthy while the world is still loading (the `start_period` must
   absorb worst-case load time), and must fail once the server no longer
@@ -336,8 +343,12 @@ what is pointless to copy (ephemeral paths).
 
 Images carry standard OCI annotations: source repository, description,
 license, and — for game images — the game version and image revision
-matching the tag (§7). Labels are what registries and scanners read when
-the tag is no longer at hand.
+matching the tag (§7), plus the **Steam buildid and branch** the game was
+installed from. The buildid label is the machine-readable side of §8's
+update comparison: the human version string in the tag cannot be compared
+against Steam's metadata reliably, and buildids change without version
+changes. Labels are what registries and scanners read when the tag is no
+longer at hand.
 
 ## 6. Per-game specifications
 
@@ -370,14 +381,20 @@ A per-game specification must cover, at minimum:
 ## 7. Versioning and publication
 
 - All images are published publicly on GHCR under `ghcr.io/<owner>` (§2.6),
-  named by plain game name: `steamcmd`, `project-zomboid` (D-013).
-- **Game images** (D-009): every build publishes an immutable
+  named by plain game name: `steamcmd`, `project-zomboid`.
+- **Game images**: every build publishes an immutable
   `<game-version>-rN` tag, `N` starting at 0 and incrementing for each
-  rebuild of the same game version (base refresh, entrypoint fix). A moving
-  `<game-version>` tag points at that version's latest revision; a moving
-  `latest` points at the newest revision of the newest game version.
-- **Builder image**: date-stamped tags (`YYYYMMDD`) plus a moving `latest` —
-  steamcmd has no upstream version to carry (§2.2).
+  rebuild of the same game version — a base refresh, an entrypoint fix, or
+  a **game content update whose version string did not change**: Steam
+  ships new buildids without version changes, and such an update is a
+  revision bump, with the buildid label (§5.8) telling the truth the tag
+  cannot. A moving `<game-version>` tag points at that version's latest
+  revision; a moving `latest` points at the newest revision of the newest
+  game version.
+- **Builder image**: date-stamped tags (`YYYYMMDD`, with an ordinal
+  suffix — `YYYYMMDD.N` — when the same day sees more than one build, so
+  no immutable tag is ever reused) plus a moving `latest` — steamcmd has no
+  upstream version to carry (§2.2).
 - **A published immutable tag is never reused for different content.**
   Consumers pin `-rN`, a date tag, or a digest for reproducibility; the
   moving tags are convenience pointers, and every image's documentation says
@@ -433,7 +450,7 @@ requirements:
 
 Not built now; nothing in the present design may preclude them.
 
-- **10.1 Wine/Proton image line** for Windows-only Steam servers (D-008): a
+- **10.1 Wine/Proton image line** for Windows-only Steam servers: a
   parallel builder/runtime base pair reusing the §5 conventions unchanged.
   Deferring is safe because nothing in §3–§5 assumes a native Linux binary —
   the entrypoint adapter pattern absorbs wine as it absorbs a JRE.

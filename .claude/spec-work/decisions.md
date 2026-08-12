@@ -154,6 +154,10 @@ per-game specification split → D-014.)
   the latest revision of that version, and a moving `latest`. The steamcmd
   builder image publishes date-stamped tags (`YYYYMMDD`) plus `latest`.
   Published `-rN` and date tags are never reused for different content.
+  Amended per review 002 (F2, F8): a game content update whose version
+  string is unchanged (buildid-only) is a `-rN` revision bump, with the
+  Steam buildid carried as an image label; a second same-day builder build
+  takes an ordinal suffix (`YYYYMMDD.N`).
 - **Why:** the user wants convenience pointers (`latest`, bare version)
   alongside reproducible references; consumers needing reproducibility pin
   `-rN` or a digest. Bare-version-only (no revision) rejected: rebuilds for
