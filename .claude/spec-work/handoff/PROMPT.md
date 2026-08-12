@@ -86,9 +86,13 @@ conventions (root §3, §5) are standing reading for any image-track step.
 
    That list is the expected instance, not the boundary: **every
    language and artifact the repository ships gets a check family** —
-   the entrypoint in whatever language it ends up written, and the two
-   static clients of root §5.5, which enter the repository pinned
-   (version or digest recorded in it, per rule 9's fetch rule) and are
+   the entrypoint in whatever language it ends up written, and the
+   shipped static tools: root §5.5's two clients where adopted (they
+   are a recommended default — a documented replacement is a
+   legitimate, logged deviation), plus any similar tool a per-game
+   specification adds (the SQLite client PZ §4 contemplates, for
+   instance) — each entering the repository pinned
+   (version or digest recorded in it, per rule 9's fetch rule) and
    covered like any other shipped artifact.
 
    Two families belong on that list whatever the stack: well-formedness
@@ -471,7 +475,13 @@ Produce the workflow files — three plans, three decision logs,
      rule 9 gates, `git push` included — a denied pattern cannot be
      overridden in the very exchange rule 9 relies on — and for
      state-destroying local git (`reset --hard`, deleting tags or
-     branches): the step tags and the working tree are the memory rules
+     branches, history rewriting — `commit --amend`, `rebase` — and
+     untracked-file deletion, `git clean`; the classifier the proposal
+     applies: anything that rewrites history, moves or deletes tags,
+     or destroys uncommitted or untracked work asks first, and an
+     allow pattern must not silently admit these — `git commit`
+     admitting `--amend` is the trap): the step tags, the linear
+     history and the working tree are the memory rules
      3 and 6 rest on; reserve **deny**
      for what has no authorised use at all, naming each in the proposal
      rather than leaving "destructive" to interpretation; and a guard
@@ -489,7 +499,14 @@ Produce the workflow files — three plans, three decision logs,
      skips a step. One carve-out: a name that sits on `CLAUDE.md`'s
      not-yet-adopted list is not dangling — it is the documented
      fallback the milestone ritual relies on. Its test: a fresh clone, the
-     setup command, the check command, one commit — all green.
+     setup command, the check command, one commit — all green. Step
+     `000`'s breadth is deliberate — one composite foundation step,
+     this prompt's stated exception to the small-step rule, because its
+     parts gate nothing separately testable: the fresh-clone test is
+     the gate, the enforcement probes report their results in the
+     step's summary, and the CI workflow is verified at first push.
+     The plan cold-review below treats that breadth as decided here,
+     never as a granularity finding.
    - Steps carry track-qualified identifiers per rule 6 — `step-000`,
      the
      foundation, onward — grouped under milestones or feature headings
@@ -520,8 +537,11 @@ Produce the workflow files — three plans, three decision logs,
      what makes the CI workflow verifiable; a Docker Hub credential only
      if your root §2.6 mitigation chooses authenticated base-image
      pulls (no Steam credential is needed — every install is anonymous;
-     and the repository itself is already public, which root §2.6's
-     free hosting and root §2.8's schedule behavior both rest on).
+     and the repository itself is already public — root §2.8's schedule
+     behavior rests on that, while root §2.6's free hosting rests on
+     the per-package visibility flips above); and my confirmation, at
+     first push, that the repository's Actions settings are known-good:
+     Actions enabled, workflow token allowed `packages: write`.
      List each with the step that first needs it, so
      waiting on me never interrupts a step mid-flight.
    - End the root plan with a section listing anything you consider
@@ -545,7 +565,10 @@ Produce the workflow files — three plans, three decision logs,
    instruction that a session resumed
    after an interruption, or told the work was interrupted, runs
    `/resume-step` before touching anything, never trusting the
-   transcript. It also carries the plan-step entry shape and the
+   transcript — and, until step `000` has instantiated that skill,
+   applies rule 3's re-orientation routine directly instead: the
+   pointer to a not-yet-existing command must not strand the one
+   interruption most likely to happen early. It also carries the plan-step entry shape and the
    boundary-crossing-cost rule from the plan instructions above —
    later sessions extend plans and the bootstrap cold review sources
    those conventions from `CLAUDE.md`, so they must actually be there. It also carries the `.claude/docs/image-contract.md`
