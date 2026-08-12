@@ -72,7 +72,10 @@ ships, and any correction lands in the image documentation.
   (root §5.2 documents *every* port); (c) whether the server console
   accepts `save`/`quit` over a non-interactive stdin pipe (no TTY) — the
   shutdown mediation of §5 rests on it, and a Java console that works at a
-  terminal can still refuse a pipe.
+  terminal can still refuse a pipe; (d) whether the game supports a
+  **non-interactive admin password change** on an existing account — it
+  decides whether the `ADMIN_PASSWORD` override of §3 is offered at all
+  (root §5.4 pattern).
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -98,7 +101,8 @@ should be:
 |---|---|---|
 | `SERVER_NAME` | Server identity; selects the config/save set under the state root | Optional (game default: `servertest`) |
 | `ADMIN_USERNAME` | Admin account created on first boot | Optional (default `admin`) |
-| `ADMIN_PASSWORD` | Admin account password | **Mandatory on first boot** (no server database yet); optional afterwards — see §4 |
+| `INITIAL_ADMIN_PASSWORD` | Admin password consumed at account creation (first boot); ignored by definition once the database exists (root §5.4 pattern) | **Mandatory on first boot** unless `ADMIN_PASSWORD` is set — see §4 |
+| `ADMIN_PASSWORD` | Declarative admin-password override, applied at every start; offered **only if** the game supports non-interactive password changes (open item, §2) — set on an image that cannot honor it, it is a fatal start (root §5.4) | Optional |
 | `SERVER_PASSWORD` | Join password | Optional (open server without it) |
 | `RCON_PASSWORD` | Enables and protects operator RCON | Optional (operator RCON stays off without it; the entrypoint may still run an internal, unpublished RCON for stop mediation — §5) |
 | `RCON_PORT` | RCON TCP port | Optional (default 27015) |
@@ -123,33 +127,13 @@ The dangerous branch is a fresh state directory: the game would prompt for
 an admin password and hang. The entrypoint must resolve it before the game
 starts:
 
-| Server database exists | `ADMIN_PASSWORD` set | Behavior |
+| Server database exists | Credential variables | Behavior |
 |---|---|---|
-| No | No | **Fatal before game start**, message naming the variable — a hang or an adminless public server are both unacceptable |
-| No | Yes | Create the admin account via the game's non-interactive mechanism; start |
-| Yes | No | Start; credentials already in the database |
-| Yes | Yes | Start; **the environment wins**: apply the password to the account at every start if the game supports it non-interactively, otherwise emit a prominent warning **at every start** that the value is ignored (credentials live in the database) |
-
-Both branches of the last row carry deliberate trade-offs, stated here
-because each is a documented exception to a rule elsewhere:
-
-- **Env-wins precedence** (the apply branch): the environment states
-  desired credentials, applied declaratively at every start. Consequence:
-  an admin password changed *in game* reverts on the next restart while the
-  variable stays set — the same class of surprise as game-rewritten
-  configuration, handled the same way (root §5.3): the image documentation
-  states prominently that this credential is managed via the environment
-  *or* in game, never both.
-- **The per-start warning** (the cannot-apply branch) is a deliberate
-  exception to the "warnings are not enough" stance of root §5.4, with the
-  reasoning that stance demands: making this case fatal would break the
-  normal deployment — a compose file sets `ADMIN_PASSWORD` once and keeps
-  it set forever, so every restart after first boot would die — and the
-  image cannot distinguish an unchanged value from a rotated one, because
-  it cannot read the game's password hashes. The divergence risk is
-  confined to an operator who rotates the variable and never reads logs;
-  the per-start (not once-only) warning is what keeps that divergence
-  discoverable.
+| No | Neither set | **Fatal before game start**, message naming both variables — a hang or an adminless public server are both unacceptable |
+| No | Either set | Create the admin account via the game's non-interactive mechanism (`ADMIN_PASSWORD` wins if both are set — it states desired state); start |
+| Yes | Only `INITIAL_ADMIN_PASSWORD` set | Start; the variable is ignored **by definition** — first-start-only is its documented contract (root §5.4), so no warning is owed. Leaving it set forever is the normal deployment |
+| Yes | `ADMIN_PASSWORD` set, game supports non-interactive change | Start; **the environment wins**: apply at every start. Consequence, documented prominently: an admin password changed in game reverts on the next restart — this credential is managed via the environment *or* in game, never both (the root §5.3 rewrite rule, applied to a credential) |
+| Yes | `ADMIN_PASSWORD` set, game does not support it | **Fatal before game start** (root §5.4): the image cannot honor the override contract; the message directs the operator to `INITIAL_ADMIN_PASSWORD`. Safe to be fatal because the docs never offer `ADMIN_PASSWORD` on such an image — only an explicit misconfiguration hits this row |
 
 ## 5. Shutdown
 

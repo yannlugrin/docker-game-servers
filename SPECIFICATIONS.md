@@ -257,6 +257,19 @@ document honestly and to expose what the game does offer:
   the variable** — never a warning, never a fallback. A server that starts
   anyway starts unprotected, and nobody reads warnings on a server that
   seems to work.
+- Credentials that live in **game-created state** (an account database the
+  game writes at first boot, rather than a config file) follow a
+  two-variable pattern, and each image documents only the forms its game
+  supports: `INITIAL_<NAME>` is consumed at first start and ignored — by
+  definition, not by failure — once the state exists, so leaving it set
+  forever is the normal, harmless deployment; the bare `<NAME>` is a
+  declarative override applied at every start, offered only where the game
+  can re-apply the value non-interactively, because its contract — the
+  environment wins, in-game changes revert — is exactly what its name
+  promises. Setting an override the image cannot honor is a **fatal
+  start**: the operator asked for a guarantee the image cannot give, and
+  anything quieter lets believed and effective credentials silently
+  diverge.
 - No secret may ever reach stdout, stderr, or a crash dump. Where startup
   logs echo configuration, credential values are redacted.
 
