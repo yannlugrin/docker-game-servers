@@ -103,7 +103,15 @@ with steamcmd present, break without it" almost always break on these
 libraries, never on the steamcmd binary itself. Discovering this
 mid-implementation is the classic first-build failure of baked game images.
 
-**2.8 What this section is least sure of.** These facts were researched,
+**2.8 GitHub Actions disables idle scheduled workflows.** In a public
+repository, `schedule`-triggered workflows are automatically disabled
+after roughly 60 days without repository activity. A finished, stable
+repository is exactly the one that goes quiet for two months — at which
+point a scheduled refresh (§8) silently stops running while the published
+images keep pulling and passing every check. This fact is why §8 requires
+the refresh to be deactivation-resistant.
+
+**2.9 What this section is least sure of.** These facts were researched,
 not measured; where one fails, the named consequence moves, not the
 architecture: the exact `steamclient.so` resolution varies per game (§2.7 —
 each per-game specification carries its own verification item); the size
@@ -173,7 +181,10 @@ Kubernetes pods without `runAsUser`) in-container uid 0 maps to an
 unprivileged host user and is the runtime's default: setting
 **`ALLOW_UID0`** to `1` or `true` (case-insensitive) skips the fatal —
 setting it *is* the deliberate choice, and its documentation says exactly
-when it is legitimate. And the per-game specification must enumerate the
+when it is legitimate. Any other value does not skip it, and the fatal
+message must then say the variable was set but not recognized — an
+operator whose opt-out attempt was silently ignored gets the generic
+message and no clue why. And the per-game specification must enumerate the
 **complete writable-path set** — the state root, `/tmp`, and what the
 image sets `$HOME` to — so the read-only-rootfs recommendation of §5.1 is
 checkable rather than aspirational.
@@ -227,8 +238,13 @@ adds the game's specifics and documents how each convention is honored.
 - State should be consolidated under a **single documented state root** per
   image where the game allows, so an operator persists one mount instead of
   chasing scattered paths.
-- The image must honor `$HOME` when the game derives paths from it, and must
-  document whether it does.
+- The image must state what it does with `$HOME`: either it honors the
+  inherited value (and its documentation says the operator must point it
+  somewhere writable), or it sets its own and that value wins over anything
+  the operator passes. One rule, documented — an unstated `$HOME` policy
+  surfaces as Steam link farms and crash dumps landing on a read-only path,
+  which presents as a server that runs but never registers, not as an
+  error.
 - The image should run with a **read-only root filesystem** given writable
   mounts at the documented paths plus `/tmp` — it costs little at build time
   and proves no state hides in undeclared locations.
@@ -254,11 +270,15 @@ document honestly and to expose what the game does offer:
   and two instances of that game cannot share a host — as a stated
   limitation rather than a surprise. A fixed advertised port costs
   flexibility; it does not break a single-instance deploy.
-- The image's shipped or effective configuration must make the game listen
-  on `0.0.0.0` wherever the bind address is configurable; a game that
-  binds narrower and cannot be told otherwise is documented as a
-  limitation. Binding narrower breaks port publication for no isolation
-  gain inside a private network namespace.
+- For **player-facing ports**, the image's shipped or effective
+  configuration must make the game listen on `0.0.0.0` wherever the bind
+  address is configurable; a game that binds narrower and cannot be told
+  otherwise is documented as a limitation. Binding narrower breaks port
+  publication for no isolation gain inside a private network namespace.
+  **Admin interfaces are the opposite case**: they bind loopback where the
+  game allows it, and are opened wider only by the operator's deliberate
+  choice — under host networking or a shared network namespace, a
+  `0.0.0.0` admin listener is exposed with no publication step at all.
 - Admin interfaces (RCON and relatives) are documented separately from
   player-facing ports, with an explicit warning that they must never be
   exposed publicly. The image must not enable an admin listener with a
@@ -407,12 +427,23 @@ later with nothing in any log.
   attributable one.
 - **A confirmed clean stop** — the only thing that exits 0 — is defined
   observably: the shutdown sequence was delivered and the game process
-  exited *on its own* within the timeout. A game process the entrypoint had
-  to terminate, or that crashed on the way down, is unconfirmed. The game's
-  own orderly exit after its quit command is the strongest completion
-  signal available from outside; demanding deeper save-flush evidence would
-  be game-specific and fragile, and miscoding clean stops as dirty cries
-  wolf — the failure the exit-code contract exists to prevent.
+  exited **successfully, on its own, within the timeout**. A game process
+  the entrypoint had to terminate, or that exited with a failure status on
+  the way down (a crash mid-save is still a crash), is unconfirmed. The
+  game's own orderly, successful exit after its quit command is the
+  strongest completion signal available from outside; demanding deeper
+  save-flush evidence would be game-specific and fragile, and miscoding
+  clean stops as dirty cries wolf — the failure the exit-code contract
+  exists to prevent.
+- The shipped **default** for the stop timeout should sit just below the
+  recommended grace-period floor (about 80 seconds under the 90-second
+  recommendation), erring toward the operator who followed the docs: they
+  get full save time out of the box. The operator on an unmodified
+  10-second `docker stop` loses the save under *any* default — a short
+  timeout would merely make the image do the killing instead of the
+  runtime — and the image cannot read the runtime's grace period to warn
+  in advance, which is exactly why the timeout is printed at start and the
+  documentation carries the pairing rule.
 - Exit codes are the supervision interface: **0 for a requested stop that
   completed cleanly; non-zero for everything else**, including a stop where
   the save could not be confirmed. A supervisor restarts and alerts on
@@ -421,7 +452,8 @@ later with nothing in any log.
 
 | Event | Required behavior |
 |---|---|
-| Stop signal, game exits on its own within the stop timeout | Exit 0 — confirmed clean stop |
+| Stop signal, game exits successfully on its own within the stop timeout | Exit 0 — confirmed clean stop |
+| Stop signal, game exits on its own but with a failure status | Exit non-zero — the game crashed during its own shutdown; the save is unconfirmed |
 | Stop signal, game still running when the stop timeout expires | Terminate the game process; exit non-zero — the save is unconfirmed |
 | Game exits by itself, no stop signal received | Propagate the game's exit code verbatim — a crash is non-zero on its own; an operator-initiated quit through the game's own admin channel (`docker exec`) yields whatever the game returns, and the documentation says so |
 | Startup validation fails (§5.3, §5.4) | Exit non-zero before the game starts |
@@ -543,6 +575,11 @@ A per-game specification must cover, at minimum:
   fall back to buildid-derived names (the buildid is always machine-
   readable, §2.3) — automation never waits on a human to name a tag — and
   the per-game specification states which naming its tags use.
+- Superseded immutable tags are **retained indefinitely, deliberately**:
+  §7's promise is that a pinned tag keeps resolving, so no cleanup job may
+  delete them. Registry storage for public images is the cheap side of the
+  §3.2 trade-off; if that ever changes, retention becomes a decision to
+  revisit here, not a job to invent quietly.
 - Images are linux/amd64 only (§2.1); tags carry no architecture suffix.
 
 ## 8. Build automation
@@ -565,19 +602,30 @@ CI on the repository's GitHub project must provide:
   action, and for the same reason: tags are additive and consumers pin
   (§7), so publishing never deploys anything anywhere; leaving
   same-version content updates unpublished would silently strand servers
-  on stale builds instead.
+  on stale builds instead. A comparison that **cannot be established** —
+  Steam unreachable, a newest image without a parseable buildid label —
+  must fail the job loudly and is never treated as "no change": a green
+  job that has stopped comparing is a detector that silently died, the
+  §7-overwrite rule's twin.
 - A **scheduled refresh must exist**, as one flow: it publishes a fresh
   builder date tag, **advances the pinned builder reference** the game
   builds use (§3.1 — the pin only moves by this deliberate, automated act,
   which is what makes it a pin rather than a moving pointer in disguise),
   and rebuilds every game image against the refreshed base and builder.
+  The pin advance becomes final **only when the game rebuilds succeed** —
+  a failed refresh must leave (or restore) the previous working pin, or a
+  broken builder blocks every later on-demand build, urgent ones included.
   Each rebuilt image's tag follows §7's mapping like any other build: if
   the branch moved since the last publish, the result is the new version's
   `-r0`; if not, a revision bump. Once games are baked in, this refresh is
   the *only* path by which security patches reach game images — as an
   optional nicety it would be the first thing dropped, leaving
   multi-gigabyte public images unpatched indefinitely. The cadence is the
-  implementation's choice; the mechanism is not.
+  implementation's choice; the mechanism is not — and it must survive the
+  scheduler's own failure mode (§2.8): the refresh must keep itself alive
+  (producing repository activity counts) or run outside the repository's
+  activity clock, and a refresh that has not run within its cadence must
+  become visible rather than stay a green absence.
 - **Superseded game versions are never re-patched**: the refresh rebuilds
   the branch's current content only. A consumer pinned to an older
   version's tag holds exactly what was published — frozen content is what

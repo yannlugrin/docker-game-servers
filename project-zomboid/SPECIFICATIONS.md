@@ -25,8 +25,11 @@ is a loud fatal before the game starts, never a fallback path.
 The read-only-root-filesystem recommendation of root §5.1 applies
 unchanged. The complete writable-path set (root §3.4) is: the state root
 and `/tmp` — the image sets `$HOME` itself to a documented location
-**inside the state root**, because the Steam client link farm and JVM
-crash dumps may land under it (§2, open item f). Two writable targets keep
+**inside the state root**, unconditionally: an operator-provided `HOME`
+value is overridden, and the documentation says so (root §5.1's one-rule
+requirement) — honoring an inherited `HOME` under `--read-only` would
+point the Steam link farm and crash dumps at a read-only path, a server
+that runs but never registers (§2, open item f). Two writable targets keep
 `--read-only` simple; the accepted consequence, stated in the docs, is
 that home-directory residue (crash dumps included — root §5.4's warning
 applies) travels into every backup of the state root. Nothing else may
@@ -59,7 +62,16 @@ ships, and any correction lands in the image documentation.
   warning applies.
 - Admin credentials live in the server database, created on first boot.
   With no database and no admin password provided, the server **prompts
-  interactively** — in a container, a silent hang.
+  interactively** — in a container, a silent hang. The game's launch
+  arguments include a **non-interactive account-creation path**
+  (admin username/password passed at startup) — this is the mechanism §4
+  rests on, verified at implementation like every fact here; the
+  entrypoint must never hand over to a game that may prompt, so if the
+  mechanism turns out absent the fallback is a fatal, not the hang.
+- Whether Build 42 is the default (stable) Steam branch was verified
+  2026-08-12 against the developer's own announcement and several
+  independent outlets; the branch the image builds is the per-game
+  declaration root §7 requires.
 - Networking: one main **UDP game port (default 16261)**, plus a **second
   UDP port (default 16262)** for direct player connections. Both are
   **advertised** in the root §5.2 sense (Steam server browser
@@ -94,7 +106,13 @@ ships, and any correction lands in the image documentation.
   rule (root §3.4) and the read-only rootfs (§1), so the answer reshapes
   §7; (h) **what the server does when a workshop download fails** at
   startup (no connectivity, delisted item, partial download) — whether it
-  refuses to start, starts without the mod, or hangs.
+  refuses to start, starts without the mod, or hangs; (i) whether the
+  mediation channel can answer a **status and player-count query
+  non-destructively** (RCON has a player-listing command; the console is
+  write-only) — load-bearing for root §5.5's probe capability when the
+  query protocol is off, see §6; (j) whether the server **rotates or caps
+  its own log files** under the state root — the input root §5.5's
+  rotation-ownership documentation needs.
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -128,7 +146,8 @@ should be:
 | `GAME_PORT` | Main UDP port (game traffic; expected to answer Steam query too — open item, §2) | Optional (default 16261) |
 | `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
 | `MAX_HEAP` | JVM maximum heap | Optional (documented default), with the §2 warning that it must sit below the container memory limit |
-| `STOP_TIMEOUT` | Entrypoint's bounded wait for the game to exit after `save`+`quit` (root §5.6) | Optional (documented default; docs state it must sit below the runtime's stop grace period) |
+| `STOP_TIMEOUT` | Entrypoint's bounded wait for the game to exit after `save`+`quit` (root §5.6) | Optional (default ~80s per root §5.6, just under the recommended 90s grace floor; docs state it must sit below the runtime's stop grace period) |
+| `ALLOW_UID0` | Skips the uid-0 fatal on rootless/user-namespaced runtimes (root §3.4); accepts `1` or case-insensitive `true` | Optional (unset = uid 0 refused) |
 
 Exact names are a recommended default; whatever ships is what the
 documentation states, and per root §5.3 the list does not grow to mirror
@@ -146,9 +165,10 @@ most silent in this document: a kernel OOM kill has no log line, lands
 mid-write, and a restart policy hides it. The entrypoint must read the
 container memory limit where the cgroup exposes one and **fail loudly
 before the game starts** when the effective maximum heap plus a
-**documented non-heap allowance** exceeds the limit — the allowance is a
-number two implementations compute identically (a should-level starting
-point: the larger of 512 MB or 25% of the heap), not an adjective. An
+**documented, deterministic non-heap allowance** exceeds the limit — the
+must is that the allowance is a number two implementations compute
+identically, never an adjective; the value itself is a recommended
+default (the larger of 512 MB or 25% of the heap). An
 implausibly large reported limit (cgroup v1 reports a near-maximum value
 for "unlimited") counts as no limit. Where no limit is readable, the game
 starts, and the documentation states what the default heap assumes of the
@@ -182,7 +202,12 @@ Per root §5.6 and the SIGTERM fact of §2: on the stop signal the entrypoint
 runs the game's `save`-then-`quit` sequence through a channel that exists
 regardless of operator configuration, waits up to `STOP_TIMEOUT` (§3) for
 the Java process to exit on its own — root §5.6's definition of a confirmed
-clean stop — and exits 0 only then. The expected channel is the
+clean stop — and exits 0 only on the game's own successful exit (root §5.6's
+definition). A stop signal arriving **while the world is still loading**
+follows the same rules and lands, deliberately, on the timeout row's
+non-zero exit: terminating mid-generation leaves state as unconfirmed as
+terminating mid-save, and a "fast clean abort" that guesses otherwise
+would code the guess as truth. The expected channel is the
 server console over stdin — an open item of §2. If verification finds the
 console unusable from a pipe, the sanctioned fallback is an
 **entrypoint-managed internal RCON**, under four constraints. When the
@@ -211,8 +236,10 @@ The HEALTHCHECK queries the Steam query protocol on the port the §2
 verification confirms (expected: the main game port), always against the
 **effective** port configuration (root §5.5). If verification resolves
 unfavorably, the fallback order is: the legacy Steam ports if they turn
-out to hold live query listeners (§2); otherwise the mediation channel of
-§5, probed per check — the liveness predicate must be one that **can go
+out to hold live query listeners (§2); otherwise a **request/response
+channel** — which means the internal RCON of §5 becomes mandatory in that
+configuration, because the console is write-only and cannot answer a
+probe (§2, open item i). The liveness predicate must be one that **can go
 false on a hung server**, which is why a log-line match may serve only as
 the *readiness* signal (world loaded), never as liveness: a matched line
 stays matched forever, exactly the latch root §5.5 forbids. A
@@ -244,7 +271,14 @@ it (§5).
 
 Supported the way the game does it natively: the server downloads
 the mods listed in its configuration at startup into its mod directory
-(location: open item g of §2), where they persist. The image neither bakes
+(location: open item g of §2), where they persist. If item g resolves to
+a path outside the state root, the required response is fixed now: the
+mod target **must be brought inside the documented state root** — by the
+game's own configuration where it offers one, otherwise by relocation or
+a link prepared at build time — and only if that proves impossible does
+the image document a narrowed read-only claim as a reasoned §5.1
+deviation. Root §3.4's rule (nothing writes into the shipped game
+directory) is never the thing that bends. The image neither bakes
 mods nor manages them; documentation must state this, including the
 consequence that first start after adding mods is slow and needs Steam
 connectivity — and, once open item h of §2 is settled, **what the game
