@@ -22,6 +22,10 @@ stable mount point. The concrete path is the implementation's choice and
 becomes a documented fact of the image. A missing or unwritable state root
 is a loud fatal before the game starts, never a fallback path.
 
+The read-only-root-filesystem recommendation of root §5.1 applies
+unchanged: all writes are expected to land in the state root and `/tmp`,
+verified at implementation.
+
 ## 2. Facts about the PZ dedicated server
 
 Verified 2026-08-12; the implementation must re-verify against the build it
@@ -65,7 +69,10 @@ ships, and any correction lands in the image documentation.
   (b) whether the legacy `SteamPort1`/`SteamPort2` settings (defaults
   8766/8767 UDP) still open listeners on Build 42 — reported unnecessary
   on modern builds, but if present they belong in the port table
-  (root §5.2 documents *every* port).
+  (root §5.2 documents *every* port); (c) whether the server console
+  accepts `save`/`quit` over a non-interactive stdin pipe (no TTY) — the
+  shutdown mediation of §5 rests on it, and a Java console that works at a
+  terminal can still refuse a pipe.
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -93,7 +100,7 @@ should be:
 | `ADMIN_USERNAME` | Admin account created on first boot | Optional (default `admin`) |
 | `ADMIN_PASSWORD` | Admin account password | **Mandatory on first boot** (no server database yet); optional afterwards — see §4 |
 | `SERVER_PASSWORD` | Join password | Optional (open server without it) |
-| `RCON_PASSWORD` | Enables and protects RCON | Optional (RCON stays off without it) |
+| `RCON_PASSWORD` | Enables and protects operator RCON | Optional (operator RCON stays off without it; the entrypoint may still run an internal, unpublished RCON for stop mediation — §5) |
 | `RCON_PORT` | RCON TCP port | Optional (default 27015) |
 | `GAME_PORT` | Main UDP port (game traffic; expected to answer Steam query too — open item, §2) | Optional (default 16261) |
 | `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
@@ -121,35 +128,61 @@ starts:
 | No | No | **Fatal before game start**, message naming the variable — a hang or an adminless public server are both unacceptable |
 | No | Yes | Create the admin account via the game's non-interactive mechanism; start |
 | Yes | No | Start; credentials already in the database |
-| Yes | Yes | Start; apply the password to the existing account if the game supports it non-interactively, otherwise emit a prominent warning **at every start** that the value is ignored (credentials live in the database) |
+| Yes | Yes | Start; **the environment wins**: apply the password to the account at every start if the game supports it non-interactively, otherwise emit a prominent warning **at every start** that the value is ignored (credentials live in the database) |
 
-The warning in the last row is a deliberate exception to the "warnings are
-not enough" stance of root §5.4, with the reasoning that stance demands:
-making this case fatal would break the normal deployment — a compose file
-sets `ADMIN_PASSWORD` once and keeps it set forever, so every restart after
-first boot would die — and the image cannot distinguish an unchanged value
-from a rotated one, because it cannot read the game's password hashes. The
-divergence risk is confined to an operator who rotates the variable and
-never reads logs; the per-start (not once-only) warning is what keeps that
-divergence discoverable.
+Both branches of the last row carry deliberate trade-offs, stated here
+because each is a documented exception to a rule elsewhere:
+
+- **Env-wins precedence** (the apply branch): the environment states
+  desired credentials, applied declaratively at every start. Consequence:
+  an admin password changed *in game* reverts on the next restart while the
+  variable stays set — the same class of surprise as game-rewritten
+  configuration, handled the same way (root §5.3): the image documentation
+  states prominently that this credential is managed via the environment
+  *or* in game, never both.
+- **The per-start warning** (the cannot-apply branch) is a deliberate
+  exception to the "warnings are not enough" stance of root §5.4, with the
+  reasoning that stance demands: making this case fatal would break the
+  normal deployment — a compose file sets `ADMIN_PASSWORD` once and keeps
+  it set forever, so every restart after first boot would die — and the
+  image cannot distinguish an unchanged value from a rotated one, because
+  it cannot read the game's password hashes. The divergence risk is
+  confined to an operator who rotates the variable and never reads logs;
+  the per-start (not once-only) warning is what keeps that divergence
+  discoverable.
 
 ## 5. Shutdown
 
 Per root §5.6 and the SIGTERM fact of §2: on the stop signal the entrypoint
 runs the game's `save`-then-`quit` sequence through a channel that exists
-regardless of operator configuration (the server console; RCON only as an
-alternative when configured), waits for the Java process to exit, and exits
-0 only on a confirmed clean stop. The image documentation recommends a stop
-grace period of at least 90 seconds, and notes that large maps and many
-players lengthen saves.
+regardless of operator configuration, waits for the Java process to exit,
+and exits 0 only on a confirmed clean stop. The expected channel is the
+server console over stdin — an open item of §2. If verification finds the
+console unusable from a pipe, the sanctioned fallback is an
+**entrypoint-managed internal RCON**: the entrypoint generates an ephemeral
+password and enables RCON itself, solely for mediation — safe because an
+unpublished container port is unreachable from outside, and independent of
+operator configuration because the entrypoint owns it (this is distinct
+from *operator* RCON, §3). The image documentation recommends a stop grace
+period of at least 90 seconds, and notes that large maps and many players
+lengthen saves.
 
 ## 6. Health
 
 The HEALTHCHECK queries the Steam query protocol on the port the §2
-verification confirms (expected: the main game port). World load on large
-Build 42 maps takes minutes: the
-`start_period` must absorb that so a starting server is not reported
-unhealthy, while a loaded-then-hung server is.
+verification confirms (expected: the main game port). If verification
+resolves unfavorably, the fallback order is: the legacy Steam ports if they
+turn out to hold live query listeners (§2); otherwise the best available
+game-level signal (the internal mediation channel of §5, or a log-line
+readiness match), documented as a reasoned deviation per root §5.5 — a
+process-level check is never the answer. World load on large Build 42 maps
+takes minutes: the `start_period` must absorb that so a starting server is
+not reported unhealthy, while a loaded-then-hung server is.
+
+Both static clients of root §5.5 ship: the query client drives the
+healthcheck and serves operators; the RCON client is useful to operators
+only when operator RCON is enabled (§3) — stop mediation does not depend on
+it (§5).
 
 ## 7. Workshop mods
 

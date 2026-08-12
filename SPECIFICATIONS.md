@@ -221,9 +221,13 @@ document honestly and to expose what the game does offer:
 
 ### 5.3 Configuration
 
-- The game's **native configuration files are the authoritative interface**
- . The image must be fully operable with a mounted configuration and
-  not a single game-specific environment variable set.
+- The game's **native configuration files are the authoritative interface**.
+  For every value the game itself can take from a file, the image must be
+  fully operable with a mounted configuration and no game-specific
+  environment variable set. Values the game keeps only in state it creates
+  itself — a first-boot admin credential living in the game's database, for
+  instance — cannot come from a mountable file and are exactly what the
+  mandatory-variable clause below exists for.
 - Environment variables are **optional overrides**: when set, the entrypoint
   applies them to the effective configuration at startup. When unset, the
   configuration file's values stand. Documentation flags every variable
@@ -276,8 +280,10 @@ document honestly and to expose what the game does offer:
   (Steam query), not the process: a hung server is alive and
   unhealthy, and process-level checks call it healthy. The check must not
   report healthy while the world is still loading (the `start_period` must
-  absorb worst-case load time), and must fail once the server no longer
-  accepts players.
+  absorb worst-case load time), and must stop reporting healthy once the
+  server is no longer serving — no longer answering queries. A *full*
+  server still serves: the predicate is answering, not joinable, or the
+  probe flaps exactly when the server is most alive.
 - Game images ship two minimal static clients, both documented for operator
   use: a **Steam-query client** (drives the healthcheck; answers "serving?"
   and player count) and an **RCON client** (operator save/announce via
@@ -407,13 +413,20 @@ CI on the repository's GitHub project must provide:
 
 - **On-demand builds**: a manually triggered workflow that builds and
   publishes a chosen image — for the builder, a new date tag; for a game, a
-  chosen branch/version with the correct revision tag computed against what
-  the registry already holds (never overwriting, per §7).
+  chosen branch, whose current content determines the version tag (steamcmd
+  installs what a branch holds *now*; arbitrary historical versions would
+  need depot-manifest machinery this project does not contemplate), with
+  the revision tag computed against what the registry already holds (never
+  overwriting, per §7).
 - **Scheduled update detection**: a periodic job compares each game's
-  current Steam buildid (§2.3) against the newest published image and, on a
-  new game version, builds and publishes the new tags automatically. This is
-  safe precisely because tags are additive and consumers pin (§7): publishing
-  never deploys anything anywhere.
+  current Steam buildid (§2.3) against the buildid label of the newest
+  published image (§5.8) and, on **any** buildid change, builds and
+  publishes automatically — a changed version string as a new version tag,
+  an unchanged one as a revision bump, per §7. Both flow without human
+  action, and for the same reason: tags are additive and consumers pin
+  (§7), so publishing never deploys anything anywhere; leaving
+  same-version content updates unpublished would silently strand servers
+  on stale builds instead.
 - Game images should also be rebuilt (revision bump) when the base or the
   builder image materially changes — security patches reach game images no
   other way once games are baked in. A scheduled base refresh should exist
