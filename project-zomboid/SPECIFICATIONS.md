@@ -131,7 +131,15 @@ ships, and any correction lands in the image documentation.
     answer yet) and against an artificially hung one (the answer must
     stop; a Steamworks responder living outside the game's main loop
     could keep answering) — the entire healthcheck premise; unfavorable →
-    absorbed by §6's fallback order;
+    absorbed by §6's fallback order; and if (l) is *also* unfavorable
+    while the console works (stop mediation intact), the default profile
+    **ships with a documented degraded healthcheck**: the honest remainder
+    of A2S — dead-port and crashed-responder detection — with its blind
+    spot stated plainly (a hung-but-still-answering server goes undetected
+    under this resolution). The flagship guarantee, stop mediation, is
+    intact; blocking the image because perfect hang detection is
+    impossible would be disproportionate, and the wide listener stays
+    forbidden;
   - (l) whether the game's RCON offers a **bind-address setting** — the §5
     internal-RCON fallback requires loopback; if the game cannot bind
     loopback and the console is also unusable (item c), there is no safe
@@ -292,7 +300,14 @@ port" is no protection under host networking or a shared network
 namespace — with an ephemeral generated password carrying enough entropy
 that brute force over loopback is impractical (a shared network namespace
 puts other containers on that loopback), which must not persist
-into any backed-up file beyond what the game's own INI rewriting forces,
+into any backed-up file beyond what the game's own INI rewriting forces.
+Where that rewriting does force it into the INI, the residue is **never
+mistaken for operator configuration**: a password the entrypoint itself
+generated is rotated (or scrubbed) at each start rather than "reused" —
+the recognition mechanism is the implementation's; an implementation that
+applies RCON settings without INI persistence dissolves the question. The
+generated listener also does not inherit the wide-bind treatment operator
+RCON gets. It stays loopback,
 and the listener appears in the image's **port table** as an admin
 interface with its bind address, like every other port (root §5.2). The
 image documentation recommends a stop grace period of at least 90
@@ -348,8 +363,9 @@ the image documents its chosen value and this reasoning.
 
 Both static clients of root §5.5 ship: the query client drives the
 healthcheck and serves operators; the RCON client is useful to operators
-only when operator RCON is enabled (§3) — stop mediation does not depend on
-it (§5).
+only when operator RCON is enabled (§3) — and while stop mediation may
+ride the RCON *protocol* in the fallback world of §5, it never depends on
+**operator-enabled** RCON.
 
 ## 7. Workshop mods
 

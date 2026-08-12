@@ -420,8 +420,10 @@ document honestly and to expose what the game does offer:
   the operator can issue save/announce commands from inside the container
   via `docker exec`. The recommended default providing both is shipping two
   minimal static clients, a **Steam-query client** and an **RCON client**
-  (the latter useful only where the game's admin protocol is enabled, and
-  never the mediation a stop depends on, §5.6); expected to cost megabytes,
+  (the latter useful only where the game's admin protocol is enabled — and
+  a stop must never depend on *operator-enabled* RCON, §5.6, though
+  mediation may ride the protocol through the image's own internal
+  channel); expected to cost megabytes,
   not tens of megabytes — measured at implementation. A game needing a
   different mechanism documents what replaces them.
 
@@ -651,7 +653,9 @@ CI on the repository's GitHub project must provide:
   overwriting, per §7).
 - **Scheduled update detection**: a periodic job compares each game's
   current Steam buildid (§2.3) against the buildid label of the newest
-  published image (§5.8) and, on **any** buildid change, builds and
+  published **release** image (§5.8 — the `-rN` stream of §7, never a
+  development tag, whose newer buildid would otherwise silently suppress a
+  release publish) and, on **any** buildid change, builds and
   publishes automatically — a changed version string as a new version tag,
   an unchanged one as a revision bump, per §7. Both flow without human
   action, and for the same reason: tags are additive and consumers pin
