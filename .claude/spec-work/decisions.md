@@ -10,6 +10,16 @@ batch integration once the user finishes reviewing; do not apply piecemeal.
   `sdk32/`), a path normally provided by a steamcmd installation — baked
   images must ship/symlink these libraries from the builder stage; the
   binary itself is never needed at runtime.
+- Rework §5.2 ports (user challenge, accepted in principle): "every port
+  must be configurable" is unsatisfiable by an image — configurability is a
+  game property. Replace with: (a) must document every port's role, default,
+  and whether it is *advertised* (must match the published number — Steam
+  browser registration) or freely remappable; (b) advertised ports must be
+  settable where the game supports it, else the fixed number and its
+  consequence (publish 1:1, one instance per host) are documented as a
+  limitation; (c) non-advertised ports need no configurability — Docker
+  remapping suffices. Nuance kept: a fixed advertised port breaks
+  flexibility (multi-instance, port moves), not single-instance deploys.
 - Extend D-002's premises: games can fetch their own runtime content
   (workshop mods) or need none; steamcmd's `workshop_download_item` is the
   one runtime-relevant feature, only for games whose server cannot
