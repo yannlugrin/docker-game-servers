@@ -55,7 +55,7 @@ libraries (`lib32gcc-s1` on Debian-family systems) and certificates for
 Steam's TLS endpoints, and it does not run on musl — Alpine-class bases are
 ruled out, and images are **linux/amd64 only**. The realistic size floor is
 a Debian/Ubuntu slim base; Debian 13 slim (`trixie-slim`) is the smallest
-mainstream option and the project's chosen base for every stage.
+mainstream option.
 
 **2.2 steamcmd self-updates on launch and has no published versions.** Every
 run may touch the network and mutate its own installation. Consequence: the
@@ -84,10 +84,10 @@ others on a dedicated query port; which one is a per-game fact that belongs
 in the game's port table (§5.2). It is the correct liveness probe either
 way: a hung server keeps its process alive but stops answering queries.
 
-**2.6 Registry.** Images are published publicly on GHCR under
-`ghcr.io/<owner>` — free for public images, credential-less pulls, native
-CI integration. The concrete owner is resolved at implementation time from
-the repository's GitHub remote.
+**2.6 Registry.** GHCR hosts public images free of charge, with
+credential-less anonymous pulls and native GitHub Actions integration
+(build and push in one workflow, no extra credentials). Docker Hub
+rate-limits anonymous pulls. These facts drive the registry decision in §7.
 
 **2.7 Dedicated servers load Steam client libraries at runtime.** Many
 Linux dedicated servers dlopen `steamclient.so`, typically resolved via
@@ -101,7 +101,12 @@ mid-implementation is the classic first-build failure of baked game images.
 ## 3. Core model
 
 **3.1 Two tiers, one build direction.** The builder image installs games;
-game images contain them. Every game image is produced by a multi-stage
+game images contain them. Every stage of every image is based on
+**Debian 13 slim (`trixie-slim`)** — a decision, resting on the facts of
+§2.1: the smallest mainstream base satisfying steamcmd's glibc and 32-bit
+needs, with a long support horizon; Ubuntu was rejected as slightly larger
+for no functional gain, and one base across all stages keeps layers shared.
+Every game image is produced by a multi-stage
 build: the builder stage (from the steamcmd image) downloads the game, and
 the final stage starts from the slim runtime base and copies the game in,
 adding only that game's runtime dependencies — including the Steam client
@@ -135,6 +140,19 @@ directories, and any baked-in ownership breaks that or forces a re-chown of
 gigabytes. All state is written under `$HOME` or under the image's
 documented state paths — never into the shipped game directory.
 
+Two consequences, both requirements. The image declares **no default
+user**, and the entrypoint **fatally refuses to run as uid 0**, with a
+message naming `--user` (and compose `user:`): a container cannot
+distinguish an operator-chosen uid from an image default, so refusing root
+is the only way to force the choice to be deliberate — a root default
+plants root-owned files in the operator's volume that spring the
+unwritable-state-root fatal the first time `--user` is added, and an
+image-invented default uid puts numbers nobody chose on the operator's
+disk. And the per-game specification must enumerate the **complete
+writable-path set** — the state root, `/tmp`, and what the image sets
+`$HOME` to — so the read-only-rootfs recommendation of §5.1 is checkable
+rather than aspirational.
+
 **3.5 The entrypoint is the adapter.** Each game image has a thin entrypoint
 owning exactly four jobs: validate the startup state and fail loudly on
 anything unsafe (§5.3, §5.4); apply optional environment overrides to the
@@ -149,7 +167,7 @@ belongs to the operator.
 and usable on its own as a generic "install a Steam app" builder by anyone.
 It is not a runtime image and its documentation must say so.
 
-**4.2** It must be based on the project's runtime base (§2.1) and contain a
+**4.2** It must be based on the project's base (§3.1) and contain a
 working steamcmd, already run once at build time so its self-update is
 baked into the layer — otherwise every consumer's first build step
 re-downloads the steamcmd runtime, paying the cost once per game build
@@ -157,10 +175,12 @@ instead of once per base build.
 
 **4.3** It must be able to install a given app id, from a given branch
 (including password-protected beta branches) with anonymous login, and
-support Steam's file validation. Credentials for non-anonymous apps must be
-acceptable via the environment at build time without ever being written to
-a layer — not needed for the first games, but the design must not preclude
-it (§10.4).
+support Steam's file validation. For non-anonymous apps, the design must
+not preclude accepting credentials at build time (§10.4) — and the
+guarantee, stated channel-neutrally because the obvious channel is the
+trap, is that a credential **never persists in any layer or in the image's
+build history**: a plain build argument or baked environment variable does
+persist there, which is exactly what rules those out.
 
 **4.4** It should contain nothing beyond steamcmd's needs (certificates,
 32-bit libraries): no editors, no locale packs, no convenience tooling.
@@ -168,9 +188,8 @@ Every megabyte here is inherited by every game build's cache.
 
 ## 5. Game image conventions
 
-Every game image must satisfy this section. Its per-game section (§6 for
-Project Zomboid) adds the game's specifics and documents how each convention
-is honored.
+Every game image must satisfy this section. Its per-game specification (§6)
+adds the game's specifics and documents how each convention is honored.
 
 ### 5.1 Filesystem and state
 
@@ -296,14 +315,24 @@ document honestly and to expose what the game does offer:
   absorb worst-case load time), and must stop reporting healthy once the
   server is no longer serving — no longer answering queries. A *full*
   server still serves: the predicate is answering, not joinable, or the
-  probe flaps exactly when the server is most alive.
-- Game images ship two minimal static clients, both documented for operator
-  use: a **Steam-query client** (drives the healthcheck; answers "serving?"
-  and player count) and an **RCON client** (operator save/announce via
-  `docker exec` without exposing the RCON port, and a shutdown-mediation
-  *alternative* where RCON is configured — never the mediation the stop
-  depends on, per §5.6). Together they add megabytes, not tens of
-  megabytes; images whose game needs neither may drop them with reason.
+  probe flaps exactly when the server is most alive. The probe targets the
+  **effective** configuration — a probe baked to the default port marks a
+  correctly reconfigured server permanently unhealthy. And the
+  `start_period` trade-off is stated so it is chosen deliberately: sizing
+  it for the worst case (first-boot world generation) blinds hang detection
+  for that long on every later restart; the image documents the value and
+  the reasoning.
+- Two capabilities are **must**, both without exposing any admin port
+  outside the container: the operator can ask "is it serving, and how many
+  players" from the host (the healthcheck's own probe doubles as the
+  tool), and — where the game has an admin protocol or console — the
+  operator can issue save/announce commands from inside the container via
+  `docker exec`. The recommended default providing both is shipping two
+  minimal static clients, a **Steam-query client** and an **RCON client**
+  (the latter useful only where the game's admin protocol is enabled, and
+  never the mediation a stop depends on, §5.6); expected to cost megabytes,
+  not tens of megabytes — measured at implementation. A game needing a
+  different mechanism documents what replaces them.
 
 ### 5.6 Lifecycle and shutdown
 
@@ -325,6 +354,24 @@ later with nothing in any log.
   the game process to exit. The mediation path must work regardless of
   optional operator configuration — a stop that only works when the operator
   happened to enable RCON is a stop that fails silently on default setups.
+- The wait is bounded by an **operator-settable stop timeout** (an
+  environment variable with a documented default), documented alongside the
+  grace-period recommendation with the rule that binds them: **the timeout
+  must sit below the runtime's stop grace period**, because the two ends of
+  the race are asymmetric — a timeout that fires first produces a logged,
+  attributable failure (the entrypoint terminates the game and exits
+  non-zero, save unconfirmed), while a grace period that fires first is a
+  silent `SIGKILL` with generic exit 137 and no explanation in the log. No
+  fixed internal number can be right for every map size and player count,
+  which is why the bound is the operator's.
+- **A confirmed clean stop** — the only thing that exits 0 — is defined
+  observably: the shutdown sequence was delivered and the game process
+  exited *on its own* within the timeout. A game process the entrypoint had
+  to terminate, or that crashed on the way down, is unconfirmed. The game's
+  own orderly exit after its quit command is the strongest completion
+  signal available from outside; demanding deeper save-flush evidence would
+  be game-specific and fragile, and miscoding clean stops as dirty cries
+  wolf — the failure the exit-code contract exists to prevent.
 - Exit codes are the supervision interface: **0 for a requested stop that
   completed cleanly; non-zero for everything else**, including a stop where
   the save could not be confirmed. A supervisor restarts and alerts on
@@ -333,8 +380,8 @@ later with nothing in any log.
 
 | Event | Required behavior |
 |---|---|
-| Stop signal, game saves and exits in time | Exit 0 |
-| Stop signal, game unresponsive to mediation | Bounded wait, then terminate the game process; exit non-zero — the save is unconfirmed |
+| Stop signal, game exits on its own within the stop timeout | Exit 0 — confirmed clean stop |
+| Stop signal, game still running when the stop timeout expires | Terminate the game process; exit non-zero — the save is unconfirmed |
 | Game crashes or exits by itself | Propagate a non-zero exit |
 | Startup validation fails (§5.3, §5.4) | Exit non-zero before the game starts |
 
@@ -357,6 +404,13 @@ preference:
 
 Either way the documentation names what to copy (the §5.1 state root) and
 what is pointless to copy (ephemeral paths).
+
+The same section owns the **version-upgrade warning**: moving to an image
+with a newer game version may migrate the world irreversibly — the game
+decides, not the image — so the documentation must tell operators to take a
+backup before crossing game versions, and that the moving tags of §7 cross
+them automatically on pull. Silent, discovered late, unrecoverable: the
+exact shape of failure this specification exists to prevent.
 
 ### 5.8 Image metadata
 
@@ -381,11 +435,16 @@ full — a per-game document adds to the conventions and may deviate from a
 A per-game specification must cover, at minimum:
 
 - the researched **facts** about the game's dedicated server — install
-  source and branches, runtime, state layout, configuration behavior
-  including whether the game rewrites its own files (§5.3), ports with the
-  advertised-or-remappable flag (§5.2), admin/query/save mechanisms, stop
-  signal behavior (§5.6) — dated, and re-verified at implementation against
-  the build actually shipped;
+  source and branches, **where the human-readable version string is read
+  from** (game files, distribution metadata, or a build input — it names
+  the tags, §7), runtime, state layout, the complete writable-path set
+  including what `$HOME` must be (§3.4), configuration behavior including
+  whether the game rewrites its own files (§5.3), ports with the
+  advertised-or-remappable flag (§5.2), admin/query/save mechanisms,
+  **whether the game can run with its query protocol disabled** and what
+  the healthcheck does then (§5.5), stop signal behavior (§5.6), and
+  **what a game-version upgrade does to existing saves** (§5.7) — dated,
+  and re-verified at implementation against the build actually shipped;
 - the **environment surface** (§5.3): every variable, its purpose, its
   mandatory-or-optional flag;
 - **first boot**: what happens on a fresh state directory, with a decision
@@ -414,10 +473,19 @@ A per-game specification must cover, at minimum:
   suffix — `YYYYMMDD.N` — when the same day sees more than one build, so
   no immutable tag is ever reused) plus a moving `latest` — steamcmd has no
   upstream version to carry (§2.2).
+- "Newest game version" for the moving pointers is decided by **publication
+  order of new-version builds**, not by parsing version strings — a string
+  sort calls 42.9 newer than 42.10, and Steam branches only move forward,
+  so the order builds were published in is the order versions arrived in.
+- A rebuild at an **unchanged version and unchanged buildid** is a
+  legitimate revision bump — that is precisely what base refreshes and
+  entrypoint fixes are.
 - **A published immutable tag is never reused for different content.**
   Consumers pin `-rN`, a date tag, or a digest for reproducibility; the
-  moving tags are convenience pointers, and every image's documentation says
-  exactly that, so nobody mistakes `latest` for a stable reference.
+  moving tags are convenience pointers, and every image's documentation
+  says exactly that — including that the moving tags **cross game versions
+  on pull**, with the save-migration consequence of §5.7 — so nobody
+  mistakes `latest` for a stable reference.
 - Images are linux/amd64 only (§2.1); tags carry no architecture suffix.
 
 ## 8. Build automation
@@ -440,15 +508,21 @@ CI on the repository's GitHub project must provide:
   (§7), so publishing never deploys anything anywhere; leaving
   same-version content updates unpublished would silently strand servers
   on stale builds instead.
-- Game images should also be rebuilt (revision bump) when the base or the
-  builder image materially changes — security patches reach game images no
-  other way once games are baked in. A scheduled base refresh should exist
-  for the same reason.
+- Game images **must** also be rebuilt (revision bump) when the base or the
+  builder image materially changes, and a **scheduled base refresh must
+  exist**: once games are baked in, this is the *only* path by which
+  security patches reach game images — as an optional nicety it would be
+  the first thing dropped, leaving multi-gigabyte public images unpatched
+  indefinitely. The cadence is the implementation's choice; the mechanism
+  is not.
 - **A smoke test gates every game-image publish**: the built image must
   start with a minimal configuration, report healthy (§5.5), stop on the
   stop signal, and exit 0 — asserting exactly the silent-failure path of
-  §5.6 before the image reaches anyone. A build that cannot pass this does
-  not publish.
+  §5.6 before the image reaches anyone. It runs under an **arbitrary
+  non-root uid** with a **read-only root filesystem**, so the uid-agnostic
+  promise of §3.4 and the writable-path claims of §5.1 are exercised on
+  every publish instead of trusted. A build that cannot pass this does not
+  publish.
 
 ## 9. Documentation deliverables
 
@@ -491,8 +565,17 @@ Not built now; nothing in the present design may preclude them.
   credentials. §4.3 already requires the builder to accept credentials
   without persisting them; what remains is CI secret handling, deferred
   until such a game is wanted.
-- **10.5 More games**: the point of §5 — each is a new directory, a §6-style
-  section, and a small delta.
+- **10.5 More games**: the point of §5 — each is a new directory, a
+  per-game specification (§6), and a small delta.
+- **10.6 Non-Steam games** (a Minecraft-class server, for instance). The
+  conventions of §5 are acquisition-agnostic — nothing in them assumes
+  Steam. What changes per non-Steam game: the build stage (a different
+  fetcher than the steamcmd builder), CI's update detection (a per-game
+  version source instead of the Steam buildid, §8), and the healthcheck's
+  protocol (§5.5 names the Steam query because every current game is a
+  Steam game; the requirement is the game-protocol probe, whatever that
+  protocol is). Deferring is safe: a non-Steam game arrives as a new game
+  directory with its own builder stage, touching nothing existing.
 
 ## 11. Non-Goals
 

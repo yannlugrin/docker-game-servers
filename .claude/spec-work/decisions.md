@@ -2,10 +2,7 @@
 
 ## Open questions
 
-(none — the 2026-08-12 user review round was applied in full: steamclient.so
-fact → root §2.7/§3.1; ports rework → root §5.2; file-only logs → root §5.5;
-backup documentation → root §5.7, §9, PZ §8; D-002 premises extended;
-per-game specification split → D-014.)
+(none)
 
 ---
 
@@ -157,7 +154,11 @@ per-game specification split → D-014.)
   Amended per review 002 (F2, F8): a game content update whose version
   string is unchanged (buildid-only) is a `-rN` revision bump, with the
   Steam buildid carried as an image label; a second same-day builder build
-  takes an ordinal suffix (`YYYYMMDD.N`).
+  takes an ordinal suffix (`YYYYMMDD.N`). Amended per review 004 (F2):
+  "newest version" for moving pointers is publication order of new-version
+  builds (no version-string parsing); a rebuild at unchanged
+  version+buildid is a legitimate revision bump; the version-string source
+  is a required per-game fact.
 - **Why:** the user wants convenience pointers (`latest`, bare version)
   alongside reproducible references; consumers needing reproducibility pin
   `-rN` or a digest. Bare-version-only (no revision) rejected: rebuilds for
@@ -225,6 +226,10 @@ per-game specification split → D-014.)
   clients exist (or are trivially built) so the size cost stays in the
   low megabytes; RCON-style admin protocols are only active when the
   operator configures them.
+- Amended per review 004 (F11): the two *capabilities* (host-side
+  serving/player-count probe; exec-based save/announce where the game has
+  an admin channel) are the musts; shipping the two specific clients is the
+  recommended default (should).
 
 ## D-013 (2026-08-12) — Image naming: plain game name; owner placeholder
 
@@ -258,3 +263,39 @@ per-game specification split → D-014.)
 - **Premises:** the monorepo has one directory per game image (D-001); the
   conventions (root §5) carry everything game-independent, so per-game
   documents stay small.
+
+## D-015 (2026-08-12) — No default user; the entrypoint refuses uid 0
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** game images declare no default user; the entrypoint exits
+  fatally when running as uid 0, with a message naming `--user` / compose
+  `user:`. An explicit uid choice is mandatory to run the image.
+- **Why:** the user's ruling on review 004 F12, refining both offered
+  options. A container cannot distinguish an operator-chosen uid from an
+  image default, so refusing root is the only way to force a deliberate
+  choice. A root default plants root-owned files in the volume (springing
+  the unwritable-state-root fatal when `--user` is later added); an
+  image-invented default uid puts numbers nobody chose on the operator's
+  disk. Rejected: non-root default uid (the invented-number problem), root
+  default with docs (the trap), escape hatch env (would be cargo-culted).
+- **Premises:** operators mount owner-only state directories and care about
+  file ownership on the host; a loud, explanatory first-run fatal is an
+  acceptable cost for a public image (no zero-flag quickstart).
+
+## D-016 (2026-08-12) — Non-Steam games are a Future Consideration
+
+- **Status:** decided
+- **Foundational:** yes
+- **Decision:** games not distributed through Steam (Minecraft-class
+  servers) are in the project's future scope: nothing built now, nothing in
+  the conventions may assume Steam. Recorded as root §10.6.
+- **Why:** user's request (2026-08-12). The §5 conventions are
+  acquisition-agnostic already; the Steam-specific pieces are the builder
+  tier, CI's buildid-based update detection, and the healthcheck's named
+  protocol — each swaps per game without touching the rest. Deferring is
+  safe: a non-Steam game arrives as a new game directory with its own
+  builder stage.
+- **Premises:** the first games are Steam games; §5 names no Steam
+  mechanism as a must except the game-protocol probe, which is
+  protocol-generic in intent (made explicit in §10.6).

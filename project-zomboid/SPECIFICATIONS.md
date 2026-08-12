@@ -23,8 +23,11 @@ becomes a documented fact of the image. A missing or unwritable state root
 is a loud fatal before the game starts, never a fallback path.
 
 The read-only-root-filesystem recommendation of root §5.1 applies
-unchanged: all writes are expected to land in the state root and `/tmp`,
-verified at implementation.
+unchanged. The complete writable-path set (root §3.4) is: the state root,
+`/tmp`, and `$HOME` — which the image sets itself to a writable documented
+location (inside the state root or a dedicated mount), because the
+Steam client link farm and JVM crash dumps may land under it (§2, open
+item f); nothing else may need write access, verified at implementation.
 
 ## 2. Facts about the PZ dedicated server
 
@@ -75,7 +78,13 @@ ships, and any correction lands in the image documentation.
   terminal can still refuse a pipe; (d) whether the game supports a
   **non-interactive admin password change** on an existing account — it
   decides whether the `ADMIN_PASSWORD` override of §3 is offered at all
-  (root §5.4 pattern).
+  (root §5.4 pattern); (e) where the **human-readable version string** is
+  authoritatively read from — the game's own files, Steam metadata, or a
+  build input — since it names the image tags (root §7); (f) how a
+  **non-Steam configuration** is detected from the effective settings, and
+  whether the server writes into a `$HOME`-derived path (`~/.steam` link
+  farm, JVM crash dumps) at runtime — it completes the writable-path set
+  (root §3.4).
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -109,6 +118,7 @@ should be:
 | `GAME_PORT` | Main UDP port (game traffic; expected to answer Steam query too — open item, §2) | Optional (default 16261) |
 | `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
 | `MAX_HEAP` | JVM maximum heap | Optional (documented default), with the §2 warning that it must sit below the container memory limit |
+| `STOP_TIMEOUT` | Entrypoint's bounded wait for the game to exit after `save`+`quit` (root §5.6) | Optional (documented default; docs state it must sit below the runtime's stop grace period) |
 
 Exact names are a recommended default; whatever ships is what the
 documentation states, and per root §5.3 the list does not grow to mirror
@@ -125,7 +135,11 @@ The image documentation says so.
 
 The dangerous branch is a fresh state directory: the game would prompt for
 an admin password and hang. The entrypoint must resolve it before the game
-starts:
+starts. "Server database exists" is evaluated **against the effective
+`SERVER_NAME`** — config, saves and database are all per-server-name, so
+changing `SERVER_NAME` on a populated state root is a first boot for that
+name and follows the same rows (an implementer testing "any database in the
+state root" reproduces exactly the hang this table exists to prevent):
 
 | Server database exists | Credential variables | Behavior |
 |---|---|---|
@@ -139,8 +153,9 @@ starts:
 
 Per root §5.6 and the SIGTERM fact of §2: on the stop signal the entrypoint
 runs the game's `save`-then-`quit` sequence through a channel that exists
-regardless of operator configuration, waits for the Java process to exit,
-and exits 0 only on a confirmed clean stop. The expected channel is the
+regardless of operator configuration, waits up to `STOP_TIMEOUT` (§3) for
+the Java process to exit on its own — root §5.6's definition of a confirmed
+clean stop — and exits 0 only then. The expected channel is the
 server console over stdin — an open item of §2. If verification finds the
 console unusable from a pipe, the sanctioned fallback is an
 **entrypoint-managed internal RCON**: the entrypoint generates an ephemeral
@@ -154,14 +169,27 @@ lengthen saves.
 ## 6. Health
 
 The HEALTHCHECK queries the Steam query protocol on the port the §2
-verification confirms (expected: the main game port). If verification
-resolves unfavorably, the fallback order is: the legacy Steam ports if they
-turn out to hold live query listeners (§2); otherwise the best available
-game-level signal (the internal mediation channel of §5, or a log-line
-readiness match), documented as a reasoned deviation per root §5.5 — a
-process-level check is never the answer. World load on large Build 42 maps
-takes minutes: the `start_period` must absorb that so a starting server is
-not reported unhealthy, while a loaded-then-hung server is.
+verification confirms (expected: the main game port), always against the
+**effective** port configuration (root §5.5). If verification resolves
+unfavorably, the fallback order is: the legacy Steam ports if they turn out
+to hold live query listeners (§2); otherwise the best available game-level
+signal (the internal mediation channel of §5, or a log-line readiness
+match), documented as a reasoned deviation per root §5.5 — a process-level
+check is never the answer.
+
+A **non-Steam configuration is supported**: the game can run with Steam
+integration disabled, which silences the query protocol entirely. The
+healthcheck must detect that from the effective configuration (§2, open
+item f) and switch to the same fallback order automatically — a healthy
+non-Steam server reported permanently unhealthy would make the probe
+worthless exactly for the operators who deviate.
+
+World load on large Build 42 maps takes minutes: the `start_period` must
+absorb that so a starting server is not reported unhealthy, while a
+loaded-then-hung server is. The trade-off is accepted deliberately
+(root §5.5): a `start_period` sized for worst-case first-boot world
+generation blinds hang detection for that duration on every later restart;
+the image documents its chosen value and this reasoning.
 
 Both static clients of root §5.5 ship: the query client drives the
 healthcheck and serves operators; the RCON client is useful to operators
@@ -189,4 +217,13 @@ Per root §5.7, the image documentation must state:
 - that RCON `save` quiesces to a point but its completion confirmation
   must be verified at implementation before documenting hot copies as
   safe — if it cannot be confirmed, the documented safe procedure is
-  stop / copy / start (root §5.7), and the docs say so plainly.
+  stop / copy / start (root §5.7), and the docs say so plainly;
+- that the image **leaves the native backup settings at the game's
+  defaults** — the INI is the operator's interface (root §5.3) — and the
+  documentation states what those defaults are and how to cap archive
+  count and frequency, because unbounded archives inside the state root
+  are the slow silent disk-filler of root §5.5;
+- the **version-upgrade warning** of root §5.7: a newer game version may
+  migrate the world irreversibly, the moving tags cross versions on pull,
+  and the game's backup-on-version-change setting softens but does not
+  replace a deliberate pre-upgrade backup.
