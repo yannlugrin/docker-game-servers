@@ -20,6 +20,13 @@ batch integration once the user finishes reviewing; do not apply piecemeal.
   limitation; (c) non-advertised ports need no configurability — Docker
   remapping suffices. Nuance kept: a fixed advertised port breaks
   flexibility (multi-instance, port moves), not single-instance deploys.
+- Extend §5.5 logs (user question, gap confirmed): spec is silent on games
+  that cannot log to stdout/stderr. Add: entrypoint *should* relay file-only
+  primary output to stdout (following across rotation; symlink trick only
+  where the game never rotates); log paths stay declared under §5.1 either
+  way; docs *must* state what reaches stdout vs files only, and who rotates
+  what (unrotated files are a slow silent disk-filler; a full state disk
+  corrupts saves). PZ unaffected (logs to stdout and files).
 - Extend D-002's premises: games can fetch their own runtime content
   (workshop mods) or need none; steamcmd's `workshop_download_item` is the
   one runtime-relevant feature, only for games whose server cannot
