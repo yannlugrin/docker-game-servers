@@ -91,8 +91,17 @@ way: a hung server keeps its process alive but stops answering queries.
 
 **2.6 Registry.** GHCR hosts public images free of charge, with
 credential-less anonymous pulls and native GitHub Actions integration
-(build and push in one workflow, no extra credentials). Docker Hub
-rate-limits anonymous pulls. These facts drive the registry decision in §7.
+(build and push in one workflow, no extra credentials). Two consequences
+worth knowing before they bite: a package first pushed by a workflow is
+**not public until the repository owner flips its visibility** — a
+one-time manual step per package, without which CI goes green while no
+consumer can pull (an operator prerequisite at first publish, §8); and
+Docker Hub **rate-limits anonymous pulls**, which cuts both ways — it
+argues for GHCR on the publishing side, and it makes every CI pull of the
+Debian base from shared-IP hosted runners an intermittent-throttling risk
+the implementation should decide about deliberately (mirror or
+authenticated pulls) rather than after the first failed build. These
+facts drive the registry decision in §7.
 
 **2.7 Dedicated servers load Steam client libraries at runtime.** Many
 Linux dedicated servers dlopen `steamclient.so`, typically resolved via
@@ -183,9 +192,11 @@ unprivileged host user and is the runtime's default: setting
 setting it *is* the deliberate choice, and its documentation says exactly
 when it is legitimate. `0` and case-insensitive `false` are recognized as
 an explicit "off" (the fatal proceeds normally); any *other* value is
-unparseable and follows §5.3's validation rule — the fatal message names
-the variable and the rejected value, so an operator whose opt-out attempt
-was mangled is not left staring at the generic message. And the per-game specification must enumerate the
+unparseable and follows §5.3's validation rule — parsed
+**unconditionally**, whatever uid the container runs as, like every other
+variable — and the fatal message names the variable and the rejected
+value, so an operator whose opt-out attempt was mangled is not left
+staring at the generic message. And the per-game specification must enumerate the
 **complete writable-path set** — the state root, `/tmp`, and what the
 image sets `$HOME` to — so the read-only-rootfs recommendation of §5.1 is
 checkable rather than aspirational.
@@ -295,7 +306,13 @@ document honestly and to expose what the game does offer:
   instance — cannot come from a mountable file and are exactly what the
   mandatory-variable clause below exists for.
 - Environment variables are **optional overrides**: when set, the entrypoint
-  must apply them to the effective configuration at startup. When unset,
+  must apply them to the effective configuration at startup — **including
+  the very first start on a fresh state directory**, where the game has not
+  yet authored its configuration files. The observable is fixed even though
+  the mechanism is per-game (launch arguments, a pre-written file, whatever
+  the game offers): a first start that runs on generated defaults and only
+  honors the overrides after a restart silently advertises the wrong port
+  to the world for its entire first run. When unset,
   the configuration file's values stand. The documentation must state the
   consequence for the whole env surface: an override applied at every start
   wins over the same setting changed in game or in the file — a variable
@@ -393,10 +410,12 @@ document honestly and to expose what the game does offer:
   the reasoning.
 - Two capabilities are **must**, both without exposing any admin port
   outside the container: the operator can ask "is it serving, and how many
-  players" from the host (the healthcheck's own probe doubles as the
-  tool), and — where the game has an admin protocol or console — the
-  operator can issue save/announce commands from inside the container via
-  `docker exec`. The recommended default providing both is shipping two
+  players" from the host (the healthcheck's own probe doubles as the tool;
+  the player count is owed where the game's interfaces expose it, and a
+  configuration in which they do not is a documented limitation, not a
+  silent zero), and — where the game has an admin protocol or console —
+  the operator can issue save/announce commands from inside the container
+  via `docker exec`. The recommended default providing both is shipping two
   minimal static clients, a **Steam-query client** and an **RCON client**
   (the latter useful only where the game's admin protocol is enabled, and
   never the mediation a stop depends on, §5.6); expected to cost megabytes,
@@ -560,9 +579,10 @@ A per-game specification must cover, at minimum:
   revision; a moving `latest` points at the newest revision of the newest
   game version.
 - **Builder image**: date-stamped tags (`YYYYMMDD`, with an ordinal
-  suffix — `YYYYMMDD.N` — when the same day sees more than one build, so
-  no immutable tag is ever reused) plus a moving `latest` — steamcmd has no
-  upstream version to carry (§2.2).
+  suffix when the same day sees more than one build — the bare date is the
+  day's first build, the second is `YYYYMMDD.1` — so no immutable tag is
+  ever reused) plus a moving `latest` — steamcmd has no upstream version
+  to carry (§2.2).
 - "Newest game version" for the moving pointers is decided by **publication
   order of new-version builds**, not by parsing version strings — a string
   sort calls 42.9 newer than 42.10, and Steam branches only move forward,
@@ -637,16 +657,16 @@ CI on the repository's GitHub project must provide:
   the *only* path by which security patches reach game images — as an
   optional nicety it would be the first thing dropped, leaving
   multi-gigabyte public images unpatched indefinitely. The cadence is the
-  implementation's choice; the mechanism is not — and it must survive the
-  scheduler's own failure mode (§2.8). The requirement is stated as the
-  observable: **a refresh that has not run within its cadence must surface
-  as a failing check in a channel that does not share the refresh's own
-  scheduler** — once a workflow is disabled, nothing inside it can report
-  anything, so the watchdog must live outside the thing it watches (where
-  it lives is the implementation's choice). Keeping the scheduler alive
-  through repository activity is at most a should on top of that: whether
-  workflow-pushed commits reset GitHub's activity clock is not asserted
-  here, and a mechanism resting on it would rest on an unverified fact.
+  implementation's choice; the mechanism is not — and §2.8 is its known
+  weakness. The honest interim, accepted deliberately: an **in-repo
+  staleness check** that runs whenever anything else triggers CI and fails
+  loudly when the refresh is overdue, plus GitHub's own notification when
+  it disables an idle schedule. Its blind spot is stated rather than
+  hidden: an idle repository whose deactivation notice goes unread can
+  leave the refresh silently off — a watchdog genuinely outside GitHub's
+  scheduler (an external ping monitor) closes that hole and is deferred to
+  §10.7, because it needs an operator-supplied service and must not block
+  first delivery.
 - **Superseded game versions are never re-patched**: the refresh rebuilds
   the branch's current content only. A consumer pinned to an older
   version's tag holds exactly what was published — frozen content is what
@@ -673,6 +693,14 @@ CI on the repository's GitHub project must provide:
   **build-and-smoke-test run without publishing** — otherwise an
   entrypoint regression waits, invisible, until the next publish attempt
   finds it.
+- **Builder publishes get a minimal gate of their own**: the built image
+  must run steamcmd to completion on an anonymous metadata query before
+  the date tag is pushed. The builder is a public product (§4.1), and
+  ungated it would ship a broken steamcmd layer to a public `latest` that
+  outside consumers use with no pin-advance guard protecting them.
+- **First publish is not fully automatic**: the repository owner must flip
+  each new GHCR package to public visibility (§2.6) — the workflow cannot;
+  until then the published tags exist and no consumer can pull them.
 
 ## 9. Documentation deliverables
 
@@ -737,6 +765,14 @@ Not built now; nothing in the present design may preclude them.
   game is a Steam game; the requirement is the game-protocol probe,
   whatever that protocol is). Deferring is safe: a non-Steam game arrives as a new game
   directory with its own builder stage, touching nothing existing.
+- **10.7 External refresh watchdog.** The in-repo staleness check of §8
+  carries a stated blind spot (an idle repository whose schedule GitHub
+  disabled, notification unread). An external dead-man's-switch monitor —
+  the refresh pings it on each successful run; missed pings alert the
+  operator — closes it. Deferred because it needs an operator-supplied
+  service and credential and must not gate first delivery; adding it later
+  is one ping call in the refresh job and one CI secret, so nothing
+  precludes it.
 
 ## 11. Non-Goals
 

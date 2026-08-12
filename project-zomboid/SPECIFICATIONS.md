@@ -95,13 +95,21 @@ ships, and any correction lands in the image documentation.
   decides whether the `ADMIN_PASSWORD` override of §3 is offered at all
   (root §5.4 pattern); (e) where the **human-readable version string** is
   authoritatively read from — the game's own files, Steam metadata, or a
-  build input — since it names the image tags (root §7); (f) how a
+  build input — since it names the image tags (root §7); pre-committed
+  response so CI is never stranded: if no authoritative machine-readable
+  source is identified during implementation research, PZ tags are
+  buildid-derived per root §7's fallback, and this document is updated to
+  say which naming its tags use; (f) how a
   **non-Steam configuration** is detected from the effective settings, and
   whether the server writes into a `$HOME`-derived path (`~/.steam` link
   farm, JVM crash dumps) at runtime — it completes the writable-path set
   (root §3.4), noting that setting `$HOME` covers native/`steamclient.so`
   paths but the JVM resolves `user.home` from the passwd database first
-  where the uid resolves, so JVM-side paths must be verified separately; (g) **where the server actually writes downloaded workshop
+  where the uid resolves, so JVM-side paths must be verified separately;
+  if (f)'s detection turns out not to be derivable from the effective
+  settings, the sanctioned response is a documented **image-behavior
+  variable selecting the probe mode** — root §5.3's behavior-knob
+  category, not a game-settings mirror; (g) **where the server actually writes downloaded workshop
   mods** — community reports disagree between the cache directory and a
   `steamapps/workshop` tree, and if the target turns out to be the shipped
   game directory, it collides with the world-readable-not-writable content
@@ -112,7 +120,11 @@ ships, and any correction lands in the image documentation.
   mediation channel can answer a **status and player-count query
   non-destructively** (RCON has a player-listing command; the console is
   write-only) — load-bearing for root §5.5's probe capability when the
-  query protocol is off, see §6; (j) whether the server **rotates or caps
+  query protocol is off, see §6; if it resolves unfavorably, liveness
+  rides on the channel's own request/response handshake and the player
+  count is documented as unavailable in that configuration (root §5.5's
+  "where the game's interfaces expose it" scoping — a stated limitation,
+  never a silent zero); (j) whether the server **rotates or caps
   its own log files** under the state root — the input root §5.5's
   rotation-ownership documentation needs; (k) whether the A2S answer
   **tracks serving state at both ends** — measured against a server still
@@ -125,10 +137,18 @@ ships, and any correction lands in the image documentation.
   loopback, and if the game cannot bind loopback and the console is also
   unusable (item c), there is no safe mediation channel and the image
   **must not ship on that combination** — a wide ephemeral admin listener
-  is not an acceptable substitute; (m) **what a Build 42 point release
+  is not an acceptable substitute; the same must-not-ship rule applies
+  when it is the **healthcheck** that ends up requiring the RCON channel
+  (items a/b/f/k resolving onto §6's request/response fallback) and
+  loopback is unavailable; (m) **what a Build 42 point release
   does to an existing world** — migrate, invalidate, or regenerate — the
   researched answer behind §8's upgrade warning (root §6 requires it as a
-  fact, not just the warning).
+  fact, not just the warning); pre-committed response if research is
+  inconclusive: the documented answer is "unknown — assume irreversible;
+  back up before any version change", which is a legitimate resolution,
+  not a remaining hole; (n) whether the game's **player-facing UDP
+  listeners bind `0.0.0.0`** by default or can be told to — the
+  deterministic input root §5.2's player-port rule needs.
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -168,6 +188,14 @@ should be:
 Exact names are a recommended default; whatever ships is what the
 documentation states, and per root §5.3 the list does not grow to mirror
 game settings — everything else is the INI's job.
+
+Per root §5.3, every override is effective **on the very first start of a
+fresh state root**, before the game has authored its INI — the game port
+is advertised, and a first run on generated defaults would register with
+Steam on the wrong number and then silently change on restart. The
+mechanism (the game's launch arguments, a pre-written INI, or a
+combination) is the implementation's choice, verified against the game's
+actual behavior.
 
 One consequence of the game's own behavior, stated plainly (root §5.4's
 non-persistence "should" cannot be honored here): the game reads its INI
