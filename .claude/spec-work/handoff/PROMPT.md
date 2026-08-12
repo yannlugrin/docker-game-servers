@@ -20,8 +20,9 @@ doing anything else — they define their own reading rules (requirements as
 "must", recommended defaults as "should", environment constraints stated
 as facts) and every section matters. This full read happens once, in this
 bootstrap session, because the plans must cover the whole specification;
-afterwards, per-image specifications are read per rule 3's track rule, not
-at every session start.
+afterwards, per-image specifications are read per rule 3's track rule —
+the active track's specification in full, the other tracks' not at all —
+rather than all of them at every session start.
 
 ## Ground rules — permanent; you will encode them in CLAUDE.md
 
@@ -38,7 +39,10 @@ at every session start.
    case of this channel: the spec itself orders them settled at
    implementation, so verifying one and recording its resolution in that
    document is this rule followed, not an exception to it — decision entry
-   first, then the amendment commit.
+   first, then the amendment commit. That section's own "any correction
+   lands in the image documentation" is the complementary half, not a
+   different routing: the specification is amended so its facts stay
+   true, and the image README carries the operator-facing consequence.
 
    **Of the phase that produced the specification, the specification
    itself is your only input** — what I tell you in our exchanges, and
@@ -71,9 +75,13 @@ at every session start.
 
    Two families belong on that list whatever the stack: well-formedness
    of your own instantiated tooling under `.claude/skills/` and
-   `.claude/agents/` — frontmatter parses, and every command, path and
+   `.claude/agents/`, and of `.claude/settings.json` itself —
+   frontmatter and JSON parse, and every command, path and
    agent a file names resolves, because a malformed skill does not fail,
-   it silently never loads — and prove once, at step `000`, that each
+   it silently never loads, and the settings file is the enforcement
+   mechanism itself, so an edit that malforms it after step `000`'s
+   one-time probe fails exactly as silently — and prove once, at step
+   `000`, that each
    enforcement mechanism actually binds in your version: one probe for
    the settings baseline, a separate one for skill-frontmatter
    restrictions — two mechanisms, and one passing says nothing about
@@ -210,9 +218,14 @@ at every session start.
    (`step-reviewer`, `optimize-memory`, `state-reviewer`,
    `code-reviewer`, `test-reviewer`). Instantiate only the ones that fit
    this project, adapted — fill their placeholders with this repository's
-   real commands and paths, and adjust their `PLAN.md`/`DECISIONS.md`
-   references to resolve the active track's files, since the templates
-   assume a single plan — each adoption logged; the ones that earn
+   real commands and paths, and adapt them to the per-track memory of
+   rule 3, which the templates predate: they assume a single plan, a
+   single decision log, a single specification document and one `D-NNN`
+   namespace, so their `PLAN.md`, `DECISIONS.md` and `SPECIFICATIONS.md`
+   references must resolve the active track's files, decision citations
+   crossing logs must name the file (rule 4), and where a template
+   enumerates a session routine narrower than rule 3's, rule 3 wins —
+   each adoption logged; the ones that earn
    their place later can wait — and once none remains un-instantiated
    (each adopted or explicitly dropped, logged), delete the assets
    directory and every pointer and exception referring to it in the same

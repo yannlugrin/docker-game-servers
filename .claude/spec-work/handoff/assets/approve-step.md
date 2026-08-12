@@ -32,7 +32,12 @@ allowed-tools:
 > references `state-reviewer` and `optimize-memory`: keep the step even
 > when they are not adopted — it falls back to `CLAUDE.md`'s
 > not-yet-adopted list, and deleting it removes the passes' only
-> in-ritual trigger. Delete this header section when instantiating.
+> in-ritual trigger. When either agent is explicitly dropped, or once
+> the not-yet-adopted block is deleted with the assets directory,
+> rewire step 4 to the standing fallback (a fresh subagent briefed
+> inline, as `CLAUDE.md` restates it) in the same commit — the step
+> must never name an agent that exists nowhere. Delete this header
+> section when instantiating.
 
 Close the approved step. The precondition is the operator's explicit
 approval in this exchange; if their message leaves any doubt, ask —
@@ -57,7 +62,8 @@ In order:
    not start the next one — suggest the whole-state review and then
    the memory-compaction pass. The adopted agents (`state-reviewer`,
    `optimize-memory`) perform them where they exist; where they were
-   not adopted, point at `CLAUDE.md`'s not-yet-adopted list — the
-   passes are required whoever performs them, and this step is their
-   in-ritual trigger.
+   not adopted, point at `CLAUDE.md`'s not-yet-adopted list; where
+   they were dropped or that list no longer exists, brief a fresh
+   subagent inline from a clean context — the passes are required
+   whoever performs them, and this step is their in-ritual trigger.
 5. **Never push.** The next step starts only on the operator's go.
