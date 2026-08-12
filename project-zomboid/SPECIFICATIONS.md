@@ -213,11 +213,12 @@ before the game starts** when the effective maximum heap plus a
 **documented, deterministic non-heap allowance** exceeds the limit — the
 must is that the allowance is a number two implementations compute
 identically, never an adjective; the value itself is a recommended
-default (the larger of 512 MB or 25% of the heap). An
-implausibly large reported limit (cgroup v1 reports a near-maximum value
-for "unlimited") counts as no limit. Where no limit is readable, the game
-starts, and the documentation states what the default heap assumes of the
-container.
+default (the larger of 512 MB or 25% of the heap). "Unlimited" reads
+differently per cgroup version and both readings count as **no limit**:
+cgroup v1 reports a near-maximum number, cgroup v2 (the Debian 13 default)
+reports the literal string `max` — a non-numeric read is "no limit",
+never a parse error. Where no limit is readable, the game starts, and the
+documentation states what the default heap assumes of the container.
 
 ## 4. First boot
 
@@ -236,8 +237,12 @@ starts. Two rules precede the table:
   populated state root is a first boot for that name; and an interrupted
   first boot (OOM kill, a `^C`) can leave a database with no admin
   account, which a file-keyed entrypoint would misread as "handled" and
-  start the adminless public server row 1 calls unacceptable. Where
-  account existence is not observable, creation is **idempotent instead**:
+  start the adminless public server row 1 calls unacceptable. The proxy is
+  asymmetric, and the asymmetry is usable: a **missing** per-`SERVER_NAME`
+  database proves the account absent (row 1's fatal may key on it, no
+  database tooling required); a **present** one proves nothing. Where
+  account existence is not observable behind a present database, creation
+  is **idempotent instead**:
   whenever a credential is supplied and the named account is absent,
   create it — which also defines the behavior when an operator changes
   `ADMIN_USERNAME` on a populated state root.
@@ -265,11 +270,17 @@ would code the guess as truth. The expected channel is the
 server console over stdin — an open item of §2. If verification finds the
 console unusable from a pipe, the sanctioned fallback is an
 **entrypoint-managed internal RCON**, under four constraints. When the
-operator has configured RCON (§3), the entrypoint must **reuse it** —
-never run a second listener or overwrite the operator's password. When it
+operator has configured RCON — by §3's variables **or directly in the
+INI**, which counts equally — the entrypoint must **reuse it**, never run
+a second listener or overwrite the operator's password; it discovers
+INI-configured RCON from the effective INI it already manages (the same
+file it applies overrides to), so configuration-file-only deployments are
+never blind to mediation. When it
 enables RCON itself, the listener binds **loopback only** — "unpublished
 port" is no protection under host networking or a shared network
-namespace — with an ephemeral generated password that must not persist
+namespace — with an ephemeral generated password carrying enough entropy
+that brute force over loopback is impractical (a shared network namespace
+puts other containers on that loopback), which must not persist
 into any backed-up file beyond what the game's own INI rewriting forces,
 and the listener appears in the image's **port table** as an admin
 interface with its bind address, like every other port (root §5.2). The
@@ -355,7 +366,10 @@ Per root §5.7, the image documentation must state:
 - the preferred consistent path: the game's **native backup settings**
   (§2), whose archives land inside the state root — so an operator copying
   the state root gets them for free, and must cap their count to bound
-  disk growth;
+  disk growth; with the caveat stated: an archive is only as consistent as
+  the copy that captures it, so a hot copy of the state root can catch an
+  archive mid-write — archives are trustworthy in copies taken while the
+  server is stopped, or taken after the archive finished;
 - that RCON `save` quiesces to a point but its completion confirmation
   must be verified at implementation before documenting hot copies as
   safe — if it cannot be confirmed, the documented safe procedure is

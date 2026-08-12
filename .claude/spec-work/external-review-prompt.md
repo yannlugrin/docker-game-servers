@@ -4,7 +4,7 @@ Copy everything below the line into the other AI, and attach (or paste at
 the end, clearly separated) the two specification files:
 
 - `SPECIFICATIONS.md` (repository root)
-- `project-zomboid/SPECIFICATIONS.md`
+- `PROJECT-ZOMBOID_SPECIFICATIONS.md`
 
 ---
 
@@ -22,7 +22,7 @@ operator, who accepts or rejects each one individually.
 specification for a public repository of Docker images running dedicated
 game servers: a root `SPECIFICATIONS.md` (goal, environment facts, core
 model, conventions every game image must obey, versioning, CI, and
-documentation requirements) and a per-game `project-zomboid/SPECIFICATIONS.md`
+documentation requirements) and a per-game `PROJECT-ZOMBOID_SPECIFICATIONS.md`
 (the first game). The root document's §6 makes per-game documents part of
 the specification. Inside the per-game document, references written `§N`
 point to that document itself and references written `root §N` point to the

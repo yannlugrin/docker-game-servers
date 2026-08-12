@@ -437,7 +437,10 @@ later with nothing in any log.
   handlers and reliably relays the stop. An entrypoint that stays PID 1
   also inherits PID 1's second duty: it must **reap orphaned child
   processes** — unreaped zombies are a slow silent leak on exactly the
-  long-lived servers these images run.
+  long-lived servers these images run. A minimal init (tini-class) as
+  PID 1, forwarding signals to the entrypoint beside it, is a legitimate
+  way to satisfy both duties — named here because it is the one mechanism
+  choice where a wrong guess is expensive, not because it is required.
 - If the game does not act on the stop signal natively, the **entrypoint
   must translate it** into the game's own shutdown mechanism (console
   command, RCON `save`+`quit`, whatever the game provides), then wait for
