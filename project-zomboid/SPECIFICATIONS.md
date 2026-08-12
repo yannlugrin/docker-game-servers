@@ -29,7 +29,7 @@ and `/tmp` — the image sets `$HOME` itself to a documented location
 value is overridden, and the documentation says so (root §5.1's one-rule
 requirement) — honoring an inherited `HOME` under `--read-only` would
 point the Steam link farm and crash dumps at a read-only path, a server
-that runs but never registers (§2, open item f). Two writable targets keep
+that runs but never registers (§2, open item o). Two writable targets keep
 `--read-only` simple; the accepted consequence, stated in the docs, is
 that home-directory residue (crash dumps included — root §5.4's warning
 applies) travels into every backup of the state root. Nothing else may
@@ -79,76 +79,77 @@ ships, and any correction lands in the image documentation.
   **RCON on TCP (default 27015)**, enabled only when an RCON password is
   configured, freely remappable; RCON provides `save`, `quit`, and server
   messages.
-- **Open port facts, to settle before the port table and healthcheck are
-  final** (community documentation says both resolve favorably, but it is
-  not authoritative): (a) whether the Steam query protocol is answered on
-  the main game port, as reported for current builds — the healthcheck
-  target (§6) and the `GAME_PORT` description (§3) inherit the answer;
-  (b) whether the legacy `SteamPort1`/`SteamPort2` settings (defaults
-  8766/8767 UDP) still open listeners on Build 42 — reported unnecessary
-  on modern builds, but if present they belong in the port table
-  (root §5.2 documents *every* port); (c) whether the server console
-  accepts `save`/`quit` over a non-interactive stdin pipe (no TTY) — the
-  shutdown mediation of §5 rests on it, and a Java console that works at a
-  terminal can still refuse a pipe; (d) whether the game supports a
-  **non-interactive admin password change** on an existing account — it
-  decides whether the `ADMIN_PASSWORD` override of §3 is offered at all
-  (root §5.4 pattern); (e) where the **human-readable version string** is
-  authoritatively read from — the game's own files, Steam metadata, or a
-  build input — since it names the image tags (root §7); pre-committed
-  response so CI is never stranded: if no authoritative machine-readable
-  source is identified during implementation research, PZ tags are
-  buildid-derived per root §7's fallback, and this document is updated to
-  say which naming its tags use; (f) how a
-  **non-Steam configuration** is detected from the effective settings, and
-  whether the server writes into a `$HOME`-derived path (`~/.steam` link
-  farm, JVM crash dumps) at runtime — it completes the writable-path set
-  (root §3.4), noting that setting `$HOME` covers native/`steamclient.so`
-  paths but the JVM resolves `user.home` from the passwd database first
-  where the uid resolves, so JVM-side paths must be verified separately;
-  if (f)'s detection turns out not to be derivable from the effective
-  settings, the sanctioned response is a documented **image-behavior
-  variable selecting the probe mode** — root §5.3's behavior-knob
-  category, not a game-settings mirror; (g) **where the server actually writes downloaded workshop
-  mods** — community reports disagree between the cache directory and a
-  `steamapps/workshop` tree, and if the target turns out to be the shipped
-  game directory, it collides with the world-readable-not-writable content
-  rule (root §3.4) and the read-only rootfs (§1), so the answer reshapes
-  §7; (h) **what the server does when a workshop download fails** at
-  startup (no connectivity, delisted item, partial download) — whether it
-  refuses to start, starts without the mod, or hangs; (i) whether the
-  mediation channel can answer a **status and player-count query
-  non-destructively** (RCON has a player-listing command; the console is
-  write-only) — load-bearing for root §5.5's probe capability when the
-  query protocol is off, see §6; if it resolves unfavorably, liveness
-  rides on the channel's own request/response handshake and the player
-  count is documented as unavailable in that configuration (root §5.5's
-  "where the game's interfaces expose it" scoping — a stated limitation,
-  never a silent zero); (j) whether the server **rotates or caps
-  its own log files** under the state root — the input root §5.5's
-  rotation-ownership documentation needs; (k) whether the A2S answer
-  **tracks serving state at both ends** — measured against a server still
-  loading its world (the probe must not answer yet) and against an
-  artificially hung one (the answer must stop; a Steamworks responder
-  living outside the game's main loop could keep answering) — the entire
-  healthcheck premise, absorbed by §6's fallback order if it fails, but
-  only if the question is asked; (l) whether the game's RCON offers a
-  **bind-address setting** — the §5 internal-RCON fallback requires
-  loopback, and if the game cannot bind loopback and the console is also
-  unusable (item c), there is no safe mediation channel and the image
-  **must not ship on that combination** — a wide ephemeral admin listener
-  is not an acceptable substitute; the same must-not-ship rule applies
-  when it is the **healthcheck** that ends up requiring the RCON channel
-  (items a/b/f/k resolving onto §6's request/response fallback) and
-  loopback is unavailable; (m) **what a Build 42 point release
-  does to an existing world** — migrate, invalidate, or regenerate — the
-  researched answer behind §8's upgrade warning (root §6 requires it as a
-  fact, not just the warning); pre-committed response if research is
-  inconclusive: the documented answer is "unknown — assume irreversible;
-  back up before any version change", which is a legitimate resolution,
-  not a remaining hole; (n) whether the game's **player-facing UDP
-  listeners bind `0.0.0.0`** by default or can be told to — the
-  deterministic input root §5.2's player-port rule needs.
+- **Open facts, to settle at implementation.** Each carries the section it
+  feeds and, where the answer could resolve unfavorably, the pre-committed
+  response — no open item may strand the implementation:
+  - (a) whether the Steam query protocol is answered on the **main game
+    port**, as community documentation reports — the healthcheck target
+    (§6) and the `GAME_PORT` description (§3) inherit the answer;
+  - (b) whether the legacy `SteamPort1`/`SteamPort2` settings (defaults
+    8766/8767 UDP) still open listeners on Build 42 — reported unnecessary
+    on modern builds, but if present they belong in the port table
+    (root §5.2 documents *every* port);
+  - (c) whether the server console accepts `save`/`quit` over a
+    **non-interactive stdin pipe** (no TTY) — §5's mediation rests on it,
+    and a Java console that works at a terminal can still refuse a pipe;
+    unfavorable → the internal-RCON fallback of §5;
+  - (d) whether the game supports a **non-interactive admin password
+    change** on an existing account — it decides whether the
+    `ADMIN_PASSWORD` override of §3 is offered at all (root §5.4 pattern);
+  - (e) where the **human-readable version string** is authoritatively
+    read from — game files, Steam metadata, or a build input — it names
+    the image tags (root §7); unfavorable → PZ tags are buildid-derived
+    per root §7's fallback, and this document is updated to say so;
+  - (f) how a **non-Steam configuration** is detected from the effective
+    settings; unfavorable → a documented image-behavior variable selects
+    the probe mode (root §5.3's behavior-knob category, not a
+    game-settings mirror);
+  - (g) **where the server writes downloaded workshop mods** — community
+    reports disagree between the cache directory and a `steamapps/workshop`
+    tree; if the target is the shipped game directory it collides with
+    root §3.4 and the read-only rootfs (§1) — §7 fixes the required
+    response;
+  - (h) **what the server does when a workshop download fails** at startup
+    (no connectivity, delisted item, partial download) — refuses to start,
+    starts without the mod, or hangs — §7 carries the documentation
+    consequence;
+  - (i) whether the mediation channel can answer a **status and
+    player-count query non-destructively** (RCON has a player-listing
+    command; the console is write-only) — load-bearing for root §5.5's
+    probe capability when the query protocol is off (§6); unfavorable →
+    liveness rides on the channel's request/response handshake and the
+    player count is documented as unavailable in that configuration
+    (root §5.5's "where the game's interfaces expose it" scoping — a
+    stated limitation, never a silent zero);
+  - (j) whether the server **rotates or caps its own log files** under the
+    state root — the input root §5.5's rotation-ownership documentation
+    needs;
+  - (k) whether the A2S answer **tracks serving state at both ends** —
+    measured against a server still loading its world (the probe must not
+    answer yet) and against an artificially hung one (the answer must
+    stop; a Steamworks responder living outside the game's main loop
+    could keep answering) — the entire healthcheck premise; unfavorable →
+    absorbed by §6's fallback order;
+  - (l) whether the game's RCON offers a **bind-address setting** — the §5
+    internal-RCON fallback requires loopback; if the game cannot bind
+    loopback and the console is also unusable (item c), there is no safe
+    mediation channel and the image **must not ship on that combination**
+    — a wide ephemeral admin listener is not an acceptable substitute —
+    and the same must-not-ship rule applies when it is the *healthcheck*
+    that requires the RCON channel (items a/b/f/k resolving onto §6's
+    fallback) and loopback is unavailable;
+  - (m) **what a Build 42 point release does to an existing world** —
+    migrate, invalidate, or regenerate — the researched answer behind §8's
+    upgrade warning (root §6 requires the fact, not just the warning);
+    research inconclusive → the documented answer is "unknown — assume
+    irreversible; back up before any version change";
+  - (n) whether the game's **player-facing UDP listeners bind `0.0.0.0`**
+    by default or can be told to — the deterministic input for
+    root §5.2's player-port rule;
+  - (o) whether the `$HOME` override fully controls the game's idea of
+    home: it covers native/`steamclient.so` paths, but the JVM resolves
+    `user.home` from the passwd database first where the uid resolves, so
+    JVM-side paths (crash dumps) are verified separately (§1).
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -177,7 +178,7 @@ should be:
 | `INITIAL_ADMIN_PASSWORD` | Admin password consumed at account creation (first boot); ignored by definition once the database exists (root §5.4 pattern) | **Mandatory on first boot** unless `ADMIN_PASSWORD` is set — see §4 |
 | `ADMIN_PASSWORD` | Declarative admin-password override, applied at every start; offered **only if** the game supports non-interactive password changes (open item, §2) — set on an image that cannot honor it, it is a fatal start (root §5.4) | Optional |
 | `SERVER_PASSWORD` | Join password | Optional (open server without it) |
-| `RCON_PASSWORD` | Enables and protects operator RCON | Optional (operator RCON stays off without it; the entrypoint may still run an internal, unpublished RCON for stop mediation — §5) |
+| `RCON_PASSWORD` | Enables and protects operator RCON | Optional (operator RCON stays off without it; the entrypoint may still run an internal, loopback-bound RCON for stop mediation — §5) |
 | `RCON_PORT` | RCON TCP port | Optional (default 27015) |
 | `GAME_PORT` | Main UDP port (game traffic; expected to answer Steam query too — open item, §2) | Optional (default 16261) |
 | `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
@@ -222,27 +223,24 @@ container.
 
 The dangerous branch is a fresh state directory: the game would prompt for
 an admin password and hang. The entrypoint must resolve it before the game
-starts. Two rules precede the table. First: on an image where the game
-cannot honor the override (§2, open item d), a set `ADMIN_PASSWORD` is
-**fatal regardless of anything else** — validation runs before the rows,
-so no path exists where an unsupported override works on first boot and
-then kills the next restart. Second: "server database exists" is evaluated
-**against the effective `SERVER_NAME`** — config, saves and database are
-all per-server-name, so changing `SERVER_NAME` on a populated state root
-is a first boot for that name and follows the same rows (an implementer
-testing "any database in the state root" reproduces exactly the hang this
-table exists to prevent):
+starts. Two rules precede the table:
 
-The table keys on **"an admin account exists for the effective
-`SERVER_NAME` and `ADMIN_USERNAME`"** where the game makes that
-observable — not on the database file's mere existence, which is only a
-proxy: an interrupted first boot (OOM kill, a `^C`) can leave a database
-with no admin account, and a proxy-keyed entrypoint would then ignore the
-supplied credential and start the adminless public server row 1 calls
-unacceptable. Where account existence is not observable, creation must be
-**idempotent instead**: whenever a credential is supplied and the named
-account is absent, create it — which also defines the behavior when an
-operator changes `ADMIN_USERNAME` on a populated state root.
+- On an image where the game cannot honor the override (§2, open item d),
+  a set `ADMIN_PASSWORD` is **fatal regardless of anything else** —
+  validation runs before the rows, so no path exists where an unsupported
+  override works on first boot and then kills the next restart.
+- The table keys on **"an admin account exists for the effective
+  `SERVER_NAME` and `ADMIN_USERNAME`"** where the game makes that
+  observable — never on the mere existence of files: config, saves and
+  database are all per-server-name, so changing `SERVER_NAME` on a
+  populated state root is a first boot for that name; and an interrupted
+  first boot (OOM kill, a `^C`) can leave a database with no admin
+  account, which a file-keyed entrypoint would misread as "handled" and
+  start the adminless public server row 1 calls unacceptable. Where
+  account existence is not observable, creation is **idempotent instead**:
+  whenever a credential is supplied and the named account is absent,
+  create it — which also defines the behavior when an operator changes
+  `ADMIN_USERNAME` on a populated state root.
 
 | Admin account exists | Credential variables | Behavior |
 |---|---|---|
@@ -257,9 +255,9 @@ operator changes `ADMIN_USERNAME` on a populated state root.
 Per root §5.6 and the SIGTERM fact of §2: on the stop signal the entrypoint
 runs the game's `save`-then-`quit` sequence through a channel that exists
 regardless of operator configuration, waits up to `STOP_TIMEOUT` (§3) for
-the Java process to exit on its own — root §5.6's definition of a confirmed
-clean stop — and exits 0 only on the game's own successful exit (root §5.6's
-definition). A stop signal arriving **while the world is still loading**
+the Java process to exit successfully on its own — root §5.6's confirmed
+clean stop, the only thing that exits 0. A stop signal arriving **while
+the world is still loading**
 follows the same rules and lands, deliberately, on the timeout row's
 non-zero exit: terminating mid-generation leaves state as unconfirmed as
 terminating mid-save, and a "fast clean abort" that guesses otherwise

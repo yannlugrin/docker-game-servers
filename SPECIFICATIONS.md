@@ -78,10 +78,10 @@ runtime and the game swallows the stop: common shells `exec` a single
 simple command, so the plainest shell-form entrypoint escapes by luck — but
 any compound command, `&&` chain, or wrapper script that does not `exec`
 its final process leaves a shell as PID 1 that neither handles nor forwards
-the signal. Either
-mistake produces the same outcome: the runtime waits out the stop grace
-period, then `SIGKILL`s the server mid-write, with nothing in any log. This
-is why §5.6 is the strictest section of the conventions.
+the signal. Either mistake produces the same outcome: the runtime waits
+out the stop grace period, then `SIGKILL`s the server mid-write, with
+nothing in any log. This is why §5.6 is the strictest section of the
+conventions.
 
 **2.5 Steam query protocol.** Steam-registered servers answer the A2S query
 protocol (serving status, player count) — some on the game port itself,
@@ -139,8 +139,8 @@ game images contain them. Every stage of every image is based on
 needs, with a long support horizon; Ubuntu was rejected as slightly larger
 for no functional gain, and one base across all stages keeps layers shared.
 Every game image is produced by a multi-stage
-build: the builder stage (from the steamcmd image) downloads the game, and
-the final stage starts from the slim runtime base and copies the game in,
+build: the builder stage (from the builder image, §4) downloads the game,
+and the final stage starts from the slim runtime base and copies the game in,
 adding only that game's runtime dependencies — including the Steam client
 libraries the game loads at runtime (§2.7), which the builder stage
 provides. The builder stage must be referenced by a **pinned tag or
@@ -312,22 +312,21 @@ document honestly and to expose what the game does offer:
   the mechanism is per-game (launch arguments, a pre-written file, whatever
   the game offers): a first start that runs on generated defaults and only
   honors the overrides after a restart silently advertises the wrong port
-  to the world for its entire first run. When unset,
-  the configuration file's values stand. The documentation must state the
-  consequence for the whole env surface: an override applied at every start
-  wins over the same setting changed in game or in the file — a variable
-  left set in a compose file silently reverts the in-game change on every
-  restart, which is the same failure the rewrite caveat below warns about,
-  caused by the image instead of the operator. And one validation rule for
-  the whole surface: a variable **set to a value the entrypoint cannot
-  parse or apply is a fatal start naming the variable and the value** —
-  never a silent fall-back to the default. A silently substituted default
-  is the document's own failure shape: an operator who believes they set a
-  300-second stop timeout gets 80, and the save dies to a bound they
-  thought they had removed. Documentation flags every variable
-  **mandatory or optional**; mandatory is reserved for values without which
-  the game cannot start safely (each per-game specification shows the
-  pattern, §6).
+  to the world for its entire first run. When unset, the configuration
+  file's values stand. Documentation flags every variable **mandatory or
+  optional**; mandatory is reserved for values without which the game
+  cannot start safely (each per-game specification shows the pattern, §6).
+- The override contract cuts both ways, and the documentation must say so:
+  an override applied at every start wins over the same setting changed in
+  game or in the file — a variable left set in a compose file silently
+  reverts the in-game change on every restart, the rewrite caveat below
+  with the roles swapped.
+- One validation rule for the whole surface: a variable **set to a value
+  the entrypoint cannot parse or apply is a fatal start naming the
+  variable and the value** — never a silent fall-back to the default. A
+  silently substituted default is the document's own failure shape: an
+  operator who believes they set a 300-second stop timeout gets 80, and
+  the save dies to a bound they thought they had removed.
 - The image must not invent environment variables for arbitrary game
   settings. The env surface stays small — identity, ports, credentials,
   resource limits, and the image's own behavior knobs (the stop timeout of
@@ -390,24 +389,24 @@ document honestly and to expose what the game does offer:
   unrotated log the operator does not know about fills the state disk
   slowly and silently, and a full state disk corrupts saves.
 - Each image must declare a **HEALTHCHECK that probes the game protocol**
-  (Steam query), not the process: a hung server is alive and
-  unhealthy, and process-level checks call it healthy. Two clauses, kept
-  apart because Docker's `start_period` only suppresses *unhealthy*
-  transitions, never healthy ones: the **probe itself** must not answer
-  positively before the server actually serves (a responder that comes up
-  early marks the container healthy mid-load, and no start period prevents
-  that); the `start_period` exists only so a slow start is not marked
-  unhealthy, and must absorb worst-case load time. The check must stop
-  reporting healthy once the
-  server is no longer serving — no longer answering queries. A *full*
-  server still serves: the predicate is answering, not joinable, or the
-  probe flaps exactly when the server is most alive. The probe targets the
+  (Steam query), not the process: a hung server is alive and unhealthy,
+  and process-level checks call it healthy. The probe targets the
   **effective** configuration — a probe baked to the default port marks a
-  correctly reconfigured server permanently unhealthy. And the
-  `start_period` trade-off is stated so it is chosen deliberately: sizing
-  it for the worst case (first-boot world generation) blinds hang detection
-  for that long on every later restart; the image documents the value and
-  the reasoning.
+  correctly reconfigured server permanently unhealthy. Three predicates,
+  each with its reason:
+  - the probe must not answer positively **before the server actually
+    serves** — Docker's `start_period` only suppresses *unhealthy*
+    transitions, never healthy ones, so a responder that comes up early
+    marks the container healthy mid-load and no start period prevents it;
+  - the check must stop reporting healthy once the server **no longer
+    answers queries**. A *full* server still serves: the predicate is
+    answering, not joinable, or the probe flaps exactly when the server is
+    most alive;
+  - the `start_period` exists only so a slow start is not marked
+    unhealthy, and must absorb worst-case load time — a trade-off stated
+    so it is chosen deliberately, because sizing it for first-boot world
+    generation blinds hang detection for that long on every later restart;
+    the image documents the value and the reasoning.
 - Two capabilities are **must**, both without exposing any admin port
   outside the container: the operator can ask "is it serving, and how many
   players" from the host (the healthcheck's own probe doubles as the tool;
