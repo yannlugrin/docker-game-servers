@@ -41,9 +41,10 @@ compose, or any orchestrator. They must not name or assume any specific
 hosting platform.
 
 A game image runs exactly one server instance per container. It never
-installs or updates game content at runtime (workshop mods the game itself
-manages are the one exception, §6.6); it never manages fleets, schedules
-backups, or supervises anything beyond its own process.
+installs or updates game content at runtime (game-managed runtime content
+such as workshop mods is the one exception, stated per game, §6); it never
+manages fleets, schedules backups, or supervises anything beyond its own
+process.
 
 ## 2. Environment and context
 
@@ -87,15 +88,26 @@ answering queries.
 CI integration. The concrete owner is resolved at implementation time from
 the repository's GitHub remote (D-013).
 
+**2.7 Dedicated servers load Steam client libraries at runtime.** Many
+Linux dedicated servers dlopen `steamclient.so`, typically resolved via
+`~/.steam/sdk64/` (or `sdk32/`) — paths a steamcmd installation normally
+provides as a side effect. A game image that excludes steamcmd must still
+ship or link the Steam client libraries its game loads: images that "work
+with steamcmd present, break without it" almost always break on these
+libraries, never on the steamcmd binary itself. Discovering this
+mid-implementation is the classic first-build failure of baked game images.
+
 ## 3. Core model
 
 **3.1 Two tiers, one build direction.** The builder image installs games;
 game images contain them. Every game image is produced by a multi-stage
 build: the builder stage (from the steamcmd image) downloads the game, and
 the final stage starts from the slim runtime base and copies the game in,
-adding only that game's runtime dependencies. steamcmd never appears in a
-game image — its only runtime use would be in-place game updates, which the
-versioning model deliberately forbids (D-002).
+adding only that game's runtime dependencies — including the Steam client
+libraries the game loads at runtime (§2.7), which the builder stage
+provides. steamcmd never appears in a game image — its only runtime use
+would be in-place game updates, which the versioning model deliberately
+forbids (D-002).
 
 **3.2 The game is baked in at build time** (D-003). An image that installs
 at runtime has a meaningless tag, unreproducible content, minutes-long cold
@@ -107,8 +119,9 @@ every game update becomes an image rebuild, which CI absorbs (§8).
 
 **3.3 One repository, one set of conventions.** All images live in this
 repository and every game image obeys §5 in full. A game image is meant to
-be mostly convention plus a small game-specific delta; the conventions are
-what an operator can rely on across all images without rereading each one.
+be mostly convention plus a small game-specific delta — captured in the
+game's own specification (§6); the conventions are what an operator can
+rely on across all images without rereading each one.
 
 **3.4 Images are uid-agnostic.** A game image must run correctly under an
 arbitrary `--user uid:gid`, including one that exists in no `/etc/passwd`
@@ -176,13 +189,25 @@ is honored.
 
 ### 5.2 Ports
 
-- Every port the game listens on must be **configurable** (via the game's
-  configuration and, where common practice, an environment variable), and
-  each port's role documented. The reason is not politeness: protocols that
-  advertise their own port — Steam server browser registration above all —
-  break when the port the game believes in differs from the published one,
-  so remapping is not always an option and operators must be able to set the
-  real number.
+Port configurability is a property of the game, not of the image — an image
+cannot promise what the game does not offer. The image's obligations are to
+document honestly and to expose what the game does offer:
+
+- The image documents **every port**: role, default number, protocol, and —
+  the operationally vital flag — whether it is **advertised** or **freely
+  remappable**. An advertised port is one whose number the game publishes
+  outside itself (Steam server browser registration above all): it works
+  only when the game's idea of its port matches the number published on the
+  host, so it cannot be silently remapped. Every other port can be mapped
+  to any host number by the container runtime and needs no in-game
+  configurability at all.
+- For **advertised ports**, the image must expose the game's own port
+  setting (configuration and, where common practice, an environment
+  variable) when the game supports changing it. When the game cannot, the
+  image documents the fixed number and its consequence — publish it 1:1,
+  and two instances of that game cannot share a host — as a stated
+  limitation rather than a surprise. A fixed advertised port costs
+  flexibility; it does not break a single-instance deploy.
 - The game must listen on `0.0.0.0`; binding narrower breaks port
   publication for no isolation gain inside a private network namespace.
 - Admin interfaces (RCON and relatives) are documented separately from
@@ -199,7 +224,8 @@ is honored.
   applies them to the effective configuration at startup. When unset, the
   configuration file's values stand. Documentation flags every variable
   **mandatory or optional**; mandatory is reserved for values without which
-  the game cannot start safely (§6.3 shows the pattern).
+  the game cannot start safely (each per-game specification shows the
+  pattern, §6).
 - The image must not invent environment variables for arbitrary game
   settings. The env surface stays small — identity, ports, credentials,
   resource limits — because an unbounded env-to-config mapping is a second
@@ -231,6 +257,14 @@ is honored.
 - The game's output goes to **stdout/stderr, unfiltered** — the container
   runtime owns collection and rotation. Log files the game insists on
   writing are declared under §5.1 so operators can deal with them.
+- When the game cannot send its primary output to stdout/stderr, the
+  entrypoint should relay the log file(s) there, following across the
+  game's own rotation; a static symlink onto the stdout device is an
+  acceptable cheap variant only where the game never rotates that file.
+  Whatever the mechanism, the documentation must state what reaches stdout
+  and what exists only in files, and **who rotates which file** — an
+  unrotated log the operator does not know about fills the state disk
+  slowly and silently, and a full state disk corrupts saves.
 - Each image declares a **HEALTHCHECK that probes the game protocol**
   (Steam query, D-012), not the process: a hung server is alive and
   unhealthy, and process-level checks call it healthy. The check must not
@@ -278,108 +312,60 @@ later with nothing in any log.
 | Game crashes or exits by itself | Propagate a non-zero exit |
 | Startup validation fails (§5.3, §5.4) | Exit non-zero before the game starts |
 
-### 5.7 Image metadata
+### 5.7 Backup knowledge
+
+The image never implements or schedules backup (§11) — but it owns the
+knowledge an operator needs to take a **consistent** one, and its
+documentation must state the recipe. The danger it must warn against:
+copying the state root of a running server produces snapshots that are
+silently corrupt — databases and world files caught mid-write restore into
+a broken server, discovered only on restore day. The recipe, in order of
+preference:
+
+1. the game's **native backup or save-quiescing mechanism**, where one
+   exists — stating whether its completion is confirmable, because a save
+   command that returns before data is flushed makes a hot copy no better
+   than no save at all;
+2. otherwise **stop, copy the state root, start** — safe because a clean
+   stop (§5.6) guarantees flushed state on disk.
+
+Either way the documentation names what to copy (the §5.1 state root) and
+what is pointless to copy (ephemeral paths).
+
+### 5.8 Image metadata
 
 Images carry standard OCI annotations: source repository, description,
 license, and — for game images — the game version and image revision
 matching the tag (§7). Labels are what registries and scanners read when
 the tag is no longer at hand.
 
-## 6. The Project Zomboid image
+## 6. Per-game specifications
 
-### 6.1 Facts about the PZ dedicated server
+Each game image carries its own specification: a `SPECIFICATIONS.md` in the
+game's directory (`*/SPECIFICATIONS.md` — `project-zomboid/SPECIFICATIONS.md`
+for the first game). Per-game specifications are part of this specification:
+the same reading contract applies, the same tiers, and §5 binds them in
+full — a per-game document adds to the conventions and may deviate from a
+"should" with reason, but never weakens a "must".
 
-Verified 2026-08-12; the implementation must re-verify against the build it
-ships, and any correction lands in the image documentation.
+A per-game specification must cover, at minimum:
 
-- Steam app id **380870**, anonymous install. **Build 42 is the stable
-  branch since 2026-07-29 (version 42.20)**, multiplayer included; Build 41
-  survives as the `legacy41` beta branch and is out of scope (§11).
-- The server is Java-based and **ships its own JRE** — the image needs no
-  system Java. Its maximum heap is set through its launch configuration and
-  must stay below the container memory limit: a heap equal to the limit
-  makes the kernel OOM-kill the server at exactly the allocation the GC
-  would have recovered.
-- All persistent state — saves, the server's SQLite databases (including
-  admin accounts), configuration, logs, downloaded workshop mods — lives
-  under one game-managed directory (`~/Zomboid` by default; relocatable via
-  the game's cache-dir option). This is the single state root of §5.1.
-- Server configuration is a per-server-name INI file plus sandbox-settings
-  files under that state root. **The game rewrites these files** (adding
-  defaults, persisting in-game admin changes) — the §5.3 rewrite warning
-  applies.
-- Admin credentials live in the server database, created on first boot.
-  With no database and no admin password provided, the server **prompts
-  interactively** — in a container, a silent hang.
-- Networking: one main **UDP game port (default 16261)** which also answers
-  the Steam query protocol, plus a **second UDP port (default 16262)** for
-  direct player connections; both must be settable (§5.2 — the port is
-  advertised via Steam). **RCON on TCP (default 27015)**, enabled only when
-  an RCON password is configured; RCON provides `save`, `quit`, and server
-  messages.
-- The server **does not act on SIGTERM natively**: clean shutdown is the
-  console/RCON sequence `save` then `quit`. §5.6 mediation is mandatory,
-  and must work even when the operator configured no RCON password.
-
-### 6.2 Requirements
-
-The image contains the Build 42 dedicated server, installed at build time
-(§3.2), and honors every convention of §5. The environment surface should
-be:
-
-| Variable | Purpose | Mandatory? |
-|---|---|---|
-| `SERVER_NAME` | Server identity; selects the config/save set under the state root | Optional (game default: `servertest`) |
-| `ADMIN_USERNAME` | Admin account created on first boot | Optional (default `admin`) |
-| `ADMIN_PASSWORD` | Admin account password | **Mandatory on first boot** (no server database yet); optional afterwards — see §6.3 |
-| `SERVER_PASSWORD` | Join password | Optional (open server without it) |
-| `RCON_PASSWORD` | Enables and protects RCON | Optional (RCON stays off without it) |
-| `RCON_PORT` | RCON TCP port | Optional (default 27015) |
-| `GAME_PORT` | Main UDP port (game + Steam query) | Optional (default 16261) |
-| `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
-| `MAX_HEAP` | JVM maximum heap | Optional (documented default), with the §6.1 warning that it must sit below the container memory limit |
-
-Exact names are a recommended default; whatever ships is what the
-documentation states, and per §5.3 the list does not grow to mirror game
-settings — everything else is the INI's job.
-
-### 6.3 First boot
-
-The dangerous branch is a fresh state directory: the game would prompt for
-an admin password and hang. The entrypoint must resolve it before the game
-starts:
-
-| Server database exists | `ADMIN_PASSWORD` set | Behavior |
-|---|---|---|
-| No | No | **Fatal before game start**, message naming the variable — a hang or an adminless public server are both unacceptable |
-| No | Yes | Create the admin account via the game's non-interactive mechanism; start |
-| Yes | No | Start; credentials already in the database |
-| Yes | Yes | Start; apply the password to the existing account if the game supports it non-interactively, otherwise log a clear warning that the value was ignored — the one forbidden outcome is silently diverging env and effective credentials |
-
-### 6.4 Shutdown
-
-Per §5.6 and the SIGTERM fact of §6.1: on the stop signal the entrypoint
-runs the game's `save`-then-`quit` sequence through a channel that exists
-regardless of operator configuration (the server console; RCON only as an
-alternative when configured), waits for the Java process to exit, and exits
-0 only on a confirmed clean stop. The image documentation recommends a stop
-grace period of at least 90 seconds, and notes that large maps and many
-players lengthen saves.
-
-### 6.5 Health
-
-The HEALTHCHECK queries the Steam query protocol on the game port (§5.5).
-World load on large B42 maps takes minutes: the `start_period` must absorb
-that so a starting server is not reported unhealthy, while a loaded-then-hung
-server is.
-
-### 6.6 Workshop mods
-
-Supported the way the game does it natively (D-010): the server downloads
-the mods listed in its configuration at startup into the state root, where
-they persist. The image neither bakes mods nor manages them; documentation
-states this, including the consequence that first start after adding mods is
-slow and needs Steam connectivity.
+- the researched **facts** about the game's dedicated server — install
+  source and branches, runtime, state layout, configuration behavior
+  including whether the game rewrites its own files (§5.3), ports with the
+  advertised-or-remappable flag (§5.2), admin/query/save mechanisms, stop
+  signal behavior (§5.6) — dated, and re-verified at implementation against
+  the build actually shipped;
+- the **environment surface** (§5.3): every variable, its purpose, its
+  mandatory-or-optional flag;
+- **first boot**: what happens on a fresh state directory, with a decision
+  table wherever that branches dangerously;
+- **shutdown**: how §5.6 mediation works for this game, and the recommended
+  minimum grace period;
+- **health**: what the healthcheck probes and how the start period was
+  sized;
+- **game-managed runtime content** (workshop mods and the like), if any;
+- the **backup recipe** of §5.7 for this game.
 
 ## 7. Versioning and publication
 
@@ -427,17 +413,18 @@ Deliverables of the implementation, named here so they exist; their content
 requirements:
 
 - **Per-image README** (also the GHCR page): the environment variable table
-  with mandatory/optional flags, ports and their roles, writable paths and
-  the state root, configuration behavior including the rewrite caveat
-  (§5.3), shutdown semantics with the recommended grace period, the
-  healthcheck and how to probe/save/announce from outside, tag policy
-  (§7), and a minimal `docker run` and compose example.
+  with mandatory/optional flags, ports and their roles with the
+  advertised-or-remappable flag (§5.2), writable paths and the state root,
+  configuration behavior including the rewrite caveat (§5.3), shutdown
+  semantics with the recommended grace period, the healthcheck and how to
+  probe/save/announce from outside, the backing-up section (§5.7), tag
+  policy (§7), and a minimal `docker run` and compose example.
 - **Repository README**: project scope, image inventory, and the shared
   conventions of §5 stated once — per-image docs link here rather than
   restating them.
 - **A contributor guide for adding a game**: the §5 checklist an implementer
-  walks a new game image through, including the per-game facts to research
-  (the §6.1 pattern).
+  walks a new game image through, including the per-game specification to
+  write first (§6).
 - All documentation stays platform-neutral (§1): interfaces are described in
   Docker-generic terms, never in terms of any particular hosting
   environment.

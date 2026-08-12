@@ -2,48 +2,10 @@
 
 ## Open questions
 
-User review round in progress (2026-08-12) — points below are recorded for
-batch integration once the user finishes reviewing; do not apply piecemeal.
-
-- Add the steamclient.so fact to the spec (§4 and/or §6.1): many Linux
-  dedicated servers dlopen `steamclient.so` via `~/.steam/sdk64/` (or
-  `sdk32/`), a path normally provided by a steamcmd installation — baked
-  images must ship/symlink these libraries from the builder stage; the
-  binary itself is never needed at runtime.
-- Rework §5.2 ports (user challenge, accepted in principle): "every port
-  must be configurable" is unsatisfiable by an image — configurability is a
-  game property. Replace with: (a) must document every port's role, default,
-  and whether it is *advertised* (must match the published number — Steam
-  browser registration) or freely remappable; (b) advertised ports must be
-  settable where the game supports it, else the fixed number and its
-  consequence (publish 1:1, one instance per host) are documented as a
-  limitation; (c) non-advertised ports need no configurability — Docker
-  remapping suffices. Nuance kept: a fixed advertised port breaks
-  flexibility (multi-instance, port moves), not single-instance deploys.
-- Extend §5.5 logs (user question, gap confirmed): spec is silent on games
-  that cannot log to stdout/stderr. Add: entrypoint *should* relay file-only
-  primary output to stdout (following across rotation; symlink trick only
-  where the game never rotates); log paths stay declared under §5.1 either
-  way; docs *must* state what reaches stdout vs files only, and who rotates
-  what (unrotated files are a slow silent disk-filler; a full state disk
-  corrupts saves). PZ unaffected (logs to stdout and files).
-- Add backup documentation requirement (user point, accepted): the image
-  never implements backup (§11 unchanged); its docs *must* carry a
-  "backing up" section with the per-game consistency recipe — native
-  backup/save mechanism where the game has one (stating whether save
-  completion is confirmable; an early-returning save makes hot copies
-  unsafe), else stop/backup/start (clean stop per §5.6 = flushed state);
-  what to copy (§5.1 state root). Rationale: hot-copying a running server's
-  SQLite/world files is silently corrupt until restore day. Lands in §9
-  (doc deliverables) + a §5 hook; PZ §6: native backup INI settings
-  (on-start/periodic/version-change, zips inside state root — cap count) +
-  RCON save; verify at implementation.
-- Extend D-002's premises: games can fetch their own runtime content
-  (workshop mods) or need none; steamcmd's `workshop_download_item` is the
-  one runtime-relevant feature, only for games whose server cannot
-  self-download mods, and it often refuses anonymous login — if such a game
-  arrives, runtime steamcmd is a reasoned per-image deviation, not a
-  convention change.
+(none — the 2026-08-12 user review round was applied in full: steamclient.so
+fact → root §2.7/§3.1; ports rework → root §5.2; file-only logs → root §5.5;
+backup documentation → root §5.7, §9, PZ §8; D-002 premises extended;
+per-game specification split → D-014.)
 
 ---
 
@@ -81,9 +43,14 @@ batch integration once the user finishes reviewing; do not apply piecemeal.
 - **Premises:** games are installed at build time (D-003); the versioning
   model forbids in-place updates — consumers needing reproducibility pin
   immutable tags or digests (§7); CI can rebuild on demand or on schedule
-  when a game updates (D-006). Corroborating, not load-bearing: the hosting
-  platform that motivated the project pins digests and never updates in
-  place — the decision holds without it (challenge 001).
+  when a game updates (D-006); target games fetch their own runtime content
+  (workshop mods) or need none — steamcmd's one runtime-relevant feature,
+  `workshop_download_item`, matters only for games whose server cannot
+  self-download mods, often refuses anonymous login, and would be a
+  reasoned per-image deviation if such a game arrives, not a convention
+  change (user challenge, 2026-08-12). Corroborating, not load-bearing: the
+  hosting platform that motivated the project pins digests and never
+  updates in place — the decision holds without it (challenge 001).
 
 ## D-003 (2026-08-12) — Game files baked into the image at build time
 
@@ -93,7 +60,7 @@ batch integration once the user finishes reviewing; do not apply piecemeal.
 - **Decision:** each game image contains the game server files, installed
   via steamcmd during the image build. The image never downloads the game at
   container start; the only runtime downloads are game-managed content such
-  as workshop mods (D-010, §6.6).
+  as workshop mods (D-010; PZ specification §7).
 - **Why:** an image that installs the game at runtime has a meaningless tag,
   unreproducible content, minutes-long cold starts, and a Steam dependency
   at every deploy — for any consumer. Baked images start in seconds and
@@ -268,3 +235,22 @@ batch integration once the user finishes reviewing; do not apply piecemeal.
 - **Premises:** all published images in this namespace are server images;
   GHCR nests images under the repository owner.
 
+## D-014 (2026-08-12) — Per-game specifications in the game's directory
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** each game image's specification lives as `SPECIFICATIONS.md`
+  in the game's directory (`*/SPECIFICATIONS.md`; the first is
+  `project-zomboid/SPECIFICATIONS.md`). The root `SPECIFICATIONS.md` keeps
+  the conventions and states (§6) what every per-game document must cover;
+  per-game documents inherit the reading contract and may never weaken a
+  root "must".
+- **Why:** user's ruling at the close of their review round. Structure
+  deviation from the single-document doctrine, argued: game sections grow
+  with every game while the conventions stay stable, and the game directory
+  is where an implementer works on that image. Risk accepted: cross-file
+  references need a convention (`root §N` from per-game documents) and the
+  consistency pass covers all `*/SPECIFICATIONS.md` files.
+- **Premises:** the monorepo has one directory per game image (D-001); the
+  conventions (root §5) carry everything game-independent, so per-game
+  documents stay small.
