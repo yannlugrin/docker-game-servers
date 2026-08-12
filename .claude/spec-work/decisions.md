@@ -27,6 +27,17 @@ batch integration once the user finishes reviewing; do not apply piecemeal.
   way; docs *must* state what reaches stdout vs files only, and who rotates
   what (unrotated files are a slow silent disk-filler; a full state disk
   corrupts saves). PZ unaffected (logs to stdout and files).
+- Add backup documentation requirement (user point, accepted): the image
+  never implements backup (§11 unchanged); its docs *must* carry a
+  "backing up" section with the per-game consistency recipe — native
+  backup/save mechanism where the game has one (stating whether save
+  completion is confirmable; an early-returning save makes hot copies
+  unsafe), else stop/backup/start (clean stop per §5.6 = flushed state);
+  what to copy (§5.1 state root). Rationale: hot-copying a running server's
+  SQLite/world files is silently corrupt until restore day. Lands in §9
+  (doc deliverables) + a §5 hook; PZ §6: native backup INI settings
+  (on-start/periodic/version-change, zips inside state root — cap count) +
+  RCON save; verify at implementation.
 - Extend D-002's premises: games can fetch their own runtime content
   (workshop mods) or need none; steamcmd's `workshop_download_item` is the
   one runtime-relevant feature, only for games whose server cannot
