@@ -135,11 +135,15 @@ ships, and any correction lands in the image documentation.
   - (l) whether the game's RCON offers a **bind-address setting** — the §5
     internal-RCON fallback requires loopback; if the game cannot bind
     loopback and the console is also unusable (item c), there is no safe
-    mediation channel and the image **must not ship on that combination**
-    — a wide ephemeral admin listener is not an acceptable substitute —
-    and the same must-not-ship rule applies when it is the *healthcheck*
-    that requires the RCON channel (items a/b/f/k resolving onto §6's
-    fallback) and loopback is unavailable;
+    channel for stop mediation — which every deployment needs — and the
+    image **must not ship on that combination**; a wide ephemeral admin
+    listener is not an acceptable substitute. When only the *healthcheck*
+    needs the RCON channel (the non-Steam profile always rides §6's
+    fallback there) and loopback is unavailable, the image ships anyway
+    and that profile is documented as **degraded/unsupported under this
+    resolution** — blocking the default profile over a niche profile's
+    probe would be disproportionate, and the wide listener stays
+    unacceptable either way;
   - (m) **what a Build 42 point release does to an existing world** —
     migrate, invalidate, or regenerate — the researched answer behind §8's
     upgrade warning (root §6 requires the fact, not just the warning);
@@ -235,21 +239,24 @@ before the game starts. Two rules precede the table:
   below, so no path exists where the unsupported override works on first
   boot and then kills the next restart.
 - The table keys on **"an admin account exists for the effective
-  `SERVER_NAME` and `ADMIN_USERNAME`"** wherever that is observable —
-  never on the mere existence of files. Zomboid's config, saves and
-  database are all per-server-name, so changing `SERVER_NAME` on a
-  populated state root is a first boot for that name; and an interrupted
-  first boot (OOM kill, a `^C`) can leave a database with no admin
-  account, which a file-keyed entrypoint would misread as "handled" and
-  start the adminless public server row 1 calls unacceptable. The proxy is
-  asymmetric, and the asymmetry is usable: a **missing** per-`SERVER_NAME`
-  database proves the account absent (row 1's fatal may key on it, no
-  database tooling required); a **present** one proves nothing. Where
-  account existence is not observable behind a present database, creation
-  is **idempotent instead**:
-  whenever a credential is supplied and the named account is absent,
-  create it — which also defines the behavior when an operator changes
-  `ADMIN_USERNAME` on a populated state root.
+  `SERVER_NAME` and `ADMIN_USERNAME`"** — an observable predicate, never a
+  file-existence guess. The account lives in the per-`SERVER_NAME` SQLite
+  database, and **querying it is the observation** (a minimal SQLite
+  client joins the image's tooling if the entrypoint needs one — the same
+  class of shipped tool as root §5.5's clients). One shortcut stays valid,
+  in the absent direction only: a **missing** per-`SERVER_NAME` database
+  proves the account absent with no query at all. Why the predicate must
+  be real: Zomboid's config, saves and database are all per-server-name,
+  so changing `SERVER_NAME` on a populated state root is a first boot for
+  that name; an interrupted first boot (OOM kill, a `^C`) can leave a
+  database with no admin account, which a file-keyed entrypoint would
+  misread as "handled" and start the adminless public server row 1 calls
+  unacceptable; and running the game's creation mechanism blindly whenever
+  a credential is set is no substitute — if creation resets an existing
+  account's password, `INITIAL_ADMIN_PASSWORD` silently acquires override
+  semantics, contradicting the row that defines it as ignored. Changing
+  `ADMIN_USERNAME` on a populated state root follows the same predicate:
+  the newly named account is absent, so it is created.
 
 | Admin account exists | Credential variables | Behavior |
 |---|---|---|
@@ -323,7 +330,11 @@ integration disabled, which silences the query protocol entirely. The
 healthcheck must detect that from the effective configuration (§2, open
 item f) and switch to the same fallback order automatically — a healthy
 non-Steam server reported permanently unhealthy would make the probe
-worthless exactly for the operators who deviate. The same degradation
+worthless exactly for the operators who deviate. One conditional
+exception, fixed in advance: if open item (l) resolves unfavorably (no
+loopback RCON bind), this profile has no safe probe channel and is
+documented as degraded/unsupported under that resolution (§2, item l) —
+the default profile is never the thing that gives way. The same degradation
 applies to the operator's own probe (root §5.5's first capability):
 serving state and player count come through the mediation channel when the
 query protocol is off, and the documentation says so.

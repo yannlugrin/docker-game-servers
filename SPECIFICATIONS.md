@@ -80,8 +80,10 @@ any compound command, `&&` chain, or wrapper script that does not `exec`
 its final process leaves a shell as PID 1 that neither handles nor forwards
 the signal. Either mistake produces the same outcome: the runtime waits
 out the stop grace period, then `SIGKILL`s the server mid-write, with
-nothing in any log. This is why §5.6 is the strictest section of the
-conventions.
+nothing in any log. One signal is exempt from all of this: `SIGKILL`
+always lands — the kernel forces it from the parent namespace — which is
+why the stop grace period is a last line of defense, not a formality.
+This is why §5.6 is the strictest section of the conventions.
 
 **2.5 Steam query protocol.** Steam-registered servers answer the A2S query
 protocol (serving status, player count) — some on the game port itself,
