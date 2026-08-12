@@ -84,7 +84,14 @@ ships, and any correction lands in the image documentation.
   **non-Steam configuration** is detected from the effective settings, and
   whether the server writes into a `$HOME`-derived path (`~/.steam` link
   farm, JVM crash dumps) at runtime — it completes the writable-path set
-  (root §3.4).
+  (root §3.4); (g) **where the server actually writes downloaded workshop
+  mods** — community reports disagree between the cache directory and a
+  `steamapps/workshop` tree, and if the target turns out to be the shipped
+  game directory, it collides with the world-readable-not-writable content
+  rule (root §3.4) and the read-only rootfs (§1), so the answer reshapes
+  §7; (h) **what the server does when a workshop download fails** at
+  startup (no connectivity, delisted item, partial download) — whether it
+  refuses to start, starts without the mod, or hangs.
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -130,6 +137,15 @@ from inside the state root and rewrites it, and offers no ephemeral-copy
 option — so credentials applied from the environment **persist into the
 mounted INI**, and from there into whatever backups the operator takes.
 The image documentation says so.
+
+The heap deserves its own guard, because the failure it prevents is the
+most silent in this document: a kernel OOM kill has no log line, lands
+mid-write, and a restart policy hides it. The entrypoint must read the
+container memory limit where the cgroup exposes one and **fail loudly
+before the game starts** when the effective maximum heap is not below it
+(leaving headroom for the JVM's non-heap memory); where no limit is
+readable, it proceeds, and the documentation states what the default heap
+assumes of the container.
 
 ## 4. First boot
 
@@ -199,10 +215,16 @@ it (§5).
 ## 7. Workshop mods
 
 Supported the way the game does it natively: the server downloads
-the mods listed in its configuration at startup into the state root, where
-they persist. The image neither bakes mods nor manages them; documentation
-states this, including the consequence that first start after adding mods
-is slow and needs Steam connectivity.
+the mods listed in its configuration at startup into its mod directory
+(location: open item g of §2), where they persist. The image neither bakes
+mods nor manages them; documentation must state this, including the
+consequence that first start after adding mods is slow and needs Steam
+connectivity — and, once open item h of §2 is settled, **what the game
+does when a mod download fails** and how the operator notices, because a
+map-mod world loaded without its mod can regenerate or discard cells: a
+data-loss failure the operator must be able to see coming. The image
+cannot intercept a download the game performs itself; owning the knowledge
+and stating it is the obligation.
 
 ## 8. Backup recipe
 

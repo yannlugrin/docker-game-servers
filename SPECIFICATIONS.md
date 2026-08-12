@@ -30,9 +30,10 @@ as light as each game allows. Two kinds of image:
 
 - a **builder image** carrying steamcmd and everything needed to install any
   Steam dedicated server at build time;
-- **per-game runtime images**, one per game, containing the installed game
-  and its runtime dependencies — nothing else. The first game is the
-  Project Zomboid dedicated server (Build 42).
+- **per-game runtime images**, one per game, containing the installed game,
+  its runtime dependencies, and the small operator tooling of §5.5 —
+  nothing else. The first game is the Project Zomboid dedicated server
+  (Build 42).
 
 The images are generic: they document their interface — environment
 variables, ports, writable paths, configuration, shutdown behavior — the way
@@ -98,6 +99,16 @@ with steamcmd present, break without it" almost always break on these
 libraries, never on the steamcmd binary itself. Discovering this
 mid-implementation is the classic first-build failure of baked game images.
 
+**2.8 What this section is least sure of.** These facts were researched,
+not measured; where one fails, the named consequence moves, not the
+architecture: the exact `steamclient.so` resolution varies per game (§2.7 —
+each per-game specification carries its own verification item); the size
+claims (the ~megabytes cost of the §5.5 clients, Debian slim as the
+smallest workable base) are expectations to be measured at implementation;
+and steamcmd's undocumented behavior (self-update format, anonymous-login
+scope) can shift under Valve's control at any time, which is part of why
+the builder is date-stamped and pre-warmed rather than assumed stable.
+
 ## 3. Core model
 
 **3.1 Two tiers, one build direction.** The builder image installs games;
@@ -111,7 +122,11 @@ build: the builder stage (from the steamcmd image) downloads the game, and
 the final stage starts from the slim runtime base and copies the game in,
 adding only that game's runtime dependencies — including the Steam client
 libraries the game loads at runtime (§2.7), which the builder stage
-provides. steamcmd never appears in a game image — its only runtime use
+provides. The builder stage must be referenced by a **pinned tag or
+digest**, never a moving pointer — otherwise two builds of the same
+immutable game tag can differ at their root and nothing records why — and
+the builder reference used is recorded in the image's labels (§5.8).
+steamcmd never appears in a game image — its only runtime use
 would be in-place game updates, which the versioning model deliberately
 forbids.
 
@@ -193,7 +208,7 @@ adds the game's specifics and documents how each convention is honored.
 
 ### 5.1 Filesystem and state
 
-- The image documents **every path the game persistently writes** — saves,
+- The image must document **every path the game persistently writes** — saves,
   worlds, databases, configuration the game rewrites, mod downloads, log
   files that cannot be redirected. Anything outside the documented paths is
   ephemeral by definition, and a save landing outside them is a data-loss
@@ -213,7 +228,7 @@ Port configurability is a property of the game, not of the image — an image
 cannot promise what the game does not offer. The image's obligations are to
 document honestly and to expose what the game does offer:
 
-- The image documents **every port**: role, default number, protocol, and —
+- The image must document **every port**: role, default number, protocol, and —
   the operationally vital flag — whether it is **advertised** or **freely
   remappable**. An advertised port is one whose number the game publishes
   outside itself (Steam server browser registration above all): it works
@@ -248,8 +263,13 @@ document honestly and to expose what the game does offer:
   instance — cannot come from a mountable file and are exactly what the
   mandatory-variable clause below exists for.
 - Environment variables are **optional overrides**: when set, the entrypoint
-  applies them to the effective configuration at startup. When unset, the
-  configuration file's values stand. Documentation flags every variable
+  must apply them to the effective configuration at startup. When unset,
+  the configuration file's values stand. The documentation must state the
+  consequence for the whole env surface: an override applied at every start
+  wins over the same setting changed in game or in the file — a variable
+  left set in a compose file silently reverts the in-game change on every
+  restart, which is the same failure the rewrite caveat below warns about,
+  caused by the image instead of the operator. Documentation flags every variable
   **mandatory or optional**; mandatory is reserved for values without which
   the game cannot start safely (each per-game specification shows the
   pattern, §6).
@@ -294,7 +314,7 @@ document honestly and to expose what the game does offer:
 
 ### 5.5 Observability
 
-- The game's output goes to **stdout/stderr, unfiltered** — the container
+- The game's output must go to **stdout/stderr, unfiltered** — the container
   runtime owns collection and rotation. Unfiltered has exactly one
   exception, which takes precedence: the §5.4 redaction of credential
   values, for games that echo their configuration at startup. Log files the
@@ -308,7 +328,7 @@ document honestly and to expose what the game does offer:
   and what exists only in files, and **who rotates which file** — an
   unrotated log the operator does not know about fills the state disk
   slowly and silently, and a full state disk corrupts saves.
-- Each image declares a **HEALTHCHECK that probes the game protocol**
+- Each image must declare a **HEALTHCHECK that probes the game protocol**
   (Steam query), not the process: a hung server is alive and
   unhealthy, and process-level checks call it healthy. The check must not
   report healthy while the world is still loading (the `start_period` must
@@ -382,7 +402,7 @@ later with nothing in any log.
 |---|---|
 | Stop signal, game exits on its own within the stop timeout | Exit 0 — confirmed clean stop |
 | Stop signal, game still running when the stop timeout expires | Terminate the game process; exit non-zero — the save is unconfirmed |
-| Game crashes or exits by itself | Propagate a non-zero exit |
+| Game exits by itself, no stop signal received | Propagate the game's exit code verbatim — a crash is non-zero on its own; an operator-initiated quit through the game's own admin channel (`docker exec`) yields whatever the game returns, and the documentation says so |
 | Startup validation fails (§5.3, §5.4) | Exit non-zero before the game starts |
 
 ### 5.7 Backup knowledge
@@ -414,14 +434,15 @@ exact shape of failure this specification exists to prevent.
 
 ### 5.8 Image metadata
 
-Images carry standard OCI annotations: source repository, description,
-license, and — for game images — the game version and image revision
-matching the tag (§7), plus the **Steam buildid and branch** the game was
-installed from. The buildid label is the machine-readable side of §8's
-update comparison: the human version string in the tag cannot be compared
-against Steam's metadata reliably, and buildids change without version
-changes. Labels are what registries and scanners read when the tag is no
-longer at hand.
+Images must carry standard OCI annotations: source repository, description,
+license (MIT — the repository's license, §9), and — for game images — the
+game version and image revision matching the tag (§7), the **Steam buildid
+and branch** the game was installed from, and the **builder image
+reference** (pinned tag or digest, §3.1) the build used. The buildid label
+is the machine-readable side of §8's update comparison: the human version
+string in the tag cannot be compared against Steam's metadata reliably, and
+buildids change without version changes. Labels are what registries and
+scanners read when the tag is no longer at hand.
 
 ## 6. Per-game specifications
 
@@ -480,6 +501,12 @@ A per-game specification must cover, at minimum:
 - A rebuild at an **unchanged version and unchanged buildid** is a
   legitimate revision bump — that is precisely what base refreshes and
   entrypoint fixes are.
+- The tag scheme carries **no branch axis**: every game image is built from
+  the one Steam branch its per-game specification declares, and building
+  any other branch is out of scope until this section grows a branch
+  marker. The reason is the immutability rule below — two branches can
+  expose the same version string, and colliding them on one immutable tag
+  would republish a tag with different content.
 - **A published immutable tag is never reused for different content.**
   Consumers pin `-rN`, a date tag, or a digest for reproducibility; the
   moving tags are convenience pointers, and every image's documentation
@@ -493,8 +520,9 @@ A per-game specification must cover, at minimum:
 CI on the repository's GitHub project must provide:
 
 - **On-demand builds**: a manually triggered workflow that builds and
-  publishes a chosen image — for the builder, a new date tag; for a game, a
-  chosen branch, whose current content determines the version tag (steamcmd
+  publishes a chosen image — for the builder, a new date tag; for a game,
+  the branch its per-game specification declares (§7 — no other branch is
+  buildable), whose current content determines the version tag (steamcmd
   installs what a branch holds *now*; arbitrary historical versions would
   need depot-manifest machinery this project does not contemplate), with
   the revision tag computed against what the registry already holds (never
@@ -531,20 +559,29 @@ requirements:
 
 - **Per-image README** (also the GHCR page): the environment variable table
   with mandatory/optional flags, ports and their roles with the
-  advertised-or-remappable flag (§5.2), writable paths and the state root,
-  configuration behavior including the rewrite caveat (§5.3), shutdown
-  semantics with the recommended grace period, the healthcheck and how to
-  probe/save/announce from outside, the backing-up section (§5.7), tag
-  policy (§7), and a minimal `docker run` and compose example.
+  advertised-or-remappable flag (§5.2), writable paths and the state root
+  **including the mount-ownership preparation step** (a fresh named volume
+  is created root-owned while the container runs under the operator's uid —
+  the most common first-contact failure, and the loud fatal of §3.4 needs
+  its documented cure), configuration behavior including the rewrite and
+  env-override caveats (§5.3), shutdown semantics with the recommended
+  grace period and the stop timeout (§5.6), the healthcheck and how to
+  probe/save/announce from outside, the backing-up section with the
+  version-upgrade warning (§5.7), tag policy (§7), and a minimal
+  `docker run` and compose example.
 - **Repository README**: project scope, image inventory, and the shared
   conventions of §5 stated once — per-image docs link here rather than
   restating them.
 - **A contributor guide for adding a game**: the §5 checklist an implementer
   walks a new game image through, including the per-game specification to
   write first (§6).
-- All documentation stays platform-neutral (§1): interfaces are described in
-  Docker-generic terms, never in terms of any particular hosting
-  environment.
+- **A LICENSE file at the repository root: MIT.** It licenses the image
+  recipes and tooling — the game content inside the images is the
+  publishers' and is not relicensed — and it is the value of the §5.8
+  license annotation.
+- All documentation must stay platform-neutral (§1): interfaces are
+  described in Docker-generic terms, never in terms of any particular
+  hosting environment.
 
 ## 10. Future Considerations
 
