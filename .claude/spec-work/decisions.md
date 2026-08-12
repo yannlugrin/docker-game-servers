@@ -126,3 +126,88 @@
 - **Premises:** the first games targeted have native Linux servers; the
   image conventions are game-agnostic rather than Linux-specific in ways
   that would bake out wine.
+
+## D-009 (2026-08-12) — Tag scheme: immutable revisions plus moving pointers
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** game images publish an immutable `<game-version>-rN` tag for
+  every build (starting at `-r0`), a moving `<game-version>` tag pointing at
+  the latest revision of that version, and a moving `latest`. The steamcmd
+  builder image publishes date-stamped tags (`YYYYMMDD`) plus `latest`.
+  Published `-rN` and date tags are never reused for different content.
+- **Why:** the user wants convenience pointers (`latest`, bare version)
+  alongside reproducible references; consumers needing reproducibility pin
+  `-rN` or a digest. Bare-version-only (no revision) rejected: rebuilds for
+  base updates would either reuse a tag (dishonest) or be impossible to
+  express. SemVer-of-the-image rejected: the operator could no longer read
+  the game version off the tag.
+- **Premises:** consumers that need immutability pin digests or `-rN`;
+  Valve does not version steamcmd releases, so date stamps are the only
+  honest builder tag.
+
+## D-010 (2026-08-12) — PZ workshop mods: runtime download by the game
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** the Project Zomboid image supports Steam Workshop mods the
+  way the game does it natively — the server downloads mods listed in its
+  configuration at startup, into its persistent state directory. No mods are
+  baked into the image.
+- **Why:** mod content is server state, not image content; baking mods would
+  make the version tag dishonest and force a rebuild per mod update.
+  Mod-baked private variants remain possible later (Future Considerations).
+- **Premises:** the PZ server downloads configured workshop mods itself at
+  startup; mod files land under its state directory, which is persistent.
+
+## D-011 (2026-08-12) — Secrets: config file authoritative, env optional
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** game images must be fully operable with secrets present only
+  in the mounted configuration; env vars are optional overrides the
+  entrypoint applies at startup. Documentation marks every variable
+  mandatory or optional; mandatory is reserved for values without which the
+  game cannot start safely (e.g. PZ first boot with no admin database).
+  Where the game permits, injected secrets are not persisted to mounted
+  paths.
+- **Why:** different deployment environments have different constraints —
+  some render secrets into config files, some only pass environment. Env-only
+  (rejected) would force every config-rendering deployer to split their
+  config; config-only (rejected) would force env-based deployers to write
+  secrets to disk themselves.
+- **Premises:** both deployment styles exist among target environments; the
+  games tolerate startup-time injection of credential settings.
+
+## D-012 (2026-08-12) — Game-level HEALTHCHECK; ship query and RCON clients
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** game images declare a Docker HEALTHCHECK that probes the
+  game protocol (Steam query), and ship two minimal clients: a Steam-query
+  client (used by the healthcheck and available to operators) and an RCON
+  client (used by the entrypoint for stop mediation where needed, and
+  available via `docker exec` for save/announce without exposing the RCON
+  port).
+- **Why:** process-alive is the wrong probe for game servers — hung servers
+  stay "up"; the user chose a real healthcheck over minimal bytes. The RCON
+  client is justified independently: PZ does not handle SIGTERM natively
+  (verified 2026-08-12), so clean shutdown needs an in-image mediation tool
+  anyway.
+- **Premises:** target games answer the Steam query protocol; small static
+  clients exist (or are trivially built) so the size cost stays in the
+  low megabytes.
+
+## D-013 (2026-08-12) — Image naming: plain game name; owner placeholder
+
+- **Status:** decided
+- **Foundational:** no
+- **Decision:** images are named by plain game name (`steamcmd`,
+  `project-zomboid`) under `ghcr.io/<owner>`; the concrete owner is resolved
+  at implementation from the repository's GitHub remote.
+- **Why:** short and readable; the registry page context disambiguates.
+  `-server` suffix and nested namespaces rejected as longer with no real
+  ambiguity to solve.
+- **Premises:** all published images in this namespace are server images;
+  GHCR nests images under the repository owner.
+
