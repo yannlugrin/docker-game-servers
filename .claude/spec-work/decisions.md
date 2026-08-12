@@ -8,7 +8,7 @@
 
 ## D-001 (2026-08-12) — Monorepo for all images
 
-- **Status:** decided
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001)
 - **Foundational:** yes
 - **Decision:** one repository holds the steamcmd base image and every
   per-game image (this repository).
@@ -23,7 +23,8 @@
 
 ## D-002 (2026-08-12) — steamcmd image is a build stage, not a runtime base
 
-- **Status:** decided
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001, rationale
+  re-grounded)
 - **Foundational:** yes
 - **Decision:** the steamcmd base image exists to be used as a multi-stage
   *builder*: it downloads/installs the game at build time. Final game images
@@ -34,32 +35,41 @@
   container whose game is already installed, and removing it shrinks both
   size and attack surface. Keeping steamcmd at runtime was rejected: its only
   benefit is runtime game updates, which the versioning model (game baked in,
-  tag = game version, digest pinned) deliberately forbids.
-- **Premises:** games are installed at build time (D-003); the deployment
-  platform pins digests and never updates in place; CI can rebuild on demand
-  or on schedule when a game updates (D-006).
+  tag = game version, immutable revision tags, §7) deliberately forbids for
+  every consumer.
+- **Premises:** games are installed at build time (D-003); the versioning
+  model forbids in-place updates — consumers needing reproducibility pin
+  immutable tags or digests (§7); CI can rebuild on demand or on schedule
+  when a game updates (D-006). Corroborating, not load-bearing: the hosting
+  platform that motivated the project pins digests and never updates in
+  place — the decision holds without it (challenge 001).
 
 ## D-003 (2026-08-12) — Game files baked into the image at build time
 
-- **Status:** decided
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001, rationale
+  re-grounded)
 - **Foundational:** yes
 - **Decision:** each game image contains the game server files, installed
-  via steamcmd during the image build. Nothing is downloaded at container
-  start.
-- **Why:** the target platform's contract requires the tag to say which game
-  version is inside and pins images by digest — an image that installs at
-  runtime has a meaningless tag and unreproducible content. Baked images also
-  start in seconds instead of minutes and need no Steam connectivity at run
-  time. Runtime installation rejected: it optimizes registry storage, which
-  is cheap, at the cost of reproducibility and start latency, which are not.
+  via steamcmd during the image build. The image never downloads the game at
+  container start; the only runtime downloads are game-managed content such
+  as workshop mods (D-010, §6.6).
+- **Why:** an image that installs the game at runtime has a meaningless tag,
+  unreproducible content, minutes-long cold starts, and a Steam dependency
+  at every deploy — for any consumer. Baked images start in seconds and
+  their tags honestly say which game version is inside, which is what lets
+  consumers pin by digest and what makes §7 and §8 coherent. Runtime
+  installation rejected: it optimizes registry storage, which is cheap, at
+  the cost of reproducibility and start latency, which are not.
 - **Premises:** target games are installable anonymously via steamcmd
   (Project Zomboid appid 380870 is); registry storage for multi-GB public
   images is acceptable on GHCR; game updates are handled by publishing a new
-  tag, not by mutating containers.
+  tag, not by mutating containers. Corroborating, not load-bearing: the
+  hosting platform that motivated the project requires version-carrying tags
+  and pins digests — the decision holds without it (challenge 001).
 
 ## D-004 (2026-08-12) — Base distribution: debian:trixie-slim
 
-- **Status:** decided
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001)
 - **Foundational:** yes
 - **Decision:** all images (builder and runtime stages) are based on
   debian:trixie-slim (Debian 13, stable).
@@ -114,7 +124,7 @@
 
 ## D-008 (2026-08-12) — Wine variant deferred
 
-- **Status:** decided
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001)
 - **Foundational:** yes
 - **Decision:** a wine-based image line for Windows-only Steam servers is a
   Future Consideration: nothing is built now, but the base/game image split
@@ -181,22 +191,28 @@
 
 ## D-012 (2026-08-12) — Game-level HEALTHCHECK; ship query and RCON clients
 
-- **Status:** decided
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001, rationale
+  re-grounded)
 - **Foundational:** no
 - **Decision:** game images declare a Docker HEALTHCHECK that probes the
   game protocol (Steam query), and ship two minimal clients: a Steam-query
   client (used by the healthcheck and available to operators) and an RCON
-  client (used by the entrypoint for stop mediation where needed, and
-  available via `docker exec` for save/announce without exposing the RCON
-  port).
+  client (operator convenience, and a mediation alternative where RCON is
+  configured).
 - **Why:** process-alive is the wrong probe for game servers — hung servers
   stay "up"; the user chose a real healthcheck over minimal bytes. The RCON
-  client is justified independently: PZ does not handle SIGTERM natively
-  (verified 2026-08-12), so clean shutdown needs an in-image mediation tool
-  anyway.
+  client is an operator convenience — save/announce via `docker exec`
+  without exposing the RCON port — and a shutdown-mediation *alternative*
+  where the operator configured RCON. It is **not** shutdown
+  infrastructure: §5.6 requires stop mediation to work without any optional
+  configuration, and PZ's RCON only exists when a password is set. (The
+  original rationale claimed clean shutdown needed it; corrected by
+  challenge 001.) Per §5.5, a game image whose game needs neither client
+  may drop them with reason.
 - **Premises:** target games answer the Steam query protocol; small static
   clients exist (or are trivially built) so the size cost stays in the
-  low megabytes.
+  low megabytes; RCON-style admin protocols are only active when the
+  operator configures them.
 
 ## D-013 (2026-08-12) — Image naming: plain game name; owner placeholder
 

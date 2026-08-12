@@ -239,9 +239,10 @@ is honored.
   accepts players.
 - Game images ship two minimal static clients, both documented for operator
   use: a **Steam-query client** (drives the healthcheck; answers "serving?"
-  and player count) and an **RCON client** (lets the entrypoint mediate
-  shutdown, and gives operators `docker exec`-based save/announce without
-  exposing the RCON port). Together they add megabytes, not tens of
+  and player count) and an **RCON client** (operator save/announce via
+  `docker exec` without exposing the RCON port, and a shutdown-mediation
+  *alternative* where RCON is configured — never the mediation the stop
+  depends on, per §5.6). Together they add megabytes, not tens of
   megabytes; images whose game needs neither may drop them with reason.
 
 ### 5.6 Lifecycle and shutdown
