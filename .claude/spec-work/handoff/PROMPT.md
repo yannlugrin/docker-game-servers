@@ -21,8 +21,10 @@ doing anything else — they define their own reading rules (requirements as
 as facts) and every section matters. This full read happens once, in this
 bootstrap session, because the plans must cover the whole specification;
 afterwards, per-image specifications are read per rule 3's track rule —
-the active track's specification in full, the other tracks' not at all —
-rather than all of them at every session start.
+the active track's specification in full, the other image tracks' not at
+all — rather than all of them at every session start. The root
+specification is never "another track's document": its core model and
+conventions (root §3, §5) are standing reading for any image-track step.
 
 ## Ground rules — permanent; you will encode them in CLAUDE.md
 
@@ -43,6 +45,13 @@ rather than all of them at every session start.
    lands in the image documentation" is the complementary half, not a
    different routing: the specification is amended so its facts stay
    true, and the image README carries the operator-facing consequence.
+   The latitude splits in two, and the split is decided now: **recording
+   a verified fact is yours to do autonomously** — decision entry, then
+   the amendment commit, reported in the step's summary — while **any
+   resolution that changes a requirement, a tier, a documented
+   limitation or the ship decision is a together-decision** that comes
+   back to me before the amendment; of the open items, (e), (g), (k)
+   and (l) are the ones that always come back.
 
    **Of the phase that produced the specification, the specification
    itself is your only input** — what I tell you in our exchanges, and
@@ -73,6 +82,13 @@ rather than all of them at every session start.
      the compose examples;
    - markdown/prose lint over documentation.
 
+   That list is the expected instance, not the boundary: **every
+   language and artifact the repository ships gets a check family** —
+   the entrypoint in whatever language it ends up written, and the two
+   static clients of root §5.5, which enter the repository pinned
+   (version or digest recorded in it, per rule 9's fetch rule) and are
+   covered like any other shipped artifact.
+
    Two families belong on that list whatever the stack: well-formedness
    of your own instantiated tooling under `.claude/skills/` and
    `.claude/agents/`, and of `.claude/settings.json` itself —
@@ -97,8 +113,9 @@ rather than all of them at every session start.
    syntax, lint and formatting over the whole working tree, untracked
    files included and gitignored paths excluded, with one standing
    exception this prompt decides now:
-   the tracked files under `.claude/spec-work/` are excluded from the
-   harness, because rule 1 makes them no session's reading material) and
+   everything under `.claude/spec-work/` is excluded from the
+   harness — the exclusion keys on the path, not on tracked status —
+   because rule 1 makes that directory no session's reading material) and
    a *test* ("is the implementation right?" — fixtures
    and expectations proving behavior, including the cases that must fail
    and those that must only warn: a warning nobody proves is emitted
@@ -129,7 +146,8 @@ rather than all of them at every session start.
    At the start of every session: read `CLAUDE.md`, the root `PLAN.md`
    and `DECISIONS.md`, then the active track's `PLAN.md`, `DECISIONS.md`
    and `SPECIFICATIONS.md` (the current-step pointer names the active
-   track) and the spec sections relevant to the current step. Other
+   track) and the spec sections relevant to the current step — root §3
+   and §5 being standing reading for any image-track step. Other image
    tracks' files load only when the current step names a cross-track
    dependency on them. The
    last step tag (rule 6) marks the last approved state — and
@@ -163,7 +181,10 @@ rather than all of them at every session start.
    interface — environment surface, ports, shutdown, health. It is
    information, never a requirement source: the images stay
    platform-neutral (root §1), and a conflict between that contract and
-   the specification is a question for me, not a constraint on you.
+   the specification is a question for me, not a constraint on you. It
+   is a reference file coming from elsewhere and is **never optimized**:
+   no compaction, staleness or memory sweep ever touches it — an
+   operator-supplied reference is not your memory to fold.
    *Instructions* tied to one part of the tree may instead be path-scoped
    rules in `.claude/rules/` with a `paths` frontmatter, which load
    themselves exactly when you work on matching files — but never an
@@ -220,11 +241,19 @@ rather than all of them at every session start.
    this project, adapted — fill their placeholders with this repository's
    real commands and paths, and adapt them to the per-track memory of
    rule 3, which the templates predate: they assume a single plan, a
-   single decision log, a single specification document and one `D-NNN`
-   namespace, so their `PLAN.md`, `DECISIONS.md` and `SPECIFICATIONS.md`
+   single decision log, a single specification document, one `D-NNN`
+   namespace and the single `step-NNN` id namespace, so their `PLAN.md`,
+   `DECISIONS.md` and `SPECIFICATIONS.md`
    references must resolve the active track's files, decision citations
-   crossing logs must name the file (rule 4), and where a template
-   enumerates a session routine narrower than rule 3's, rule 3 wins —
+   crossing logs must name the file (rule 4), every `step-NNN` in
+   commit subjects, tag names and tag titles becomes the active track's
+   qualified form (rule 6), where a template
+   enumerates a session routine narrower than rule 3's, rule 3 wins,
+   any memory-sweeping pass exempts the operator-supplied references
+   rule 3 marks never-optimized (`.claude/docs/image-contract.md`), and
+   a read-only reviewer agent's never-run placeholder takes rule 9's
+   **entire gated set**, not just the deny list — a subagent cannot
+   obtain my authorisation mid-run —
    each adoption logged; the ones that earn
    their place later can wait — and once none remains un-instantiated
    (each adopted or explicitly dropped, logged), delete the assets
@@ -328,10 +357,16 @@ rather than all of them at every session start.
    asking — installing the repository's pinned dependencies through the
    documented setup command included; fetching anything *not* pinned in
    the repository is not local, with two deliberate carve-outs decided
-   now: local `docker build` and `docker run` are free, including the
-   base-image pulls and the anonymous Steam downloads a build performs —
-   they are the core dev loop, anonymous, costing only bandwidth and
-   time (a Project Zomboid build downloads several gigabytes) — and
+   now: the **local container lifecycle end to end** is free — build,
+   run, exec, logs, inspect, wait, stop, rm, volume create and rm,
+   compose up and down, and cleanup of local images and volumes (`rmi`,
+   prune) — including the base-image pulls and the anonymous Steam
+   downloads a build performs: it is the core dev loop, anonymous,
+   costing only bandwidth and
+   time (a Project Zomboid build downloads several gigabytes), and its
+   destructive tail is deliberately free too, because local images and
+   test volumes are rebuildable working material — the irreplaceable
+   local state is git's, which stays protected below; and
    anonymous remote reads are free: Steam metadata queries (buildid
    lookups), pulls of public images, `gh` and API read operations.
    **Publishing or writing anything outward** — `git push`; `docker
@@ -404,16 +439,21 @@ Produce the workflow files — three plans, three decision logs,
      it; check and
      test as separate jobs once both exist; cache the toolchain, but
      keep a
-     periodic uncached run proving a fresh setup still works) so nothing
+     periodic uncached run proving a fresh setup still works — a
+     `schedule` trigger root §2.8 disables on idle repositories like
+     any other, so it sits under the same staleness guard root §8
+     gives the refresh) so nothing
      diverges among the three runners — and the lint covering
      the governance documents themselves (the specifications, the plans,
      the rest), since in this repository documents are load-bearing;
      **extending the committed `.claude/settings.json`** (auto memory is
      already off — keep it off) with a permission-and-hook baseline
      enforcing rule 9's boundary, proposed for my review: allow the
-     harness, the setup command, local docker builds and runs, and the
-     *additive* subset of local git
-     (add, commit, status, diff, log, describe, annotated tags); **ask**
+     harness, the setup command, the local container lifecycle of
+     rule 9, and the
+     *additive and read-only* subset of local git
+     (add, commit, status, diff, log, show, rev-parse, describe, tag
+     listing, annotated tags); **ask**
      for everything
      rule 9 gates, `git push` included — a denied pattern cannot be
      overridden in the very exchange rule 9 relies on — and for
@@ -466,7 +506,9 @@ Produce the workflow files — three plans, three decision logs,
      (root §2.6, §8); my authorisation of the first push, which is also
      what makes the CI workflow verifiable; a Docker Hub credential only
      if your root §2.6 mitigation chooses authenticated base-image
-     pulls (no Steam credential is needed — every install is anonymous).
+     pulls (no Steam credential is needed — every install is anonymous;
+     and the repository itself is already public, which root §2.6's
+     free hosting and root §2.8's schedule behavior both rest on).
      List each with the step that first needs it, so
      waiting on me never interrupts a step mid-flight.
    - End the root plan with a section listing anything you consider
@@ -533,7 +575,13 @@ and the `steamcmd/SPECIFICATIONS.md` pointer — and the files you have
 just written — never this conversation, and
 nothing under `.claude/spec-work/`: it holds the specification phase's
 history, this prompt included, and a reviewer that reads any of it is no
-longer cold. It audits the plans against the specification:
+longer cold. The workflow conventions its criteria cite — step shape,
+boundary-crossing test costs, the one-step-in-progress rule — live in
+the `CLAUDE.md` you have just written: name it in the reviewer's prompt
+as the source of those conventions, and tell the reviewer that
+`CLAUDE.md`'s pointer to `.claude/spec-work/handoff/assets/` is out of
+bounds like the rest of that directory. It audits the plans against the
+specification:
 
 - **coverage** — every section of both specification documents mapped
   to a step or explicitly
