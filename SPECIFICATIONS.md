@@ -181,10 +181,11 @@ Kubernetes pods without `runAsUser`) in-container uid 0 maps to an
 unprivileged host user and is the runtime's default: setting
 **`ALLOW_UID0`** to `1` or `true` (case-insensitive) skips the fatal —
 setting it *is* the deliberate choice, and its documentation says exactly
-when it is legitimate. Any other value does not skip it, and the fatal
-message must then say the variable was set but not recognized — an
-operator whose opt-out attempt was silently ignored gets the generic
-message and no clue why. And the per-game specification must enumerate the
+when it is legitimate. `0` and case-insensitive `false` are recognized as
+an explicit "off" (the fatal proceeds normally); any *other* value is
+unparseable and follows §5.3's validation rule — the fatal message names
+the variable and the rejected value, so an operator whose opt-out attempt
+was mangled is not left staring at the generic message. And the per-game specification must enumerate the
 **complete writable-path set** — the state root, `/tmp`, and what the
 image sets `$HOME` to — so the read-only-rootfs recommendation of §5.1 is
 checkable rather than aspirational.
@@ -300,7 +301,13 @@ document honestly and to expose what the game does offer:
   wins over the same setting changed in game or in the file — a variable
   left set in a compose file silently reverts the in-game change on every
   restart, which is the same failure the rewrite caveat below warns about,
-  caused by the image instead of the operator. Documentation flags every variable
+  caused by the image instead of the operator. And one validation rule for
+  the whole surface: a variable **set to a value the entrypoint cannot
+  parse or apply is a fatal start naming the variable and the value** —
+  never a silent fall-back to the default. A silently substituted default
+  is the document's own failure shape: an operator who believes they set a
+  300-second stop timeout gets 80, and the save dies to a bound they
+  thought they had removed. Documentation flags every variable
   **mandatory or optional**; mandatory is reserved for values without which
   the game cannot start safely (each per-game specification shows the
   pattern, §6).
@@ -367,9 +374,14 @@ document honestly and to expose what the game does offer:
   slowly and silently, and a full state disk corrupts saves.
 - Each image must declare a **HEALTHCHECK that probes the game protocol**
   (Steam query), not the process: a hung server is alive and
-  unhealthy, and process-level checks call it healthy. The check must not
-  report healthy while the world is still loading (the `start_period` must
-  absorb worst-case load time), and must stop reporting healthy once the
+  unhealthy, and process-level checks call it healthy. Two clauses, kept
+  apart because Docker's `start_period` only suppresses *unhealthy*
+  transitions, never healthy ones: the **probe itself** must not answer
+  positively before the server actually serves (a responder that comes up
+  early marks the container healthy mid-load, and no start period prevents
+  that); the `start_period` exists only so a slow start is not marked
+  unhealthy, and must absorb worst-case load time. The check must stop
+  reporting healthy once the
   server is no longer serving — no longer answering queries. A *full*
   server still serves: the predicate is answering, not joinable, or the
   probe flaps exactly when the server is most alive. The probe targets the
@@ -404,7 +416,10 @@ later with nothing in any log.
   Docker's 10-second default is a save-corrupting trap for game servers.
 - The entrypoint must guarantee signal delivery: either the game binary is
   PID 1 (exec'd, exec-form), or the entrypoint remains PID 1 with explicit
-  handlers and reliably relays the stop.
+  handlers and reliably relays the stop. An entrypoint that stays PID 1
+  also inherits PID 1's second duty: it must **reap orphaned child
+  processes** — unreaped zombies are a slow silent leak on exactly the
+  long-lived servers these images run.
 - If the game does not act on the stop signal natively, the **entrypoint
   must translate it** into the game's own shutdown mechanism (console
   command, RCON `save`+`quit`, whatever the game provides), then wait for
@@ -436,8 +451,9 @@ later with nothing in any log.
   clean stops as dirty cries wolf — the failure the exit-code contract
   exists to prevent.
 - The shipped **default** for the stop timeout should sit just below the
-  recommended grace-period floor (about 80 seconds under the 90-second
-  recommendation), erring toward the operator who followed the docs: they
+  recommended grace-period floor (80 seconds under the 90-second
+  recommendation — one exact number, so the documented pairing rule cites
+  something exact), erring toward the operator who followed the docs: they
   get full save time out of the box. The operator on an unmodified
   10-second `docker stop` loses the save under *any* default — a short
   timeout would merely make the image do the killing instead of the
@@ -622,26 +638,41 @@ CI on the repository's GitHub project must provide:
   optional nicety it would be the first thing dropped, leaving
   multi-gigabyte public images unpatched indefinitely. The cadence is the
   implementation's choice; the mechanism is not — and it must survive the
-  scheduler's own failure mode (§2.8): the refresh must keep itself alive
-  (producing repository activity counts) or run outside the repository's
-  activity clock, and a refresh that has not run within its cadence must
-  become visible rather than stay a green absence.
+  scheduler's own failure mode (§2.8). The requirement is stated as the
+  observable: **a refresh that has not run within its cadence must surface
+  as a failing check in a channel that does not share the refresh's own
+  scheduler** — once a workflow is disabled, nothing inside it can report
+  anything, so the watchdog must live outside the thing it watches (where
+  it lives is the implementation's choice). Keeping the scheduler alive
+  through repository activity is at most a should on top of that: whether
+  workflow-pushed commits reset GitHub's activity clock is not asserted
+  here, and a mechanism resting on it would rest on an unverified fact.
 - **Superseded game versions are never re-patched**: the refresh rebuilds
   the branch's current content only. A consumer pinned to an older
   version's tag holds exactly what was published — frozen content is what
   pinning means — and moving forward is how they get patches. Stated
   because silence here would read as an oversight rather than a choice.
 - **A smoke test gates every game-image publish**: the built image must
-  start with a minimal configuration, report healthy (§5.5), stop on the
-  stop signal, and exit 0 — asserting exactly the silent-failure path of
-  §5.6 before the image reaches anyone. It runs under an **arbitrary
-  non-root uid**, with a root filesystem as read-only as the image's own
-  documentation claims (§5.1) — writable mounts exactly at the documented
-  paths — so the uid-agnostic promise of §3.4 and the writable-path claims
-  are exercised on every publish instead of trusted; an image whose
-  per-game specification states a reasoned deviation from the read-only
-  recommendation is tested against its own documented writable set. A
-  build that cannot pass this does not publish.
+  start on the image's **default configuration profile** with only the
+  documented mandatory variables supplied, report healthy (§5.5) within a
+  **stated bound** (past which the gate fails rather than hangs), stop on
+  the stop signal, and exit 0 — asserting exactly the silent-failure path
+  of §5.6 before the image reaches anyone. Where a supported alternative
+  profile switches the healthcheck onto a different code path (a non-Steam
+  mode, for instance), that profile should be exercised too. External
+  connectivity (Steam included) is a permitted dependency of the gate —
+  the game needed it at build time anyway. The test runs under an
+  **arbitrary non-root uid**, with a root filesystem as read-only as the
+  image's own documentation claims (§5.1) — writable mounts exactly at the
+  documented paths — so the uid-agnostic promise of §3.4 and the
+  writable-path claims are exercised on every publish instead of trusted;
+  an image whose per-game specification states a reasoned deviation from
+  the read-only recommendation is tested against its own documented
+  writable set. A build that cannot pass this does not publish.
+- Pushes and pull requests that touch an image's sources should get a
+  **build-and-smoke-test run without publishing** — otherwise an
+  entrypoint regression waits, invisible, until the next publish attempt
+  finds it.
 
 ## 9. Documentation deliverables
 

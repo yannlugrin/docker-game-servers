@@ -99,7 +99,9 @@ ships, and any correction lands in the image documentation.
   **non-Steam configuration** is detected from the effective settings, and
   whether the server writes into a `$HOME`-derived path (`~/.steam` link
   farm, JVM crash dumps) at runtime — it completes the writable-path set
-  (root §3.4); (g) **where the server actually writes downloaded workshop
+  (root §3.4), noting that setting `$HOME` covers native/`steamclient.so`
+  paths but the JVM resolves `user.home` from the passwd database first
+  where the uid resolves, so JVM-side paths must be verified separately; (g) **where the server actually writes downloaded workshop
   mods** — community reports disagree between the cache directory and a
   `steamapps/workshop` tree, and if the target turns out to be the shipped
   game directory, it collides with the world-readable-not-writable content
@@ -112,7 +114,21 @@ ships, and any correction lands in the image documentation.
   write-only) — load-bearing for root §5.5's probe capability when the
   query protocol is off, see §6; (j) whether the server **rotates or caps
   its own log files** under the state root — the input root §5.5's
-  rotation-ownership documentation needs.
+  rotation-ownership documentation needs; (k) whether the A2S answer
+  **tracks serving state at both ends** — measured against a server still
+  loading its world (the probe must not answer yet) and against an
+  artificially hung one (the answer must stop; a Steamworks responder
+  living outside the game's main loop could keep answering) — the entire
+  healthcheck premise, absorbed by §6's fallback order if it fails, but
+  only if the question is asked; (l) whether the game's RCON offers a
+  **bind-address setting** — the §5 internal-RCON fallback requires
+  loopback, and if the game cannot bind loopback and the console is also
+  unusable (item c), there is no safe mediation channel and the image
+  **must not ship on that combination** — a wide ephemeral admin listener
+  is not an acceptable substitute; (m) **what a Build 42 point release
+  does to an existing world** — migrate, invalidate, or regenerate — the
+  researched answer behind §8's upgrade warning (root §6 requires it as a
+  fact, not just the warning).
 - The server **does not act on SIGTERM natively**: clean shutdown is the
   console/RCON sequence `save` then `quit`. Root §5.6 mediation is
   mandatory, and must work even when the operator configured no RCON
@@ -146,7 +162,7 @@ should be:
 | `GAME_PORT` | Main UDP port (game traffic; expected to answer Steam query too — open item, §2) | Optional (default 16261) |
 | `DIRECT_PORT` | Second UDP port | Optional (default 16262) |
 | `MAX_HEAP` | JVM maximum heap | Optional (documented default), with the §2 warning that it must sit below the container memory limit |
-| `STOP_TIMEOUT` | Entrypoint's bounded wait for the game to exit after `save`+`quit` (root §5.6) | Optional (default ~80s per root §5.6, just under the recommended 90s grace floor; docs state it must sit below the runtime's stop grace period) |
+| `STOP_TIMEOUT` | Entrypoint's bounded wait for the game to exit after `save`+`quit` (root §5.6) | Optional (default 80s per root §5.6, just under the recommended 90s grace floor; docs state it must sit below the runtime's stop grace period) |
 | `ALLOW_UID0` | Skips the uid-0 fatal on rootless/user-namespaced runtimes (root §3.4); accepts `1` or case-insensitive `true` | Optional (unset = uid 0 refused) |
 
 Exact names are a recommended default; whatever ships is what the
@@ -189,10 +205,22 @@ is a first boot for that name and follows the same rows (an implementer
 testing "any database in the state root" reproduces exactly the hang this
 table exists to prevent):
 
-| Server database exists | Credential variables | Behavior |
+The table keys on **"an admin account exists for the effective
+`SERVER_NAME` and `ADMIN_USERNAME`"** where the game makes that
+observable — not on the database file's mere existence, which is only a
+proxy: an interrupted first boot (OOM kill, a `^C`) can leave a database
+with no admin account, and a proxy-keyed entrypoint would then ignore the
+supplied credential and start the adminless public server row 1 calls
+unacceptable. Where account existence is not observable, creation must be
+**idempotent instead**: whenever a credential is supplied and the named
+account is absent, create it — which also defines the behavior when an
+operator changes `ADMIN_USERNAME` on a populated state root.
+
+| Admin account exists | Credential variables | Behavior |
 |---|---|---|
 | No | Neither set | **Fatal before game start**, message naming both variables — a hang or an adminless public server are both unacceptable |
 | No | Either set | Create the admin account via the game's non-interactive mechanism (`ADMIN_PASSWORD` wins if both are set — it states desired state); start |
+| Yes | Neither set | Start normally — the steady state of every configured server |
 | Yes | Only `INITIAL_ADMIN_PASSWORD` set | Start; the variable is ignored **by definition** — first-start-only is its documented contract (root §5.4), so no warning is owed. Leaving it set forever is the normal deployment |
 | Yes | `ADMIN_PASSWORD` set | Start; **the environment wins**: apply at every start (the pre-table rule already made an unsupported override fatal, so this row only exists where the game supports it). Consequence, documented prominently: an admin password changed in game reverts on the next restart — this credential is managed via the environment *or* in game, never both (the root §5.3 rewrite rule, applied to a credential) |
 
@@ -227,8 +255,12 @@ capability): the image must give the operator a documented `docker exec`
 path to save and announce that works **regardless of `RCON_PASSWORD`** —
 the entrypoint demonstrably owns a working channel, and an operator on a
 default deployment is entitled to the same one. Operator RCON over the
-network remains what `RCON_PASSWORD` enables; the exec path exists either
-way.
+network remains what `RCON_PASSWORD` enables — and setting it **is** the
+deliberate choice of root §5.2 that opens a network listener: the
+variable exists for remote administration, so it binds wide when set
+(documented with the never-expose-publicly warning), while the
+entrypoint's own internal RCON stays loopback-bound (§2, open item l).
+The exec path exists either way.
 
 ## 6. Health
 
@@ -276,7 +308,7 @@ a path outside the state root, the required response is fixed now: the
 mod target **must be brought inside the documented state root** — by the
 game's own configuration where it offers one, otherwise by relocation or
 a link prepared at build time — and only if that proves impossible does
-the image document a narrowed read-only claim as a reasoned §5.1
+the image document a narrowed read-only claim as a reasoned root §5.1
 deviation. Root §3.4's rule (nothing writes into the shipped game
 directory) is never the thing that bends. The image neither bakes
 mods nor manages them; documentation must state this, including the
