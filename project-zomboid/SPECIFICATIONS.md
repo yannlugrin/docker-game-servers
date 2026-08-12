@@ -224,17 +224,19 @@ documentation states what the default heap assumes of the container.
 
 ## 4. First boot
 
-The dangerous branch is a fresh state directory: the game would prompt for
-an admin password and hang. The entrypoint must resolve it before the game
-starts. Two rules precede the table:
+The dangerous branch is a fresh state directory: Project Zomboid would
+prompt for an admin password and hang. The entrypoint must resolve it
+before the game starts. Two rules precede the table:
 
-- On an image where the game cannot honor the override (§2, open item d),
-  a set `ADMIN_PASSWORD` is **fatal regardless of anything else** —
-  validation runs before the rows, so no path exists where an unsupported
-  override works on first boot and then kills the next restart.
+- `ADMIN_PASSWORD` is offered only if Zomboid turns out to support
+  non-interactive password changes (§2, open item d). If it does not, this
+  image does not document the variable — and a set `ADMIN_PASSWORD` is
+  then **fatal regardless of anything else**, validated before the rows
+  below, so no path exists where the unsupported override works on first
+  boot and then kills the next restart.
 - The table keys on **"an admin account exists for the effective
-  `SERVER_NAME` and `ADMIN_USERNAME`"** where the game makes that
-  observable — never on the mere existence of files: config, saves and
+  `SERVER_NAME` and `ADMIN_USERNAME`"** wherever that is observable —
+  never on the mere existence of files. Zomboid's config, saves and
   database are all per-server-name, so changing `SERVER_NAME` on a
   populated state root is a first boot for that name; and an interrupted
   first boot (OOM kill, a `^C`) can leave a database with no admin
