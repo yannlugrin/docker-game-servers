@@ -279,9 +279,11 @@ document honestly and to expose what the game does offer:
   setting (configuration and, where common practice, an environment
   variable) when the game supports changing it. When the game cannot, the
   image documents the fixed number and its consequence — publish it 1:1,
-  and two instances of that game cannot share a host — as a stated
-  limitation rather than a surprise. A fixed advertised port costs
-  flexibility; it does not break a single-instance deploy.
+  and two instances of that game cannot share a host **address** (a
+  multi-IP host still runs one per address, since a published port binds
+  the host's ip:port pair, not the bare port) — as a stated limitation
+  rather than a surprise. A fixed advertised port costs flexibility; it
+  does not break a single-instance deploy.
 - For **player-facing ports**, the image's shipped or effective
   configuration must make the game listen on `0.0.0.0` wherever the bind
   address is configurable; a game that binds narrower and cannot be told
@@ -613,6 +615,19 @@ A per-game specification must cover, at minimum:
   fall back to buildid-derived names (the buildid is always machine-
   readable, §2.3) — automation never waits on a human to name a tag — and
   the per-game specification states which naming its tags use.
+- **Development builds never consume the release namespace.** Iterations
+  built during development and testing may be published — privately, or
+  under an explicitly non-release naming (a `dev-` prefix or similar,
+  visibly not a release tag) — but they never take or advance a `-rN`
+  tag: the revision counter counts **releases**, and a game's first
+  public image is its `-r0` no matter how many development iterations
+  preceded it. Dev tags carry none of this section's promises — mutable,
+  prunable, excluded from the never-reuse rule and from the moving
+  pointers, and absent from consumer documentation, because they are not
+  for consumers. The reason: the revision number is an operator-facing
+  statement about the image's release history, and a first release
+  arriving as `-r342` because CI published every development iteration
+  would make it noise.
 - Superseded immutable tags are **retained indefinitely, deliberately**:
   §7's promise is that a pinned tag keeps resolving, so no cleanup job may
   delete them. Registry storage for public images is the cheap side of the
@@ -694,7 +709,8 @@ CI on the repository's GitHub project must provide:
 - Pushes and pull requests that touch an image's sources should get a
   **build-and-smoke-test run without publishing** — otherwise an
   entrypoint regression waits, invisible, until the next publish attempt
-  finds it.
+  finds it. Where a test genuinely needs a pullable image, it publishes
+  under §7's development namespace, never as a release tag.
 - **Builder publishes get a minimal gate of their own**: the built image
   must run steamcmd to completion on an anonymous metadata query before
   the date tag is pushed. The builder is a public product (§4.1), and

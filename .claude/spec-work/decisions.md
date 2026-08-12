@@ -158,7 +158,11 @@
   "newest version" for moving pointers is publication order of new-version
   builds (no version-string parsing); a rebuild at unchanged
   version+buildid is a legitimate revision bump; the version-string source
-  is a required per-game fact.
+  is a required per-game fact. Amended per user final read (2026-08-12):
+  the `-rN` counter counts **releases only** — development iterations
+  publish under a separate non-release namespace (mutable, prunable,
+  promise-free), so a game's first public image is `-r0` regardless of
+  development history.
 - **Why:** the user wants convenience pointers (`latest`, bare version)
   alongside reproducible references; consumers needing reproducibility pin
   `-rN` or a digest. Bare-version-only (no revision) rejected: rebuilds for
