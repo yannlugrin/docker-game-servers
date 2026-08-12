@@ -10,7 +10,9 @@ document.
 
 The image contains the Project Zomboid dedicated server, Build 42 stable
 line, installed at build time (root §3.2). One container, one server
-instance.
+instance. **Build 41 is a non-goal**: `legacy41` communities are
+unsupported by this image — blast radius: they use the many existing B41
+images.
 
 The image pins the game's state root to a **fixed, documented absolute
 path**, using the game's cache-dir option, independent of `$HOME`. The
@@ -42,7 +44,7 @@ ships, and any correction lands in the image documentation.
 
 - Steam app id **380870**, anonymous install. **Build 42 is the stable
   branch since 2026-07-29 (version 42.20)**, multiplayer included; Build 41
-  survives as the `legacy41` beta branch and is out of scope (root §11).
+  survives as the `legacy41` beta branch and is out of scope (§1).
 - The server is Java-based and **ships its own JRE** — the image needs no
   system Java. Its maximum heap is set through its launch configuration and
   must stay below the container memory limit: a heap equal to the limit

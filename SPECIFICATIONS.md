@@ -804,12 +804,15 @@ Conscious renunciations, each with its blast radius.
   server each; scheduling, persistence strategy, restore, and fleet concerns
   belong to whatever runs the containers. Blast radius: none for the images;
   operators bring their own.
-- **No Project Zomboid Build 41 image.** `legacy41` communities are
-  unsupported here. Blast radius: they use the many existing B41 images.
 - **No Windows containers.** The future wine line (§10.1) runs Linux
   containers; Windows-native containerization is out entirely.
-- **No support for games that require root at runtime** or ship files only
-  root can read (§3.4). Such a game is out until fixed upstream.
+- **No support for games that require genuine root privileges at
+  runtime** — privileged operations, files only root can read, ownership
+  the process must hold as real root — because that defeats the
+  uid-agnostic model of §3.4 outright. This is distinct from `ALLOW_UID0`
+  (§3.4), which merely lets a container run as the *unprivileged* uid 0 of
+  a rootless or user-namespaced runtime; a game demanding actual root
+  power fails there too. Such a game is out until fixed upstream.
 - **No general-purpose runtime steamcmd image.** The steamcmd image is a
   builder (§4.1); running persistent servers from it directly is unsupported,
   because it would reintroduce everything §3.2 rejects.
