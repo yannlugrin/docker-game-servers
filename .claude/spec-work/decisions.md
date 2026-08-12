@@ -8,7 +8,7 @@
 
 ## D-001 (2026-08-12) — Monorepo for all images
 
-- **Status:** decided; reaffirmed 2026-08-12 (challenge 001)
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001); reaffirmed 2026-08-12 (challenge 009)
 - **Foundational:** yes
 - **Decision:** one repository holds the steamcmd base image and every
   per-game image (this repository).
@@ -24,7 +24,7 @@
 ## D-002 (2026-08-12) — steamcmd image is a build stage, not a runtime base
 
 - **Status:** decided; reaffirmed 2026-08-12 (challenge 001, rationale
-  re-grounded)
+  re-grounded); reaffirmed 2026-08-12 (challenge 009)
 - **Foundational:** yes
 - **Decision:** the steamcmd base image exists to be used as a multi-stage
   *builder*: it downloads/installs the game at build time. Final game images
@@ -52,7 +52,7 @@
 ## D-003 (2026-08-12) — Game files baked into the image at build time
 
 - **Status:** decided; reaffirmed 2026-08-12 (challenge 001, rationale
-  re-grounded)
+  re-grounded); reaffirmed 2026-08-12 (challenge 009)
 - **Foundational:** yes
 - **Decision:** each game image contains the game server files, installed
   via steamcmd during the image build. The image never downloads the game at
@@ -74,7 +74,7 @@
 
 ## D-004 (2026-08-12) — Base distribution: debian:trixie-slim
 
-- **Status:** decided; reaffirmed 2026-08-12 (challenge 001)
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001); reaffirmed 2026-08-12 (challenge 009)
 - **Foundational:** yes
 - **Decision:** all images (builder and runtime stages) are based on
   debian:trixie-slim (Debian 13, stable).
@@ -129,7 +129,7 @@
 
 ## D-008 (2026-08-12) — Wine variant deferred
 
-- **Status:** decided; reaffirmed 2026-08-12 (challenge 001)
+- **Status:** decided; reaffirmed 2026-08-12 (challenge 001); reaffirmed 2026-08-12 (challenge 009)
 - **Foundational:** yes
 - **Decision:** a wine-based image line for Windows-only Steam servers is a
   Future Consideration: nothing is built now, but the base/game image split
@@ -230,6 +230,16 @@
   serving/player-count probe; exec-based save/announce where the game has
   an admin channel) are the musts; shipping the two specific clients is the
   recommended default (should).
+- Amended per challenge 009: the RCON client's strongest current
+  justification is its **contingent fallback role** — if console-over-pipe
+  fails, stop mediation runs on entrypoint-managed internal RCON (PZ §5),
+  and if the query protocol is off or A2S fails to track serving state,
+  the healthcheck itself falls back onto that channel (PZ §6) — with
+  operator exec convenience secondary. Until PZ open items c/f/i/k/l
+  resolve, the image cannot know whether the client is a convenience or
+  the backbone of its flagship guarantees; dropping it under §5.5's
+  drop-with-reason clause would be wrong exactly in the configurations
+  that need it.
 
 ## D-013 (2026-08-12) — Image naming: plain game name; owner placeholder
 
@@ -266,22 +276,34 @@
 
 ## D-015 (2026-08-12) — No default user; the entrypoint refuses uid 0
 
-- **Status:** decided
+- **Status:** decided; amended 2026-08-12 (review 006 F5, user ruling);
+  reaffirmed 2026-08-12 (challenge 009, as amended)
 - **Foundational:** no
 - **Decision:** game images declare no default user; the entrypoint exits
   fatally when running as uid 0, with a message naming `--user` / compose
-  `user:`. An explicit uid choice is mandatory to run the image.
-- **Why:** the user's ruling on review 004 F12, refining both offered
-  options. A container cannot distinguish an operator-chosen uid from an
-  image default, so refusing root is the only way to force a deliberate
-  choice. A root default plants root-owned files in the volume (springing
-  the unwritable-state-root fatal when `--user` is later added); an
-  image-invented default uid puts numbers nobody chose on the operator's
-  disk. Rejected: non-root default uid (the invented-number problem), root
-  default with docs (the trap), escape hatch env (would be cargo-culted).
+  `user:` — with **one documented opt-out**, `ALLOW_UID0` (`1` or
+  case-insensitive `true`; `0`/`false` are an explicit "off"; anything else
+  is unparseable and fatal per root §5.3), for rootless and
+  user-namespaced runtimes where in-container uid 0 maps to an
+  unprivileged host user and is the runtime's default.
+- **Why:** the user's ruling on review 004 F12, amended by their ruling on
+  review 006 F5. The real ground is forcing the uid choice to be
+  deliberate: a container cannot distinguish an operator-chosen uid from
+  an image default. A root default plants root-owned files in the volume;
+  an image-invented default uid puts numbers nobody chose on the
+  operator's disk. On rootless Podman / userns Docker / K8s without
+  `runAsUser`, uid 0 is harmless and the default, so a flat refusal made
+  the image unbootable on runtimes §1 promises to support — setting the
+  opt-out *is* the deliberate choice there. Rejected: non-root default uid
+  (the invented-number problem), root default with docs (the trap), and an
+  **undocumented or default-on** escape (the cargo-cult risk the original
+  entry feared; the shipped opt-out is scoped, documented, and
+  strict-parsed instead).
 - **Premises:** operators mount owner-only state directories and care about
   file ownership on the host; a loud, explanatory first-run fatal is an
-  acceptable cost for a public image (no zero-flag quickstart).
+  acceptable cost for a public image (no zero-flag quickstart); rootless
+  and user-namespaced runtimes default to in-container uid 0 with no
+  host-side root ownership.
 
 ## D-016 (2026-08-12) — Non-Steam games are a Future Consideration
 
@@ -297,5 +319,8 @@
   safe: a non-Steam game arrives as a new game directory with its own
   builder stage.
 - **Premises:** the first games are Steam games; §5 names no Steam
-  mechanism as a must except the game-protocol probe, which is
-  protocol-generic in intent (made explicit in §10.6).
+  mechanism that §10.6's swap list does not account for (amended per
+  challenge 009: the §5.8 buildid/branch label joined the swap list — it
+  generalizes to a per-game version-source identifier, as §7's
+  buildid-derived tag fallback already shows).
+- Reaffirmed 2026-08-12 (challenge 009).

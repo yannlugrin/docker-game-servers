@@ -730,10 +730,12 @@ Not built now; nothing in the present design may preclude them.
   conventions of §5 are acquisition-agnostic — nothing in them assumes
   Steam. What changes per non-Steam game: the build stage (a different
   fetcher than the steamcmd builder), CI's update detection (a per-game
-  version source instead of the Steam buildid, §8), and the healthcheck's
-  protocol (§5.5 names the Steam query because every current game is a
-  Steam game; the requirement is the game-protocol probe, whatever that
-  protocol is). Deferring is safe: a non-Steam game arrives as a new game
+  version source instead of the Steam buildid, §8), the §5.8 buildid and
+  branch labels (which generalize to the game's version-source identifier —
+  §7's buildid-derived tag fallback already shows the shape), and the
+  healthcheck's protocol (§5.5 names the Steam query because every current
+  game is a Steam game; the requirement is the game-protocol probe,
+  whatever that protocol is). Deferring is safe: a non-Steam game arrives as a new game
   directory with its own builder stage, touching nothing existing.
 
 ## 11. Non-Goals
