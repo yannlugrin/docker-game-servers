@@ -2,7 +2,20 @@
 
 ## Open questions
 
-(none)
+User review round in progress (2026-08-12) — points below are recorded for
+batch integration once the user finishes reviewing; do not apply piecemeal.
+
+- Add the steamclient.so fact to the spec (§4 and/or §6.1): many Linux
+  dedicated servers dlopen `steamclient.so` via `~/.steam/sdk64/` (or
+  `sdk32/`), a path normally provided by a steamcmd installation — baked
+  images must ship/symlink these libraries from the builder stage; the
+  binary itself is never needed at runtime.
+- Extend D-002's premises: games can fetch their own runtime content
+  (workshop mods) or need none; steamcmd's `workshop_download_item` is the
+  one runtime-relevant feature, only for games whose server cannot
+  self-download mods, and it often refuses anonymous login — if such a game
+  arrives, runtime steamcmd is a reasoned per-image deviation, not a
+  convention change.
 
 ---
 
