@@ -23,11 +23,14 @@ becomes a documented fact of the image. A missing or unwritable state root
 is a loud fatal before the game starts, never a fallback path.
 
 The read-only-root-filesystem recommendation of root §5.1 applies
-unchanged. The complete writable-path set (root §3.4) is: the state root,
-`/tmp`, and `$HOME` — which the image sets itself to a writable documented
-location (inside the state root or a dedicated mount), because the
-Steam client link farm and JVM crash dumps may land under it (§2, open
-item f); nothing else may need write access, verified at implementation.
+unchanged. The complete writable-path set (root §3.4) is: the state root
+and `/tmp` — the image sets `$HOME` itself to a documented location
+**inside the state root**, because the Steam client link farm and JVM
+crash dumps may land under it (§2, open item f). Two writable targets keep
+`--read-only` simple; the accepted consequence, stated in the docs, is
+that home-directory residue (crash dumps included — root §5.4's warning
+applies) travels into every backup of the state root. Nothing else may
+need write access, verified at implementation.
 
 ## 2. Facts about the PZ dedicated server
 
@@ -142,28 +145,36 @@ The heap deserves its own guard, because the failure it prevents is the
 most silent in this document: a kernel OOM kill has no log line, lands
 mid-write, and a restart policy hides it. The entrypoint must read the
 container memory limit where the cgroup exposes one and **fail loudly
-before the game starts** when the effective maximum heap is not below it
-(leaving headroom for the JVM's non-heap memory); where no limit is
-readable, it proceeds, and the documentation states what the default heap
-assumes of the container.
+before the game starts** when the effective maximum heap plus a
+**documented non-heap allowance** exceeds the limit — the allowance is a
+number two implementations compute identically (a should-level starting
+point: the larger of 512 MB or 25% of the heap), not an adjective. An
+implausibly large reported limit (cgroup v1 reports a near-maximum value
+for "unlimited") counts as no limit. Where no limit is readable, the game
+starts, and the documentation states what the default heap assumes of the
+container.
 
 ## 4. First boot
 
 The dangerous branch is a fresh state directory: the game would prompt for
 an admin password and hang. The entrypoint must resolve it before the game
-starts. "Server database exists" is evaluated **against the effective
-`SERVER_NAME`** — config, saves and database are all per-server-name, so
-changing `SERVER_NAME` on a populated state root is a first boot for that
-name and follows the same rows (an implementer testing "any database in the
-state root" reproduces exactly the hang this table exists to prevent):
+starts. Two rules precede the table. First: on an image where the game
+cannot honor the override (§2, open item d), a set `ADMIN_PASSWORD` is
+**fatal regardless of anything else** — validation runs before the rows,
+so no path exists where an unsupported override works on first boot and
+then kills the next restart. Second: "server database exists" is evaluated
+**against the effective `SERVER_NAME`** — config, saves and database are
+all per-server-name, so changing `SERVER_NAME` on a populated state root
+is a first boot for that name and follows the same rows (an implementer
+testing "any database in the state root" reproduces exactly the hang this
+table exists to prevent):
 
 | Server database exists | Credential variables | Behavior |
 |---|---|---|
 | No | Neither set | **Fatal before game start**, message naming both variables — a hang or an adminless public server are both unacceptable |
 | No | Either set | Create the admin account via the game's non-interactive mechanism (`ADMIN_PASSWORD` wins if both are set — it states desired state); start |
 | Yes | Only `INITIAL_ADMIN_PASSWORD` set | Start; the variable is ignored **by definition** — first-start-only is its documented contract (root §5.4), so no warning is owed. Leaving it set forever is the normal deployment |
-| Yes | `ADMIN_PASSWORD` set, game supports non-interactive change | Start; **the environment wins**: apply at every start. Consequence, documented prominently: an admin password changed in game reverts on the next restart — this credential is managed via the environment *or* in game, never both (the root §5.3 rewrite rule, applied to a credential) |
-| Yes | `ADMIN_PASSWORD` set, game does not support it | **Fatal before game start** (root §5.4): the image cannot honor the override contract; the message directs the operator to `INITIAL_ADMIN_PASSWORD`. Safe to be fatal because the docs never offer `ADMIN_PASSWORD` on such an image — only an explicit misconfiguration hits this row |
+| Yes | `ADMIN_PASSWORD` set | Start; **the environment wins**: apply at every start (the pre-table rule already made an unsupported override fatal, so this row only exists where the game supports it). Consequence, documented prominently: an admin password changed in game reverts on the next restart — this credential is managed via the environment *or* in game, never both (the root §5.3 rewrite rule, applied to a credential) |
 
 ## 5. Shutdown
 
@@ -174,31 +185,48 @@ the Java process to exit on its own — root §5.6's definition of a confirmed
 clean stop — and exits 0 only then. The expected channel is the
 server console over stdin — an open item of §2. If verification finds the
 console unusable from a pipe, the sanctioned fallback is an
-**entrypoint-managed internal RCON**: the entrypoint generates an ephemeral
-password and enables RCON itself, solely for mediation — safe because an
-unpublished container port is unreachable from outside, and independent of
-operator configuration because the entrypoint owns it (this is distinct
-from *operator* RCON, §3). The image documentation recommends a stop grace
-period of at least 90 seconds, and notes that large maps and many players
-lengthen saves.
+**entrypoint-managed internal RCON**, under four constraints. When the
+operator has configured RCON (§3), the entrypoint must **reuse it** —
+never run a second listener or overwrite the operator's password. When it
+enables RCON itself, the listener binds **loopback only** — "unpublished
+port" is no protection under host networking or a shared network
+namespace — with an ephemeral generated password that must not persist
+into any backed-up file beyond what the game's own INI rewriting forces,
+and the listener appears in the image's **port table** as an admin
+interface with its bind address, like every other port (root §5.2). The
+image documentation recommends a stop grace period of at least 90
+seconds, and notes that large maps and many players lengthen saves.
+
+**The mediation channel is also the operator's** (root §5.5's exec
+capability): the image must give the operator a documented `docker exec`
+path to save and announce that works **regardless of `RCON_PASSWORD`** —
+the entrypoint demonstrably owns a working channel, and an operator on a
+default deployment is entitled to the same one. Operator RCON over the
+network remains what `RCON_PASSWORD` enables; the exec path exists either
+way.
 
 ## 6. Health
 
 The HEALTHCHECK queries the Steam query protocol on the port the §2
 verification confirms (expected: the main game port), always against the
 **effective** port configuration (root §5.5). If verification resolves
-unfavorably, the fallback order is: the legacy Steam ports if they turn out
-to hold live query listeners (§2); otherwise the best available game-level
-signal (the internal mediation channel of §5, or a log-line readiness
-match), documented as a reasoned deviation per root §5.5 — a process-level
-check is never the answer.
+unfavorably, the fallback order is: the legacy Steam ports if they turn
+out to hold live query listeners (§2); otherwise the mediation channel of
+§5, probed per check — the liveness predicate must be one that **can go
+false on a hung server**, which is why a log-line match may serve only as
+the *readiness* signal (world loaded), never as liveness: a matched line
+stays matched forever, exactly the latch root §5.5 forbids. A
+process-level check is never the answer.
 
 A **non-Steam configuration is supported**: the game can run with Steam
 integration disabled, which silences the query protocol entirely. The
 healthcheck must detect that from the effective configuration (§2, open
 item f) and switch to the same fallback order automatically — a healthy
 non-Steam server reported permanently unhealthy would make the probe
-worthless exactly for the operators who deviate.
+worthless exactly for the operators who deviate. The same degradation
+applies to the operator's own probe (root §5.5's first capability):
+serving state and player count come through the mediation channel when the
+query protocol is off, and the documentation says so.
 
 World load on large Build 42 maps takes minutes: the `start_period` must
 absorb that so a starting server is not reported unhealthy, while a

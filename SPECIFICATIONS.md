@@ -73,8 +73,12 @@ update detection (§8) possible.
 **2.4 PID 1 signal semantics.** Inside a container the entrypoint process is
 PID 1 of its namespace. The kernel delivers PID 1 only signals it has
 explicitly installed handlers for — a process that would die to `SIGTERM` as
-an ordinary process silently ignores it as PID 1. A shell-form entrypoint
-makes the shell PID 1, and it neither handles nor forwards the signal. Either
+an ordinary process silently ignores it as PID 1. A shell between the
+runtime and the game swallows the stop: common shells `exec` a single
+simple command, so the plainest shell-form entrypoint escapes by luck — but
+any compound command, `&&` chain, or wrapper script that does not `exec`
+its final process leaves a shell as PID 1 that neither handles nor forwards
+the signal. Either
 mistake produces the same outcome: the runtime waits out the stop grace
 period, then `SIGKILL`s the server mid-write, with nothing in any log. This
 is why §5.6 is the strictest section of the conventions.
@@ -157,24 +161,31 @@ documented state paths — never into the shipped game directory.
 
 Two consequences, both requirements. The image declares **no default
 user**, and the entrypoint **fatally refuses to run as uid 0**, with a
-message naming `--user` (and compose `user:`): a container cannot
-distinguish an operator-chosen uid from an image default, so refusing root
-is the only way to force the choice to be deliberate — a root default
-plants root-owned files in the operator's volume that spring the
-unwritable-state-root fatal the first time `--user` is added, and an
-image-invented default uid puts numbers nobody chose on the operator's
-disk. And the per-game specification must enumerate the **complete
-writable-path set** — the state root, `/tmp`, and what the image sets
-`$HOME` to — so the read-only-rootfs recommendation of §5.1 is checkable
-rather than aspirational.
+message naming `--user` (and compose `user:`). The real ground is forcing
+the uid choice to be deliberate: a container cannot distinguish an
+operator-chosen uid from an image default, and on plain Docker a root
+default additionally plants root-owned files in the operator's volume
+(springing the unwritable-state-root fatal the first time `--user` is
+added), while an image-invented default uid puts numbers nobody chose on
+the operator's disk. One documented opt-out exists, because on rootless
+and user-namespaced runtimes (rootless Podman, userns-remapped Docker,
+Kubernetes pods without `runAsUser`) in-container uid 0 maps to an
+unprivileged host user and is the runtime's default: setting
+**`ALLOW_UID0`** to `1` or `true` (case-insensitive) skips the fatal —
+setting it *is* the deliberate choice, and its documentation says exactly
+when it is legitimate. And the per-game specification must enumerate the
+**complete writable-path set** — the state root, `/tmp`, and what the
+image sets `$HOME` to — so the read-only-rootfs recommendation of §5.1 is
+checkable rather than aspirational.
 
-**3.5 The entrypoint is the adapter.** Each game image has a thin entrypoint
-owning exactly four jobs: validate the startup state and fail loudly on
-anything unsafe (§5.3, §5.4); apply optional environment overrides to the
-effective configuration (§5.3); hand PID 1 to — or reliably relay signals
-to — the game (§5.6); and mediate shutdown for games that do not handle
-their stop signal (§5.6). Everything else — what to configure, when to run —
-belongs to the operator.
+**3.5 The entrypoint is the adapter.** Each game image has a thin
+entrypoint whose core jobs are: validate the startup state and fail loudly
+on anything unsafe (§5.3, §5.4); apply optional environment overrides to
+the effective configuration (§5.3); hand PID 1 to — or reliably relay
+signals to — the game (§5.6); and mediate shutdown for games that do not
+handle their stop signal (§5.6). §5 assigns it narrower duties where a game
+needs them (log relay, output redaction). Everything else — what to
+configure, when to run — belongs to the operator.
 
 ## 4. The steamcmd builder image
 
@@ -275,8 +286,10 @@ document honestly and to expose what the game does offer:
   pattern, §6).
 - The image must not invent environment variables for arbitrary game
   settings. The env surface stays small — identity, ports, credentials,
-  resource limits — because an unbounded env-to-config mapping is a second
-  configuration system to maintain, forever chasing the game's own.
+  resource limits, and the image's own behavior knobs (the stop timeout of
+  §5.6, the uid-0 opt-out of §3.4) — because an unbounded env-to-config
+  mapping is a second configuration system to maintain, forever chasing the
+  game's own.
 - If the game **rewrites its own configuration files** at runtime, the image
   documentation must say so prominently. An operator who re-renders the file
   on every deploy will otherwise silently revert every setting changed
@@ -309,8 +322,12 @@ document honestly and to expose what the game does offer:
   start**: the operator asked for a guarantee the image cannot give, and
   anything quieter lets believed and effective credentials silently
   diverge.
-- No secret may ever reach stdout, stderr, or a crash dump. Where startup
-  logs echo configuration, credential values are redacted.
+- No secret may ever reach stdout or stderr: where startup logs echo
+  configuration, credential values must be redacted. Crash dumps are the
+  honest limit of that promise — a memory dump contains whatever the
+  process held, credentials included, and no image can prevent it — so the
+  obligation there is documentation: the docs must warn that crash dumps
+  may contain secrets and are to be treated as sensitive.
 
 ### 5.5 Observability
 
@@ -383,7 +400,11 @@ later with nothing in any log.
   non-zero, save unconfirmed), while a grace period that fires first is a
   silent `SIGKILL` with generic exit 137 and no explanation in the log. No
   fixed internal number can be right for every map size and player count,
-  which is why the bound is the operator's.
+  which is why the bound is the operator's. To make the pairing visible
+  where it will be seen, the entrypoint must state its effective stop
+  timeout — at start, and again on receipt of the stop signal — so a
+  grace period set below it turns from a mysterious exit 137 into an
+  attributable one.
 - **A confirmed clean stop** — the only thing that exits 0 — is defined
   observably: the shutdown sequence was delivered and the game process
   exited *on its own* within the timeout. A game process the entrypoint had
@@ -507,12 +528,21 @@ A per-game specification must cover, at minimum:
   marker. The reason is the immutability rule below — two branches can
   expose the same version string, and colliding them on one immutable tag
   would republish a tag with different content.
-- **A published immutable tag is never reused for different content.**
-  Consumers pin `-rN`, a date tag, or a digest for reproducibility; the
-  moving tags are convenience pointers, and every image's documentation
-  says exactly that — including that the moving tags **cross game versions
-  on pull**, with the save-migration consequence of §5.7 — so nobody
-  mistakes `latest` for a stable reference.
+- **A published immutable tag is never reused for different content**, and
+  because the registry itself will happily move a tag, this must be
+  **enforced loudly at publish time**: a publish that would overwrite an
+  existing immutable tag (a lost race between two build triggers, a
+  recomputed revision) must fail the job, never proceed — a silently moved
+  pinned tag is this project's own flagship failure shape attached to its
+  strongest promise. Consumers pin `-rN`, a date tag, or a digest for
+  reproducibility; the moving tags are convenience pointers, and every
+  image's documentation says exactly that — including that the moving tags
+  **cross game versions on pull**, with the save-migration consequence of
+  §5.7 — so nobody mistakes `latest` for a stable reference.
+- Where a game exposes **no machine-readable version string**, its tags
+  fall back to buildid-derived names (the buildid is always machine-
+  readable, §2.3) — automation never waits on a human to name a tag — and
+  the per-game specification states which naming its tags use.
 - Images are linux/amd64 only (§2.1); tags carry no architecture suffix.
 
 ## 8. Build automation
@@ -536,21 +566,34 @@ CI on the repository's GitHub project must provide:
   (§7), so publishing never deploys anything anywhere; leaving
   same-version content updates unpublished would silently strand servers
   on stale builds instead.
-- Game images **must** also be rebuilt (revision bump) when the base or the
-  builder image materially changes, and a **scheduled base refresh must
-  exist**: once games are baked in, this is the *only* path by which
-  security patches reach game images — as an optional nicety it would be
-  the first thing dropped, leaving multi-gigabyte public images unpatched
-  indefinitely. The cadence is the implementation's choice; the mechanism
-  is not.
+- A **scheduled refresh must exist**, as one flow: it publishes a fresh
+  builder date tag, **advances the pinned builder reference** the game
+  builds use (§3.1 — the pin only moves by this deliberate, automated act,
+  which is what makes it a pin rather than a moving pointer in disguise),
+  and rebuilds every game image against the refreshed base and builder.
+  Each rebuilt image's tag follows §7's mapping like any other build: if
+  the branch moved since the last publish, the result is the new version's
+  `-r0`; if not, a revision bump. Once games are baked in, this refresh is
+  the *only* path by which security patches reach game images — as an
+  optional nicety it would be the first thing dropped, leaving
+  multi-gigabyte public images unpatched indefinitely. The cadence is the
+  implementation's choice; the mechanism is not.
+- **Superseded game versions are never re-patched**: the refresh rebuilds
+  the branch's current content only. A consumer pinned to an older
+  version's tag holds exactly what was published — frozen content is what
+  pinning means — and moving forward is how they get patches. Stated
+  because silence here would read as an oversight rather than a choice.
 - **A smoke test gates every game-image publish**: the built image must
   start with a minimal configuration, report healthy (§5.5), stop on the
   stop signal, and exit 0 — asserting exactly the silent-failure path of
   §5.6 before the image reaches anyone. It runs under an **arbitrary
-  non-root uid** with a **read-only root filesystem**, so the uid-agnostic
-  promise of §3.4 and the writable-path claims of §5.1 are exercised on
-  every publish instead of trusted. A build that cannot pass this does not
-  publish.
+  non-root uid**, with a root filesystem as read-only as the image's own
+  documentation claims (§5.1) — writable mounts exactly at the documented
+  paths — so the uid-agnostic promise of §3.4 and the writable-path claims
+  are exercised on every publish instead of trusted; an image whose
+  per-game specification states a reasoned deviation from the read-only
+  recommendation is tested against its own documented writable set. A
+  build that cannot pass this does not publish.
 
 ## 9. Documentation deliverables
 
