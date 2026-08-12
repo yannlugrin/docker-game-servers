@@ -50,8 +50,10 @@ conventions (root §3, §5) are standing reading for any image-track step.
    the amendment commit, reported in the step's summary — while **any
    resolution that changes a requirement, a tier, a documented
    limitation or the ship decision is a together-decision** that comes
-   back to me before the amendment; of the open items, (e), (g), (k)
-   and (l) are the ones that always come back.
+   back to me before the amendment; of the open items, (d), (e), (g),
+   (k) and (l) are the ones that always come back — (d) because it
+   decides whether `ADMIN_PASSWORD` is offered at all, a
+   documented-surface change.
 
    **Of the phase that produced the specification, the specification
    itself is your only input** — what I tell you in our exchanges, and
@@ -253,7 +255,10 @@ conventions (root §3, §5) are standing reading for any image-track step.
    rule 3 marks never-optimized (`.claude/docs/image-contract.md`), and
    a read-only reviewer agent's never-run placeholder takes rule 9's
    **entire gated set**, not just the deny list — a subagent cannot
-   obtain my authorisation mid-run —
+   obtain my authorisation mid-run — and where a template repeats the
+   200-line cap and the never-compress-the-boundary rule without
+   rule 3's yield clause, the clause is added at instantiation (the cap
+   yields to the boundary enumeration; the trimming happens elsewhere) —
    each adoption logged; the ones that earn
    their place later can wait — and once none remains un-instantiated
    (each adopted or explicitly dropped, logged), delete the assets
@@ -359,16 +364,24 @@ conventions (root §3, §5) are standing reading for any image-track step.
    the repository is not local, with two deliberate carve-outs decided
    now: the **local container lifecycle end to end** is free — build,
    run, exec, logs, inspect, wait, stop, rm, volume create and rm,
-   compose up and down, and cleanup of local images and volumes (`rmi`,
-   prune) — including the base-image pulls and the anonymous Steam
+   compose up and down, and **targeted** cleanup of local images and
+   volumes: `rmi`, `rm` and `volume rm` by name, prune only when scoped
+   by label or filter to this project's resources — including the
+   base-image pulls and the anonymous Steam
    downloads a build performs: it is the core dev loop, anonymous,
    costing only bandwidth and
    time (a Project Zomboid build downloads several gigabytes), and its
-   destructive tail is deliberately free too, because local images and
+   destructive tail is deliberately free too, because this project's
+   images and
    test volumes are rebuildable working material — the irreplaceable
-   local state is git's, which stays protected below; and
-   anonymous remote reads are free: Steam metadata queries (buildid
-   lookups), pulls of public images, `gh` and API read operations.
+   local state is git's, which stays protected below. **Blanket prune**
+   (`docker system prune`, unscoped image/volume/builder prune) is
+   gated with the outward writes: it is host-global, this host runs
+   other projects, and their state is not yours to free. And
+   read-only remote reads are free — Steam metadata queries (buildid
+   lookups), pulls of public images, `gh` and API read operations,
+   authenticated or not; where a permission pattern cannot split reads
+   from writes (`gh api`), the guard hook of step `000` draws the line.
    **Publishing or writing anything outward** — `git push`; `docker
    push` or any publish of any image to any registry, because release
    tags are immutable and retained forever (root §7); any GitHub write
@@ -532,7 +545,10 @@ Produce the workflow files — three plans, three decision logs,
    instruction that a session resumed
    after an interruption, or told the work was interrupted, runs
    `/resume-step` before touching anything, never trusting the
-   transcript. It also carries the `.claude/docs/image-contract.md`
+   transcript. It also carries the plan-step entry shape and the
+   boundary-crossing-cost rule from the plan instructions above —
+   later sessions extend plans and the bootstrap cold review sources
+   those conventions from `CLAUDE.md`, so they must actually be there. It also carries the `.claude/docs/image-contract.md`
    pointer with its read-trigger and its never-a-requirement-source
    caveat (rule 3). For as long as any tooling template remains
    un-instantiated
