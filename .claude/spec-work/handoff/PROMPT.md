@@ -21,8 +21,9 @@ doing anything else — they define their own reading rules (requirements as
 as facts) and every section matters. This full read happens once, in this
 bootstrap session, because the plans must cover the whole specification;
 afterwards, per-image specifications are read per rule 3's track rule —
-the active track's specification in full, the other image tracks' not at
-all — rather than all of them at every session start. The root
+the active track's specification in full, the other image tracks' only
+via a named cross-track dependency — rather than all of them at every
+session start. The root
 specification is never "another track's document": its core model and
 conventions (root §3, §5) are standing reading for any image-track step.
 
@@ -44,26 +45,23 @@ conventions (root §3, §5) are standing reading for any image-track step.
    implementing the change follows in the step's later commits. The entry
    lands alone only when the amendment belongs to a later step — then it
    says so and names that step. Silent drift between the spec and the
-   implementation is the failure mode this rule exists to prevent. The
-   open facts of `project-zomboid/SPECIFICATIONS.md` §2 are the expected
-   case of this channel: the spec itself orders them settled at
-   implementation, so verifying one and recording its resolution in that
-   document is this rule followed, not an exception to it — decision entry
-   and amendment in one commit, as above. That section's own "any correction
-   lands in the image documentation" is the complementary half, not a
-   different routing: the specification is amended so its facts stay
-   true, and the image README carries the operator-facing consequence.
-   The latitude splits in two, and the split is decided now: **recording
-   a verified fact is yours to do autonomously** — decision entry and
-   amendment in one commit, reported in the step's summary — while **any
+   implementation is the failure mode this rule exists to prevent.
+
+   The open facts of `project-zomboid/SPECIFICATIONS.md` §2 are the
+   expected case of this channel — the spec itself orders them settled
+   at implementation. The latitude splits in two, decided now:
+   **recording a verified fact is yours to do autonomously** (one
+   commit as above, reported in the step's summary), while **any
    resolution that changes a requirement, a tier, a documented
-   limitation or the ship decision is a together-decision** that comes
-   back to me before the amendment; of the open items, (d), (e), (g),
-   (k) and (l) are the ones that always come back — (d) because both of
-   its resolutions decide the credential surface and the first-boot
-   decision table, not just the unfavorable one; an item whose only
-   consequential branch is unfavorable (like (f)) is already caught by
-   the requirement-changing clause above.
+   limitation or the ship decision comes back to me before the
+   amendment**. Items (d), (e), (g), (k) and (l) always come back —
+   (d) because both of its resolutions decide the credential surface
+   and the first-boot decision table; an item consequential only on
+   its unfavorable branch, like (f), is already caught by the clause
+   above. That section's own "any correction lands in the image
+   documentation" is the complementary half, not a different routing:
+   the specification is amended so its facts stay true, and the image
+   README carries the operator-facing consequence.
 
    **Of the phase that produced the specification, the specification
    itself is your only input** — what I tell you in our exchanges, and
@@ -97,52 +95,53 @@ conventions (root §3, §5) are standing reading for any image-track step.
    That list is the expected instance, not the boundary: **every
    language and artifact the repository ships gets a check family** —
    the entrypoint in whatever language it ends up written, and the
-   shipped static tools: root §5.5's two clients where adopted (they
-   are a recommended default — a documented replacement is a
-   legitimate, logged deviation), plus any similar tool a per-game
+   shipped static tools: root §5.5's two clients where adopted (a
+   recommended default only where the per-game specification has not
+   already decided adoption — PZ §6 ships both, so replacing one there
+   is a rule 1 conversation, not a logged deviation), plus any similar
+   tool a per-game
    specification adds (the SQLite client PZ §4 contemplates, for
    instance) — each entering the repository pinned
    (version or digest recorded in it, per rule 9's fetch rule) and
    covered like any other shipped artifact.
 
-   Two families belong on that list whatever the stack: well-formedness
-   of your own instantiated tooling under `.claude/skills/` and
-   `.claude/agents/`, and of `.claude/settings.json` itself —
-   frontmatter and JSON parse, and every command, path and
-   agent a file names resolves, because a malformed skill does not fail,
-   it silently never loads, and the settings file is the enforcement
-   mechanism itself, so an edit that malforms it after step `000`'s
-   one-time probe fails exactly as silently — and prove once, at step
-   `000`, that each
-   enforcement mechanism actually binds in your version: one probe for
-   the settings baseline, a separate one for skill-frontmatter
-   restrictions — two mechanisms, and one passing says nothing about
-   the other; an unenforced allowlist is a guard that
-   exists only on paper; and prose lint over the governance documents,
-   configured to them as they already are — the specification documents
-   are read-only under rule 1, so the lint bends to them and never the
-   reverse, and excluding a document from a rule is a logged decision,
-   not a quiet config line. These checks live behind **documented
-   commands in
-   the repository** — two questions, kept apart because each answer must
-   mean something: a *check* ("is what is committed here well-formed?" —
-   syntax, lint and formatting over the whole working tree, untracked
-   files included and gitignored paths excluded, with one standing
-   exception this prompt decides now:
-   everything under `.claude/spec-work/` is excluded from the
-   harness — the exclusion keys on the path, not on tracked status —
-   because rule 1 makes that directory no session's reading material) and
-   a *test* ("is the implementation right?" — fixtures
-   and expectations proving behavior, including the cases that must fail
-   and those that must only warn: a warning nobody proves is emitted
-   protects nothing), plus a *verify* entry point running both. The
-   commands' names and mechanism are yours to choose from whatever is
-   native to the stack — a Makefile, package-manager scripts, a task
-   runner — documented, kept green, and runnable by me too. A fast form
-   of *check* narrowed to what changed is legitimate mid-step; the commit
-   that receives a step tag runs the full one — that commit is the
-   state every later session treats as known-good. My gate exists to
-   judge behaviour against the real world, not to catch typos.
+   Two families belong on that list whatever the stack. **Governance
+   well-formedness:** your instantiated tooling under `.claude/skills/`
+   and `.claude/agents/`, and `.claude/settings.json` itself —
+   frontmatter and JSON parse, and every command, path and agent a file
+   names resolves. A malformed skill does not fail, it silently never
+   loads; and the settings file is the enforcement mechanism itself, so
+   malforming it after step `000`'s one-time probe fails exactly as
+   quietly. **Prose lint over the governance documents**, configured to
+   them as they already are — the specifications are read-only under
+   rule 1 and `.claude/refs/` under rule 3, so the lint bends to them
+   and never the reverse, and excluding a document from a rule is a
+   logged decision, not a quiet config line. And prove once, at step
+   `000`, that each enforcement mechanism actually binds in your
+   version: one probe for the settings baseline, a separate one for
+   skill-frontmatter restrictions — two mechanisms, and one passing
+   says nothing about the other; an unenforced allowlist is a guard
+   that exists only on paper.
+
+   These checks live behind **documented commands in the repository** —
+   two questions, kept apart because each answer must mean something.
+   A *check*: "is what is committed here well-formed?" — syntax, lint
+   and formatting over the whole working tree, untracked files included
+   and gitignored paths excluded, with one standing exception decided
+   now: everything under `.claude/spec-work/` is excluded, keyed on the
+   path, not on tracked status, because rule 1 makes that directory no
+   session's reading material. A *test*: "is the implementation
+   right?" — fixtures and expectations proving behavior, including the
+   cases that must fail and those that must only warn: a warning nobody
+   proves is emitted protects nothing. Plus a *verify* entry point
+   running both. The commands' names and mechanism are yours to choose
+   from whatever is native to the stack — a Makefile, package-manager
+   scripts, a task runner — documented, kept green, and runnable by me
+   too. A fast form of *check* narrowed to what changed is legitimate
+   mid-step; the commit that receives a step tag runs the full one —
+   that commit is the state every later session treats as known-good.
+   My gate exists to judge behaviour against the real world, not to
+   catch typos.
 
 3. **All memory lives in files**, because your sessions do not persist —
    and it is organized **per track**, so a session loads only what its
@@ -195,7 +194,8 @@ conventions (root §3, §5) are standing reading for any image-track step.
    material I supply as input. Read each reference at its trigger, treat
    it as information and never as a requirement source (a conflict
    between a reference and the specification is a question for me), and
-   never sweep, compact, fold or delete one: it is not your memory. One
+   never edit, sweep, compact, fold or delete one: it is not your
+   memory and not yours to fix. One
    reference exists: `.claude/refs/image-contract.md`, the container
    contract of one real platform that consumes these images — read it
    when designing an image's operator interface (environment surface,
@@ -482,15 +482,14 @@ Produce the workflow files — three plans, three decision logs,
      for everything
      rule 9 gates, `git push` included — a denied pattern cannot be
      overridden in the very exchange rule 9 relies on — and for
-     state-destroying local git (`reset --hard`, deleting tags or
-     branches, history rewriting — `commit --amend`, `rebase` — and
-     untracked-file deletion, `git clean`; the classifier the proposal
-     applies: anything that rewrites history, moves or deletes tags,
-     or destroys uncommitted or untracked work asks first, and an
-     allow pattern must not silently admit these — `git commit`
-     admitting `--amend` is the trap): the step tags, the linear
-     history and the working tree are the memory rules
-     3 and 6 rest on; reserve **deny**
+     state-destroying local git, stated as a classifier, not a list:
+     anything that rewrites history (`commit --amend`, `rebase`),
+     moves or deletes tags or branches, or destroys uncommitted or
+     untracked work (`reset --hard`, `git clean`) asks first — and an
+     allow pattern must not silently admit one of them, the trap being
+     that a bare `git commit` allowance admits `--amend`. The step
+     tags, the linear history and the working tree are the memory
+     rules 3 and 6 rest on; reserve **deny**
      for what has no authorised use at all, naming each in the proposal
      rather than leaving "destructive" to interpretation; and a guard
      hook where a permission
@@ -576,14 +575,16 @@ Produce the workflow files — three plans, three decision logs,
    transcript — and, until step `000` has instantiated that skill,
    applies rule 3's re-orientation routine directly instead: the
    pointer to a not-yet-existing command must not strand the one
-   interruption most likely to happen early. It also carries the
+   interruption most likely to happen early. It also carries: the
    plan-step entry shape, the boundary-crossing-cost rule and the
    step-`000` composite-breadth exception from the plan instructions
    above — later sessions extend plans and the bootstrap cold review
    sources those conventions from `CLAUDE.md`, never from this prompt,
-   so they must actually be there.
-   It also carries the `.claude/refs/image-contract.md`
-   pointer with its read-trigger and its never-a-requirement-source
+   so they must actually be there (if the 200-line budget binds, the
+   plan conventions may move into the plans' own headers, which the
+   cold review reads too — rule 9's enumeration never moves); and the
+   `.claude/refs/image-contract.md` pointer with its read-trigger and
+   its never-a-requirement-source
    caveat (rule 3). For as long as any tooling template remains
    un-instantiated
    it also carries the pointer to `.claude/spec-work/handoff/assets/`,
@@ -652,5 +653,7 @@ specification:
   knowledge goes stale.
 
 Triage its findings — accept, reject with reason, or genuinely my
-call — and present the triage together with the plans for discussion.
+call — and present the triage together with the plans for discussion:
+the plans as written, the triage as recommendations, nothing applied
+before I rule; the fixes I approve land in a second `meta:` commit.
 Step `000` begins only after I approve the plans.
