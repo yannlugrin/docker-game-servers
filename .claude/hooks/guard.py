@@ -116,9 +116,36 @@ SPEC_FILES = re.compile(r"(^|/)SPECIFICATIONS\.md$")
 REFS_DIR = re.compile(r"\.claude/refs/")
 
 
+HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?")
+INTERPRETER = re.compile(r"\b(ba|z|k|da)?sh\b|\bpython3?\b|\bperl\b|\bruby\b|\bnode\b")
+
+
+def strip_heredocs(command: str) -> str:
+    """Drop heredoc bodies, which are data — a commit message quoting a gated
+    command is not that command. Bodies fed to an interpreter stay: there the
+    text really is what runs.
+    """
+    for match in HEREDOC.finditer(command):
+        if INTERPRETER.search(command[: match.start()]):
+            return command
+    lines = command.splitlines()
+    kept: list[str] = []
+    delimiter: str | None = None
+    for line in lines:
+        if delimiter is not None:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        kept.append(line)
+        found = HEREDOC.search(line)
+        if found:
+            delimiter = found.group(1)
+    return "\n".join(kept)
+
+
 def decide(tool_name: str, tool_input: dict) -> tuple[str, str] | None:
     if tool_name == "Bash":
-        command = str(tool_input.get("command", ""))
+        command = strip_heredocs(str(tool_input.get("command", "")))
         for pattern, reason in DENY:
             if pattern.search(command):
                 return "deny", reason

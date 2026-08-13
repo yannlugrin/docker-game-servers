@@ -198,6 +198,12 @@ guard_case "read the archive" deny Read "/repo/.claude/spec-work/decisions.md"
 guard_case "edit refs" deny Edit "/repo/.claude/refs/image-contract.md"
 guard_case "edit a specification" ask Edit "/repo/project-zomboid/SPECIFICATIONS.md"
 guard_case "edit a plan" silent Edit "/repo/PLAN.md"
+# A heredoc body is data — a commit message that quotes a gated command is
+# not that command — unless the body is fed to an interpreter, where it is.
+guard_case "heredoc message quoting a gated command" silent Bash \
+  $'git commit -F - <<\'EOF\'\nstep-000: why git push --force is denied\nEOF'
+guard_case "heredoc fed to a shell" deny Bash \
+  $'bash <<\'EOF\'\ngit push --force origin main\nEOF'
 
 say ""
 if [ "$failed" -gt 0 ]; then
