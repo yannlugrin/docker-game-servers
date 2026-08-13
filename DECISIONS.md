@@ -213,3 +213,31 @@ not-yet-started steps give number *plus title*.
   Makefile (rejected: then the git hook, file-type dispatch and staged-file
   runs go back to being mine to write).
 - **Approved by**: operator (this exchange).
+
+## D-007 — Governance checks reduced to memory consistency
+
+- **Date**: 2026-08-13
+- **Step**: step-000
+- **Context**: the first `tools/governance.py` listed the three tracks by
+  hand (a new game meant editing it) and asserted that every backticked
+  token in CLAUDE.md, the README and the tooling resolved to a real path,
+  skill or agent. The operator's objection: a script that must be
+  maintained per image, and a heuristic broad enough to start reporting
+  things that are not wrong.
+- **Decision**: plans are discovered (`PLAN.md`, `*/PLAN.md`) instead of
+  listed — a new game track edits nothing. What is checked is what is exact
+  and what costs a session when wrong: CLAUDE.md's line budget, the Current
+  state pointer agreeing with the plan that declares that step, one step in
+  progress repository-wide, settings parsing with auto memory off, and
+  skill/agent frontmatter being loadable. Tests are one case per rule
+  rather than per spelling: 25, in one file.
+- **Open with the operator**: the backticked-reference check is *not*
+  removed yet, because CLAUDE.md rule 2 requires it in those words ("every
+  named command/path/agent resolves"). Removing the heuristic means editing
+  rule 2, which is the operator's call, not mine.
+- **Alternatives considered**: keeping the reference check but narrowing it
+  to `.claude/` files (rejected for now: it is the same heuristic with a
+  smaller blast radius, and the rule-2 question is unchanged); deleting the
+  script entirely (rejected: a pointer that disagrees with the plan is the
+  one failure that silently misleads the next session).
+- **Approved by**: operator (this exchange), bar the rule-2 question above.
