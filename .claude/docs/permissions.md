@@ -49,6 +49,12 @@ add a case there before adding a pattern, since the failure mode is silence.
   rituals became available mid-session; the `step-reviewer` agent did not —
   invoking it failed with "Agent type not found" until a new session picked
   it up. After adding or renaming tooling, restart before relying on it.
+- **A skill's `allowed-tools` list does not restrict anything** (2.1.231):
+  probed while `/orient` was active — its list has neither `Write` nor a
+  general `Bash` pattern, and both a `Write` and a plain `ls` succeeded. The
+  rituals' allowlists are a statement of intent, not a mechanism. Everything
+  that actually binds is in `.claude/settings.json` and the guard hook; if a
+  ritual must be prevented from doing something, it belongs there.
 - **The subagent tool is `Agent` in this harness** (not `Task`): invoking
   `step-reviewer` through it works, and `handover-step` lists both names so
   the review cannot silently not happen.
