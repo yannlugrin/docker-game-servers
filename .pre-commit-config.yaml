@@ -1,0 +1,47 @@
+# Every check this repository runs. Tools come from .venv (see
+# requirements.txt), so versions are pinned in one place.
+#
+# Shell, Dockerfile and compose checks arrive with the first shell script,
+# Dockerfile and compose example — an image track's work, not the root's.
+---
+exclude: '^\.claude/(spec-work|refs)/'
+
+repos:
+  - repo: local
+    hooks:
+      - id: markdown
+        name: markdown
+        entry: .venv/bin/pymarkdown --config .pymarkdown.json scan
+        language: system
+        types: [markdown]
+
+      - id: yaml
+        name: yaml
+        entry: .venv/bin/yamllint --strict --config-file .yamllint.yml
+        language: system
+        types: [yaml]
+
+      - id: github-workflows
+        name: github workflows
+        entry: .venv/bin/check-jsonschema --builtin-schema vendor.github-workflows
+        language: system
+        files: '^\.github/workflows/.*\.ya?ml$'
+
+      - id: ruff
+        name: ruff
+        entry: .venv/bin/ruff check
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff-format
+        entry: .venv/bin/ruff format --check
+        language: system
+        types: [python]
+
+      - id: governance
+        name: governance
+        entry: .venv/bin/python tools/governance.py
+        language: system
+        pass_filenames: false
+        always_run: true

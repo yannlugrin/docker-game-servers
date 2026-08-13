@@ -35,6 +35,8 @@ not-yet-started steps give number *plus title*.
 
 ## D-002 — Harness toolchain, entry points and lint scope
 
+- **Superseded by D-006** (same step): the bespoke runner it describes was
+  replaced by pre-commit before hand-over. Kept for the reasoning it records.
 - **Date**: 2026-08-13
 - **Step**: step-000
 - **Context**: rule 2 requires a check family for every language and
@@ -99,6 +101,8 @@ not-yet-started steps give number *plus title*.
   failed test); no uncached run (rejected: pins rot silently — a moved
   release asset would only surface on a fresh clone, months later).
 - **Approved by**: implementer (rule 4, workflow choice left to me).
+  Job contents updated by D-006; the shape (separate jobs, cached, plus an
+  uncached weekly run) is unchanged.
 
 ## D-004 — Permission and hook baseline
 
@@ -175,3 +179,37 @@ not-yet-started steps give number *plus title*.
   loading).
 - **Approved by**: implementer for the instantiation details (rule 4);
   the adoption set itself follows CLAUDE.md's tooling block.
+
+## D-006 — The harness is pre-commit, not a runner of my own
+
+- **Date**: 2026-08-13
+- **Step**: step-000
+- **Context**: the first implementation of rule 2's harness was ~600 lines
+  of bespoke shell — a runner, a file-discovery library, a binary installer
+  with sha256 pins, a fixture-driven test driver — to orchestrate tools that
+  a standard runner already orchestrates. The operator rejected it as
+  over-engineered.
+- **Decision**: `.pre-commit-config.yaml` is the harness. One pinned
+  `requirements.txt` at the root is the single source of tool versions;
+  hooks run those tools from `.venv` (`language: system`), so nothing is
+  pinned twice. `make setup` builds the venv and installs the git hook,
+  `make check` runs pre-commit over tracked **and** untracked files
+  (`--files "$(git ls-files -co --exclude-standard)"`, because
+  `--all-files` reads the index and would skip a never-added file),
+  `make test` runs pytest, `make verify` is both. Excluded by path:
+  `.claude/spec-work/` (rule 1) and `.claude/refs/` (never edited by me).
+  Only two pieces of our own code survive, each with tests:
+  `tools/governance.py` (the workflow's own state — pointers, budgets,
+  frontmatter, names that resolve) and `.claude/hooks/guard.py` (rule 9's
+  boundary, which rule 9 itself requires). Hooks now: markdown, yaml,
+  workflow schema, ruff, ruff-format, governance. Shell, Dockerfile and
+  compose checks are added when the first such file arrives — a family for
+  an artifact the repository does not ship yet is scaffolding, not coverage.
+- **Alternatives considered**: keeping the bespoke runner (rejected by the
+  operator, rightly — every part of it was a reimplementation); pre-commit
+  with remote hook repos instead of `language: system` (rejected: versions
+  would be pinned in two places, and the operator asked for one root
+  requirements file); dropping pre-commit and calling linters from the
+  Makefile (rejected: then the git hook, file-type dispatch and staged-file
+  runs go back to being mine to write).
+- **Approved by**: operator (this exchange).

@@ -45,8 +45,8 @@ Hand the current step over for operator testing. In order:
 1. **Checks green:** run `make verify` (the check and the test halves both
    pass); fix until it does. If the step added artifacts the harness should
    cover, confirm it actually covers them — a check that never ran is not
-   green, and a new language or artifact type needs its own family in
-   `tools/check.sh`.
+   green, and a new language or artifact type needs its own hook in
+   `.pre-commit-config.yaml`.
 2. **Staleness sweep (the same-commit rule):** update in the same commit(s)
    as the work everything the step made stale — the plan's step status (to
    `awaiting test`) and any renumber references, `CLAUDE.md`'s current-step

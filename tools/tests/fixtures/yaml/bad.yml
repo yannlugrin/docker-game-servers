@@ -1,6 +1,0 @@
-# Fixture: duplicate key and bad indentation — must fail yamllint.
-key: value
-key: other
-list:
-- a
-   - b

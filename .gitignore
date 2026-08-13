@@ -7,11 +7,10 @@
 # Operator-local instructions, never shared
 CLAUDE.local.md
 
-# Harness toolchain, installed by `make setup`
+# Tooling installed by `make setup`
 .venv/
-.tools/
 __pycache__/
-*.pyc
+.pytest_cache/
 
 # Local secrets and environment files (CLAUDE.md rule 5 — never committed)
 .env

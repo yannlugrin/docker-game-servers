@@ -1,6 +1,0 @@
-# Pinned Python harness tools (CLAUDE.md rule 9). Installed into .venv by
-# `make setup`. Exact pins only — no ranges.
-check-jsonschema==0.38.0
-pymarkdownlnt==0.9.39
-ruff==0.16.2
-yamllint==1.38.0

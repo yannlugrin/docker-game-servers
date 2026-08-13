@@ -25,7 +25,7 @@ command line, which is what a prefix cannot do:
 The hook returns `deny`, `ask`, or stays silent so the permission rules
 decide. Silence is not approval. An internal error becomes an `ask`.
 
-`tools/test.sh` asserts the hook's verdict on every spelling that matters —
+`tools/tests/test_guard.py` asserts the hook's verdict on every spelling —
 add a case there before adding a pattern, since the failure mode is silence.
 
 ## Verified behavior (step-000 probes, 2026-08-13, Claude Code 2.1.231)

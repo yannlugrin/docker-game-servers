@@ -1,5 +1,0 @@
-# hadolint configuration. No Dockerfiles exist yet (they arrive with the
-# image tracks); the family is wired now so the first one is linted on
-# arrival. Warnings fail the check — an image recipe is the product here.
----
-failure-threshold: warning

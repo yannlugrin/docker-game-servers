@@ -1,4 +1,0 @@
-# Fixture: valid YAML, invalid compose file — `services` must be a mapping.
----
-services:
-  - image: debian:trixie-slim

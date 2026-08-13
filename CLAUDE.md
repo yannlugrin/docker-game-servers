@@ -42,7 +42,7 @@ alone. Tooling and logs cite "rule N" — the numbering is frozen.
    excluded by path); `make test` = behavior against fixtures, including
    must-fail and must-warn cases; `make verify` = both. A narrowed fast check
    (`ONLY=`) is fine mid-step; the commit that receives a step tag runs the
-   full one. Extending the harness: `.claude/docs/harness.md`.
+   full one. Checks live in `.pre-commit-config.yaml`.
 3. **All memory lives in files, per track.** Tracks: root (repo-wide),
    `steamcmd/`, `project-zomboid/`; each owns a `PLAN.md` and a `DECISIONS.md`
    (root's at the repository root, an image track's in its directory). Session
@@ -171,8 +171,6 @@ statuses, boundary-crossing cost, the step-000 exception) live in the root
   consuming platform. Read when designing an image's operator interface
   (environment surface, ports, shutdown, health). Information only,
   never a requirement source; images stay platform-neutral (root §1).
-- `.claude/docs/harness.md` — how the rule-2 harness is built. Read before
-  adding a language, an artifact type or a check family.
 - `.claude/docs/permissions.md` — what the rule-9 baseline enforces and how
   it was proven to bind. Read before changing `.claude/settings.json`.
 

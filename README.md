@@ -25,9 +25,9 @@ state of the work is in the plans listed below, not duplicated here.
 | `DECISIONS.md` | Root-track decision log |
 | `steamcmd/DECISIONS.md`, `project-zomboid/DECISIONS.md` | Per-track decision logs |
 | `CLAUDE.md` | Standing instructions for the AI implementer — workflow rules, not project documentation |
-| `Makefile`, `tools/` | The check/test/verify harness: pinned linters, the governance checks, and the fixtures they are tested against |
-| `.githooks/` | Pre-commit hook, running the same check as the harness |
-| `ruff.toml`, `.yamllint.yml`, `.pymarkdown.json`, `.hadolint.yaml` | Linter configuration, one file per tool, used by `make check` |
+| `Makefile`, `requirements.txt`, `.pre-commit-config.yaml` | The checks and how to run them: pinned tools, and the hooks pre-commit runs |
+| `tools/` | The two checks with no off-the-shelf equivalent — this workflow's own state — and their tests |
+| `ruff.toml`, `.yamllint.yml`, `.pymarkdown.json` | Linter configuration, one file per tool |
 | `.gitignore` | Ignored paths — also what `make check` does not look at |
 | `.github/workflows/` | CI. Today: the harness on every push and pull request. Image build and publish workflows arrive with the images |
 | `LICENSE` | MIT — covers the image recipes and tooling, not the game content inside the images |
@@ -39,21 +39,19 @@ work progresses, in per-image READMEs and `docs/`; everything under
 
 ## Working on the repository
 
-From a fresh clone, one setup command installs every pinned tool (a
-repository-local Python environment plus shellcheck and hadolint, verified
-against their checksums) and points git at the repository's hooks:
+From a fresh clone, one setup command creates the virtual environment from
+`requirements.txt` and installs the git hook:
 
 ```sh
-make setup    # install the pinned toolchain, set the hooks path
-make check    # is the working tree well-formed? (linters, schemas, governance)
-make test     # does the harness itself detect breakage? (fixtures)
+make setup    # .venv from requirements.txt, pre-commit installed
+make check    # every linter over the tree (pre-commit), untracked files included
+make test     # the tests for what this repository itself ships
 make verify   # both
 ```
 
-`make check` covers every language and artifact in the tree, untracked files
-included; `ONLY=markdown,shell` narrows it. The same commands run in CI and
-in the pre-commit hook — there is no separate CI-only configuration. Linux
-x86_64 only, matching the images.
+The same commands run in CI and from the git hook — there is no separate
+CI-only configuration. Shell, Dockerfile and compose checks are added to
+`.pre-commit-config.yaml` when the first such file arrives.
 
 ## Authority order
 
