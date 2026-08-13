@@ -14,7 +14,8 @@ Plan conventions: root `PLAN.md` header.
   or healthcheck is designed.
 - **Spec sections**: PZ §2 (all facts and open items except (h) →
   step-pz-006 and (m) → step-pz-008), PZ §1 (state-root relocation via
-  cache-dir), root §2.7, §2.9.
+  cache-dir), root §5.2 (the port facts: items (a), (b), (n)), §2.7,
+  §2.9.
 - **Deliverables**: for each item, the verified answer recorded through
   rule 1's channel — plain fact recordings autonomously (one commit
   each: decision entry + spec amendment); **items (d), (e), (g), (k),
@@ -72,6 +73,8 @@ Plan conventions: root `PLAN.md` header.
 - **Spec sections**: PZ §3 (environment surface, heap guard, INI
   persistence caveat), PZ §4 (first-boot decision table, admin-account
   predicate), root §3.4 (uid-0 fatal, `ALLOW_UID0` parsing), §3.5,
+  §5.2 (player-facing ports bind `0.0.0.0` where configurable per item
+  (n); port overrides land in the game's effective configuration),
   §5.3 (overrides effective on very first start; fatal on unparseable
   values; env surface stays small), §5.4 (missing mandatory secret
   fatal; `INITIAL_*`/override pattern; redaction per step-pz-001's echo
@@ -110,16 +113,25 @@ Plan conventions: root `PLAN.md` header.
   signal, exit-code table, stop during world load = timeout row), §2.4.
 - **Deliverables**: mediation in the entrypoint; the documented
   `docker exec` save/announce path; exit-code behavior per root §5.6's
-  table verbatim. Tests: each table row (clean stop, crash during
+  table verbatim; **verification whether RCON `save`'s completion is
+  confirmable** (PZ §8 — the input step-pz-008 needs before hot copies
+  may be documented as safe; recorded through rule 1's channel). If the
+  console proves unusable (item (c) unfavorable), the pinned static
+  RCON client of root §5.5 **enters the image in this step** to carry
+  the internal-RCON fallback; step-pz-005 then covers and documents it.
+  Tests: each table row (clean stop, crash during
   shutdown, timeout expiry, self-exit propagation, validation failure),
   with and without operator RCON, INI-configured RCON reuse, stop during
   load.
 - **Dependencies**: needs `step-pz-003` done.
 - **How to test**: free local runs: `docker stop` (generous
-  `--time`) → exit 0 and save confirmed in logs; `docker stop --time 5`
-  under a longer `STOP_TIMEOUT` → the attributable non-zero path;
-  `docker exec` save works with no `RCON_PASSWORD` set. Cleanup: named
-  volumes.
+  `--time`) → exit 0 and save confirmed in logs; a **short
+  `STOP_TIMEOUT` under a generous `--time`** (the timeout fires first)
+  → the attributable non-zero path: entrypoint terminates the game and
+  exits non-zero with a logged explanation — the inverse setup
+  (`--time` below `STOP_TIMEOUT`) demonstrates only the silent
+  SIGKILL/137 the pairing rule warns about; `docker exec` save works
+  with no `RCON_PASSWORD` set. Cleanup: named volumes.
 - **Status**: pending.
 
 ### step-pz-005 — Healthcheck and operator probes
@@ -130,7 +142,9 @@ Plan conventions: root `PLAN.md` header.
   non-Steam detection per item (f); degraded-profile documentation per
   items (k)/(l); `start_period` sizing and its documented trade-off),
   root §5.5 in full (protocol probe, no early-positive, no latch, the
-  two must capabilities, the two shipped clients — size measured), §2.5.
+  two must capabilities, the two shipped clients — size measured), §5.2
+  (the probe follows the effective port configuration; admin interfaces
+  stay loopback by default), §2.5.
 - **Deliverables**: HEALTHCHECK against the **effective** port; the
   pinned static query and RCON clients shipped and covered by the
   harness; documented host-side probe; non-Steam profile switching to
@@ -197,16 +211,21 @@ Plan conventions: root `PLAN.md` header.
   internal listener, writable paths + **mount-ownership preparation**,
   rewrite and override caveats, shutdown semantics + grace period +
   `STOP_TIMEOUT`, healthcheck + probe/save/announce, backup + upgrade
-  warning, tag policy, `docker run` and compose examples), PZ §8 (native
-  backup settings, archive caveats, hot-copy verdict per the RCON-save
-  confirmation verification), PZ §2 item (m) (point-release world
+  warning, tag policy, `docker run` and compose examples), root §5.2
+  (the port table's contract: every port with role, default, protocol
+  and the advertised-or-remappable flag; admin interfaces documented
+  separately with the never-expose-publicly warning), PZ §8 (native
+  backup settings, archive caveats, hot-copy verdict per step-pz-004's
+  RCON-save confirmation verification), PZ §2 item (m) (point-release world
   effect — researched here; inconclusive → "unknown, assume
   irreversible"), PZ §7 (mods documentation), §5.4 (crash-dump warning,
   INI credential persistence), §5.7, §1 (platform-neutral).
 - **Deliverables**: `project-zomboid/README.md`; item (m) settled
   through rule 1's channel; compose example validated by the harness.
 - **Dependencies**: needs `step-pz-007` done (documents verified
-  behavior, not intent).
+  behavior, not intent) and `step-pz-006` done (the mods and
+  download-failure documentation rests on its findings — pz-007's
+  chain does not include pz-006).
 - **How to test**: read it; docs lint green; run the README's own
   `docker run` and compose examples as written — they must work
   verbatim. Free. Cleanup: named volumes.

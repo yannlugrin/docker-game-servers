@@ -109,10 +109,13 @@ tracks: `steamcmd/PLAN.md`, `project-zomboid/PLAN.md`.
 - **Objective**: the harness CI of step-000 proven live on GitHub.
 - **Spec sections**: root §2.6, §2.8; CLAUDE.md rule 9 (push is gated).
 - **Deliverables**: pushed `main`; harness workflow green on GitHub;
-  Actions settings confirmed known-good by the operator (Actions
-  enabled; workflow token allowed `packages: write` — needed later by
-  step-004's publishes, confirmed now while we are looking); any
-  divergence between local and CI harness runs fixed.
+  Actions settings confirmed known-good by the operator — Actions
+  enabled, and the workflow-token permission model for GHCR publishing
+  **verified against GitHub's current behavior, not assumed** (the
+  `packages: write` mechanism is a premise the specification does not
+  state; whatever step-004's publishes actually need is what gets
+  confirmed here, while we are looking); any divergence between local
+  and CI harness runs fixed.
 - **Dependencies**: needs step-000 done. **External prerequisite**:
   operator authorizes the push and confirms the Actions settings.
 - **How to test**: **crosses rule 9's boundary** — one `git push`
