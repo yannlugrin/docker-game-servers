@@ -32,22 +32,30 @@ conventions (root §3, §5) are standing reading for any image-track step.
    and each image's. You never edit one on your
    own initiative. If you find an ambiguity, a contradiction, or something
    that cannot be implemented as written, stop and raise it with me. If we
-   agree a change is needed, you record the agreement in the governing
-   decision log (rule 4) first, and only then amend the specification in a
-   dedicated commit that
-   references that decision. Silent drift between the spec and the
+   agree a change is needed, the decision entry is written before the
+   amendment — never a rationalization after it — and both land **in one
+   commit**: the entry in the governing decision log (rule 4) and the
+   specification text, nothing else, the subject naming the decision
+   (`step-pz-003: spec amendment — D-007, …`). A commit where the log and
+   the specification disagree is a state a session can resume onto and
+   misread as drift; and `git blame` on an amended line must land on a
+   diff carrying the reasoning. Code stays out, so `git log` on a
+   specification file remains a readable history of amendments; the code
+   implementing the change follows in the step's later commits. The entry
+   lands alone only when the amendment belongs to a later step — then it
+   says so and names that step. Silent drift between the spec and the
    implementation is the failure mode this rule exists to prevent. The
    open facts of `project-zomboid/SPECIFICATIONS.md` §2 are the expected
    case of this channel: the spec itself orders them settled at
    implementation, so verifying one and recording its resolution in that
    document is this rule followed, not an exception to it — decision entry
-   first, then the amendment commit. That section's own "any correction
+   and amendment in one commit, as above. That section's own "any correction
    lands in the image documentation" is the complementary half, not a
    different routing: the specification is amended so its facts stay
    true, and the image README carries the operator-facing consequence.
    The latitude splits in two, and the split is decided now: **recording
-   a verified fact is yours to do autonomously** — decision entry, then
-   the amendment commit, reported in the step's summary — while **any
+   a verified fact is yours to do autonomously** — decision entry and
+   amendment in one commit, reported in the step's summary — while **any
    resolution that changes a requirement, a tier, a documented
    limitation or the ship decision is a together-decision** that comes
    back to me before the amendment; of the open items, (d), (e), (g),
@@ -180,17 +188,17 @@ conventions (root §3, §5) are standing reading for any image-track step.
    `.claude/docs/maintenance.md`"), and read only then — the read-trigger
    is what makes lazy loading actually happen. Plain path references,
    never `@` imports — imports load eagerly and cost the same as
-   inlining. One such file already exists:
-   `.claude/docs/image-contract.md`, the container contract of one real
-   platform that consumes these images. `CLAUDE.md` carries a pointer to
-   it with this read-trigger: read it when designing an image's operator
-   interface — environment surface, ports, shutdown, health. It is
-   information, never a requirement source: the images stay
-   platform-neutral (root §1), and a conflict between that contract and
-   the specification is a question for me, not a constraint on you. It
-   is a reference file coming from elsewhere and is **never optimized**:
-   no compaction, staleness or memory sweep ever touches it — an
-   operator-supplied reference is not your memory to fold.
+   inlining.
+   **`.claude/refs/` is a different thing and never mixes with it:**
+   material I supply as input. Read each reference at its trigger, treat
+   it as information and never as a requirement source (a conflict
+   between a reference and the specification is a question for me), and
+   never sweep, compact, fold or delete one: it is not your memory. One
+   reference exists: `.claude/refs/image-contract.md`, the container
+   contract of one real platform that consumes these images — read it
+   when designing an image's operator interface (environment surface,
+   ports, shutdown, health); the images stay platform-neutral (root §1).
+   `CLAUDE.md` carries that pointer with its trigger.
    *Instructions* tied to one part of the tree may instead be path-scoped
    rules in `.claude/rules/` with a `paths` frontmatter, which load
    themselves exactly when you work on matching files — but never an
@@ -244,26 +252,19 @@ conventions (root §3, §5) are standing reading for any image-track step.
    and five agents
    (`step-reviewer`, `optimize-memory`, `state-reviewer`,
    `code-reviewer`, `test-reviewer`). Instantiate only the ones that fit
-   this project, adapted — fill their placeholders with this repository's
-   real commands and paths, and adapt them to the per-track memory of
-   rule 3, which the templates predate: they assume a single plan, a
-   single decision log, a single specification document, one `D-NNN`
-   namespace and the single `step-NNN` id namespace, so their `PLAN.md`,
-   `DECISIONS.md` and `SPECIFICATIONS.md`
-   references must resolve the active track's files, decision citations
-   crossing logs must name the file (rule 4), every `step-NNN` in
-   commit subjects, tag names and tag titles becomes the active track's
-   qualified form (rule 6), where a template
-   enumerates a session routine narrower than rule 3's, rule 3 wins,
-   any memory-sweeping pass exempts the operator-supplied references
-   rule 3 marks never-optimized (`.claude/docs/image-contract.md`), and
-   a read-only reviewer agent's never-run placeholder takes rule 9's
-   **entire gated set**, not just the deny list — a subagent cannot
-   obtain my authorisation mid-run — and where a template repeats the
-   200-line cap and the never-compress-the-boundary rule without
-   rule 3's yield clause, the clause is added at instantiation (the cap
-   yields to the boundary enumeration; the trimming happens elsewhere) —
-   each adoption logged; the ones that earn
+   this project, adapted: fill every placeholder with this repository's
+   real commands and paths — including the governance set (`{{PLAN}}`,
+   `{{DECISIONS}}`, `{{SPEC}}`, `{{STEP_ID}}`), which in this repository
+   resolves to the **active track's** files and identifier form:
+   `{{PLAN}}` and `{{DECISIONS}}` are that track's own (rule 3's track
+   map), `{{STEP_ID}}` takes the track-qualified form of rule 6, and
+   `{{SPEC}}` is the track's specification with root §3 and §5 standing
+   (rule 3); a decision citation crossing logs names the file (rule 4).
+   A template arrives with those as placeholders on purpose: a leftover
+   one is visible, while a plausible wrong filename is not. Where a
+   template's own enumeration of a routine is narrower than the rule it
+   claims to execute, the rule wins and the enumeration is rewritten to
+   match. Each adoption logged; the ones that earn
    their place later can wait — and once none remains un-instantiated
    (each adopted or explicitly dropped, logged), delete the assets
    directory and every pointer and exception referring to it in the same
@@ -571,7 +572,8 @@ Produce the workflow files — three plans, three decision logs,
    interruption most likely to happen early. It also carries the plan-step entry shape and the
    boundary-crossing-cost rule from the plan instructions above —
    later sessions extend plans and the bootstrap cold review sources
-   those conventions from `CLAUDE.md`, so they must actually be there. It also carries the `.claude/docs/image-contract.md`
+   those conventions from `CLAUDE.md`, so they must actually be there.
+   It also carries the `.claude/refs/image-contract.md`
    pointer with its read-trigger and its never-a-requirement-source
    caveat (rule 3). For as long as any tooling template remains
    un-instantiated
