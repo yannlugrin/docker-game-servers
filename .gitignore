@@ -1,1 +1,28 @@
+# Implementer worktrees
 .claude/worktrees/
+
+# Reviewer scratch space (reviewer tooling assumes this is ignored)
+.claude/reviews/
+
+# Operator-local instructions, never shared
+CLAUDE.local.md
+
+# Harness toolchain, installed by `make setup`
+.venv/
+.tools/
+__pycache__/
+*.pyc
+
+# Local secrets and environment files (CLAUDE.md rule 5 — never committed)
+.env
+.env.*
+secrets/
+
+# Local test state from smoke runs: game saves, Steam-downloaded content,
+# bind-mounted volume roots
+.local-state/
+test-state/
+
+# steamcmd and image-build caches
+.cache/
+steamcmd-cache/

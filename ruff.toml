@@ -1,0 +1,6 @@
+# Python shipped by this repository: harness scripts and guard hooks.
+line-length = 110
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]

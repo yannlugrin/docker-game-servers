@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Pre-commit hook: the same harness `make check` runs (CLAUDE.md rule 2).
+# Installed by `make setup` (git config core.hooksPath .githooks).
+# Emergency bypass is git's own --no-verify; using it is a decision to state.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+if [ ! -x "${repo_root}/.venv/bin/yamllint" ]; then
+  printf 'pre-commit: harness toolchain missing — run "make setup"\n' >&2
+  exit 1
+fi
+
+exec "${repo_root}/tools/check.sh"

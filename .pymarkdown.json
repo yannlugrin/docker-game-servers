@@ -1,0 +1,14 @@
+{
+  "extensions": {
+    "front-matter": {
+      "comment": "Skill and agent files carry YAML frontmatter; without this the linter reads it as body content.",
+      "enabled": true
+    }
+  },
+  "plugins": {
+    "md013": {
+      "comment": "Line length: the specifications and the reference material are read-only documents with their own wrapping; the lint bends to them, never the reverse (rule 2). Tables exceed any width worth enforcing.",
+      "enabled": false
+    }
+  }
+}

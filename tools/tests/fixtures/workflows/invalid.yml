@@ -1,0 +1,7 @@
+# Fixture: valid YAML, invalid GitHub Actions workflow — jobs must be a
+# mapping of job ids, and `runs-on` is mandatory.
+---
+name: invalid
+on: push
+jobs:
+  - not-a-job-mapping
