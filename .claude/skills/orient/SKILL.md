@@ -6,14 +6,6 @@ description: Session-start orientation — run before touching anything.
   after /clear, or when the operator asks where we are; after an interruption
   (usage limit, crash, killed console) or when the last session's claims are
   in doubt, /resume-step is the right ritual instead.
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash(git describe:*)
-  - Bash(git log:*)
-  - Bash(git diff:*)
-  - Bash(git status:*)
 ---
 
 # orient

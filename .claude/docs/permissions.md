@@ -25,8 +25,10 @@ command line, which is what a prefix cannot do:
 The hook returns `deny`, `ask`, or stays silent so the permission rules
 decide. Silence is not approval. An internal error becomes an `ask`.
 
-`tools/tests/test_guard.py` asserts the hook's verdict on every spelling —
-add a case there before adding a pattern, since the failure mode is silence.
+The hook has no tests: its failure mode is silence, so check a new pattern
+by feeding the hook a payload by hand before trusting it —
+`echo '{"tool_name":"Bash","tool_input":{"command":"…"}}' | .claude/hooks/guard.py`
+prints the verdict, or nothing when it has no opinion.
 
 ## Verified behavior (step-000 probes, 2026-08-13, Claude Code 2.1.231)
 
@@ -52,12 +54,13 @@ add a case there before adding a pattern, since the failure mode is silence.
 - **A skill's `allowed-tools` list does not restrict anything** (2.1.231):
   probed while `/orient` was active — its list has neither `Write` nor a
   general `Bash` pattern, and both a `Write` and a plain `ls` succeeded. The
-  rituals' allowlists are a statement of intent, not a mechanism. Everything
-  that actually binds is in `.claude/settings.json` and the guard hook; if a
-  ritual must be prevented from doing something, it belongs there.
+  allowlists were removed from the four rituals rather than left reading like
+  enforcement. Everything that actually binds is in `.claude/settings.json`
+  and the guard hook; if a ritual must be prevented from doing something, it
+  belongs there. An **agent**'s `tools:` frontmatter is a different mechanism
+  and does bind — `.claude/agents/*.md` keep theirs.
 - **The subagent tool is `Agent` in this harness** (not `Task`): invoking
-  `step-reviewer` through it works, and `handover-step` lists both names so
-  the review cannot silently not happen.
+  `step-reviewer` through it works.
 - **The hook runs under the system `python3`**, not the pinned `.venv` — it
   must keep working with only the standard library, and a host without
   `python3` loses the guard entirely (the settings layer still holds).

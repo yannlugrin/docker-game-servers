@@ -3,12 +3,6 @@
   "permissions": {
     "allow": [
       "Bash(make:*)",
-      "Bash(tools/setup.sh:*)",
-      "Bash(tools/check.sh:*)",
-      "Bash(tools/test.sh:*)",
-      "Bash(./tools/setup.sh:*)",
-      "Bash(./tools/check.sh:*)",
-      "Bash(./tools/test.sh:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",

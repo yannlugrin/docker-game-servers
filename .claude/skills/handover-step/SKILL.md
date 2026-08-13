@@ -5,25 +5,6 @@ description: Pre-test handover sequence — checks green, staleness sweep,
   the current step's implementation is complete and ready for operator
   testing, or when the operator asks for the handover; the post-approval
   close is /approve-step, not this.
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Edit
-  - Write
-  # Subagent invocation — without it, step 3's review silently never runs.
-  # Named `Agent` in this harness; `Task` in others, so both are listed.
-  - Agent
-  - Task
-  - Bash(make verify:*)
-  - Bash(make check:*)
-  - Bash(make test:*)
-  - Bash(git status:*)
-  - Bash(git diff:*)
-  - Bash(git log:*)
-  - Bash(git describe:*)
-  - Bash(git add:*)
-  - Bash(git commit:*)
 ---
 
 # handover-step

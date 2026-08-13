@@ -176,7 +176,13 @@ not-yet-started steps give number *plus title*.
   restated as a "When to use" line in the body — Claude Code's skill
   frontmatter defines `name`, `description` and `allowed-tools`, and a key
   it does not define is a loading risk for no benefit; the content is kept
-  verbatim in the two places that are read. `code-reviewer` and
+  verbatim in the two places that are read. The templates' `allowed-tools`
+  lists are dropped from the skills as well: probed under Claude Code
+  2.1.231, a skill's allowlist restricts nothing (a `Write` and a plain `ls`
+  both ran with `/orient` active), and frontmatter that reads like
+  enforcement but enforces nothing is worse than none — the real boundary is
+  `.claude/settings.json` plus the guard hook. Agents keep their `tools:`
+  key, which does bind. `code-reviewer` and
   `test-reviewer` remain not adopted — each reviews something this
   repository does not have yet; nothing may name one as if it existed.
 - **Alternatives considered**: adopting all nine now (rejected: an agent

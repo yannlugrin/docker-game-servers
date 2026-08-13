@@ -5,21 +5,6 @@ description: Post-approval close of the current step — status done, plan
   the operator has declared the step approved in this exchange, after their
   manual testing and never on inference; the pre-test handover is
   /handover-step, not this.
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Edit
-  - Write
-  - Bash(make check:*)
-  - Bash(git status:*)
-  - Bash(git diff:*)
-  - Bash(git log:*)
-  - Bash(git describe:*)
-  - Bash(git add:*)
-  - Bash(git commit:*)
-  - Bash(git tag -a:*)
-  - Bash(git tag -n99:*)
 ---
 
 # approve-step

@@ -7,19 +7,6 @@ description: Post-interruption verification — distrust the transcript, verify
   killed console) or whenever the operator doubts what the last session
   claims to have done; it runs instead of /orient, whose orientation it
   embeds.
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash(git describe:*)
-  - Bash(git log:*)
-  - Bash(git diff:*)
-  - Bash(git status:*)
-  - Bash(git tag -n99:*)
-  - Bash(make check:*)
-  - Bash(docker ps:*)
-  - Bash(docker images:*)
-  - Bash(docker volume ls:*)
 ---
 
 # resume-step
