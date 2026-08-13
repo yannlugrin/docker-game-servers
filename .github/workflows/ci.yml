@@ -1,0 +1,70 @@
+# CI runs the documented local commands — `make setup`, then the two targets
+# a step passes before hand-over — so what CI enforces and what runs locally
+# are the same commands by construction. The caches sit around `make setup`,
+# never instead of it.
+#
+# Nothing here builds or publishes an image: image CI arrives with its own
+# workflows (root spec 8), and this one holds no write permission.
+---
+name: ci
+
+"on":
+  push:
+  pull_request:
+  # Once a week with the caches bypassed: a cache can hide a `make setup`
+  # that no longer works from nothing — every ordinary run stays green while
+  # a fresh clone fails. Scheduled triggers in a public repository are
+  # disabled after ~60 idle days (root spec 2.8); the staleness check that
+  # makes that loud arrives with the scheduled refresh (step-007).
+  schedule:
+    - cron: "0 5 * * 1"
+
+permissions:
+  contents: read
+
+# One run per ref. A superseded run's verdict is obsolete, and a queue of
+# obsolete verdicts teaches people to stop reading them — except on main,
+# where every commit is an approved step and its verdict is a record:
+# "this commit passed" cannot be read off a cancelled run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Two independent questions — whether what is committed is well-formed,
+      # and whether what we ship behaves — so one failing must not cancel the
+      # other's verdict.
+      fail-fast: false
+      matrix:
+        target: [check, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        id: python
+        with:
+          python-version: "3.14"
+
+      # Keyed on the exact file that decides the contents, with no
+      # restore-keys: a near-miss would hand back an environment still
+      # holding a package requirements.txt no longer names — pip does not
+      # uninstall what left the file — and CI would pass on a tool a fresh
+      # clone does not have. Any edit is a cold run instead.
+      - name: Cache the Python environment
+        if: github.event_name != 'schedule'
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: >-
+            venv-${{ runner.os }}-py${{ steps.python.outputs.python-version
+            }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install the pinned toolchain
+        run: make setup
+
+      - name: Run make ${{ matrix.target }}
+        run: make ${{ matrix.target }}

@@ -9,7 +9,7 @@ VENV := .venv/bin
 help:
 	@echo "make setup   create .venv from requirements.txt, install the git hook"
 	@echo "make check   run every linter over the tree, untracked files included"
-	@echo "make test    test what this repository itself ships"
+	@echo "make test    behavior tests — none yet; they arrive with the images"
 	@echo "make verify  check + test"
 
 setup:
@@ -23,7 +23,9 @@ setup:
 check:
 	@$(VENV)/pre-commit run --files $$(git ls-files --cached --others --exclude-standard)
 
+# Nothing to test yet: this repository ships no behavior of its own. The
+# first tests are the image smoke tests (root spec 8).
 test:
-	@$(VENV)/pytest --quiet tools/tests
+	@echo "no behavior tests yet — they arrive with the first image"
 
 verify: check test

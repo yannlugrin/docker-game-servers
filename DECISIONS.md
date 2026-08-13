@@ -81,10 +81,13 @@ not-yet-started steps give number *plus title*.
   same harness to run there; root §2.8 warns that scheduled workflows in a
   public repository are disabled after ~60 idle days.
 - **Decision**: one workflow, `.github/workflows/harness.yml`, running the
-  same `make setup` / `make check` / `make test` as a local clone: `check`
-  and `test` as separate jobs with the toolchain cached on the pins, plus a
-  `fresh-setup` job that runs uncached on a weekly schedule and on manual
-  dispatch, proving the documented setup command still works from nothing.
+  same `make setup` / `make check` / `make test` as a local clone. Revised
+  to the operator's house style (`infra`, `.github/workflows/ci.yml`): the
+  file is `ci.yml`, `check` and `test` are one matrix job with
+  `fail-fast: false`, and the weekly proof that setup works from nothing is
+  the same jobs with the cache step skipped rather than a third job.
+  `cancel-in-progress` is off on main, where a commit's verdict is a
+  record.
   `permissions: contents: read` — this workflow never publishes. The
   schedule's own deactivation risk is documented in the workflow and is
   covered by the in-repo staleness check that arrives with the scheduled
@@ -229,8 +232,10 @@ not-yet-started steps give number *plus title*.
   and what costs a session when wrong: CLAUDE.md's line budget, the Current
   state pointer agreeing with the plan that declares that step, one step in
   progress repository-wide, settings parsing with auto memory off, and
-  skill/agent frontmatter being loadable. Tests are one case per rule
-  rather than per spelling: 25, in one file.
+  skill/agent frontmatter being loadable. No tests: the repository ships no
+  behavior of its own yet, and testing a lint script's own assertions is
+  weight without a reader. `make test` says so until the first image smoke
+  test gives it something real to run (root §8).
 - **Open with the operator**: the backticked-reference check is *not*
   removed yet, because CLAUDE.md rule 2 requires it in those words ("every
   named command/path/agent resolves"). Removing the heuristic means editing

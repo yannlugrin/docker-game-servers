@@ -26,7 +26,7 @@ state of the work is in the plans listed below, not duplicated here.
 | `steamcmd/DECISIONS.md`, `project-zomboid/DECISIONS.md` | Per-track decision logs |
 | `CLAUDE.md` | Standing instructions for the AI implementer — workflow rules, not project documentation |
 | `Makefile`, `requirements.txt`, `.pre-commit-config.yaml` | The checks and how to run them: pinned tools, and the hooks pre-commit runs |
-| `tools/` | The two checks with no off-the-shelf equivalent — this workflow's own state — and their tests |
+| `tools/` | `governance.py` — the memory-consistency check no linter can do |
 | `ruff.toml`, `.yamllint.yml`, `.pymarkdown.json` | Linter configuration, one file per tool |
 | `.gitignore` | Ignored paths — also what `make check` does not look at |
 | `.github/workflows/` | CI. Today: the harness on every push and pull request. Image build and publish workflows arrive with the images |
@@ -45,7 +45,7 @@ From a fresh clone, one setup command creates the virtual environment from
 ```sh
 make setup    # .venv from requirements.txt, pre-commit installed
 make check    # every linter over the tree (pre-commit), untracked files included
-make test     # the tests for what this repository itself ships
+make test     # behavior tests — none yet; they arrive with the images
 make verify   # both
 ```
 
