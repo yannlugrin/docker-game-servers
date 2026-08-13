@@ -146,11 +146,8 @@
       "Bash(gh secret set:*)",
       "Bash(gh variable set:*)",
       "Edit(SPECIFICATIONS.md)",
-      "Write(SPECIFICATIONS.md)",
       "Edit(steamcmd/SPECIFICATIONS.md)",
-      "Write(steamcmd/SPECIFICATIONS.md)",
-      "Edit(project-zomboid/SPECIFICATIONS.md)",
-      "Write(project-zomboid/SPECIFICATIONS.md)"
+      "Edit(project-zomboid/SPECIFICATIONS.md)"
     ],
     "deny": [
       "Bash(git push --force:*)",
