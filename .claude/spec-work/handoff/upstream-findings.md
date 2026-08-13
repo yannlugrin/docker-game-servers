@@ -1,4 +1,4 @@
-# Upstream findings — handoff phase (reviews 014–017)
+# Upstream findings — handoff phase (reviews 014–018)
 
 Generic findings from this repository's handoff review rounds: defects or
 gaps in the specify skill's templates and fixed prompt text, nothing
@@ -57,6 +57,12 @@ and finding — what was wrong — where the upstream fix landed.
   (root + per-component plans, logs, qualified step ids, one step in
   progress repo-wide, root spec as standing reading) — ported: the
   "Monorepo and multi-track projects" section of `handoff.md`. **[ported]**
+- 018-F1 — the parameterized templates cited "the glossary in
+  `handoff.md`", a file that ships with the skill and never with the
+  repository, so the pointer dangled for every implementer — ported:
+  each template header now states its placeholders' meaning inline,
+  named to the subset that file uses (seven files, `resume-step.md`
+  included). **[ported 2026-08-13]**
 
 Reviews 014–017 are archived under `.claude/spec-work/reviews/`; the two
 false git-state findings (015-F6-premise, 016-F2/F3) that motivated the

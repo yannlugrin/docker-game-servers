@@ -59,9 +59,11 @@ conventions (root §3, §5) are standing reading for any image-track step.
    resolution that changes a requirement, a tier, a documented
    limitation or the ship decision is a together-decision** that comes
    back to me before the amendment; of the open items, (d), (e), (g),
-   (k) and (l) are the ones that always come back — (d) because it
-   decides whether `ADMIN_PASSWORD` is offered at all, a
-   documented-surface change.
+   (k) and (l) are the ones that always come back — (d) because both of
+   its resolutions decide the credential surface and the first-boot
+   decision table, not just the unfavorable one; an item whose only
+   consequential branch is unfavorable (like (f)) is already caught by
+   the requirement-changing clause above.
 
    **Of the phase that produced the specification, the specification
    itself is your only input** — what I tell you in our exchanges, and
@@ -259,7 +261,12 @@ conventions (root §3, §5) are standing reading for any image-track step.
    `{{PLAN}}` and `{{DECISIONS}}` are that track's own (rule 3's track
    map), `{{STEP_ID}}` takes the track-qualified form of rule 6, and
    `{{SPEC}}` is the track's specification with root §3 and §5 standing
-   (rule 3); a decision citation crossing logs names the file (rule 4).
+   (rule 3) — for the steamcmd track that resolves through the stub to
+   root §4 and the §2 facts it rests on; a decision citation crossing
+   logs names the file (rule 4). One exception: `state-reviewer`
+   reviews the whole repository at a milestone close — cross-track
+   drift is exactly what it exists to catch — so its governance set
+   resolves to every track's files.
    A template arrives with those as placeholders on purpose: a leftover
    one is visible, while a plausible wrong filename is not. Where a
    template's own enumeration of a routine is narrower than the rule it
@@ -467,8 +474,8 @@ Produce the workflow files — three plans, three decision logs,
      **extending the committed `.claude/settings.json`** (auto memory is
      already off — keep it off) with a permission-and-hook baseline
      enforcing rule 9's boundary, proposed for my review: allow the
-     harness, the setup command, the local container lifecycle of
-     rule 9, and the
+     harness, the setup command, the local container lifecycle and
+     free remote reads of rule 9, and the
      *additive and read-only* subset of local git
      (add, commit, status, diff, log, show, rev-parse, describe, tag
      listing, annotated tags); **ask**
@@ -569,10 +576,12 @@ Produce the workflow files — three plans, three decision logs,
    transcript — and, until step `000` has instantiated that skill,
    applies rule 3's re-orientation routine directly instead: the
    pointer to a not-yet-existing command must not strand the one
-   interruption most likely to happen early. It also carries the plan-step entry shape and the
-   boundary-crossing-cost rule from the plan instructions above —
-   later sessions extend plans and the bootstrap cold review sources
-   those conventions from `CLAUDE.md`, so they must actually be there.
+   interruption most likely to happen early. It also carries the
+   plan-step entry shape, the boundary-crossing-cost rule and the
+   step-`000` composite-breadth exception from the plan instructions
+   above — later sessions extend plans and the bootstrap cold review
+   sources those conventions from `CLAUDE.md`, never from this prompt,
+   so they must actually be there.
    It also carries the `.claude/refs/image-contract.md`
    pointer with its read-trigger and its never-a-requirement-source
    caveat (rule 3). For as long as any tooling template remains
