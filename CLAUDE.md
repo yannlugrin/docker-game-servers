@@ -38,12 +38,13 @@ alone. Tooling and logs cite "rule N" — the numbering is frozen.
    repository ships, shipped static tools included (each pinned per
    rule 9's fetch rule); governance well-formedness (`.claude/skills/`,
    `.claude/agents/`, `.claude/settings.json`: frontmatter and JSON
-   parse, every named command/path/agent resolves). Commands: *check* =
-   working tree well-formed (untracked included; gitignored paths and
-   `.claude/spec-work/` excluded by path); *test* = behavior against
-   fixtures, including must-fail and must-warn cases; *verify* = both.
-   A narrowed fast check is fine mid-step; the commit that receives a
-   step tag runs the full one.
+   parse, every named command/path/agent resolves). Commands (`make setup`
+   installs the pinned toolchain): `make check` = working tree well-formed
+   (untracked included; gitignored paths and `.claude/spec-work/` excluded
+   by path); `make test` = behavior against fixtures, including must-fail
+   and must-warn cases; `make verify` = both. A narrowed fast check
+   (`ONLY=`) is fine mid-step; the commit that receives a step tag runs the
+   full one. Extending the harness: `.claude/docs/harness.md`.
 3. **All memory lives in files, per track.** Tracks: root (repo-wide),
    `steamcmd/`, `project-zomboid/`; each owns a `PLAN.md` and a
    `DECISIONS.md` (root's at the repository root, an image track's in its
@@ -157,17 +158,16 @@ A future game adds a directory, a per-game `SPECIFICATIONS.md` (root
 
 ## Current state
 
-Active track: root. Current step: **step-000 (pending)** — plans await
-operator approval; no implementation has started. No step tag exists yet.
+Active track: root. Current step: **step-000 (awaiting test)** — repository
+foundation: harness, CI, permission baseline, tooling. No step tag yet.
 
 ## Session-start routine
 
-Read the files rule 3 names, run its re-orientation, report position,
-then proceed as the current step's status directs. A session resumed
-after an interruption, or told the work was interrupted, runs
-`/resume-step` before touching anything — never trust the transcript;
-until step-000 has instantiated that skill, apply rule 3's
-re-orientation directly instead.
+Read the files rule 3 names, run its re-orientation, report position, then
+proceed as the current step's status directs. Rituals: `/orient`,
+`/handover-step`, `/approve-step` — and `/resume-step` before touching
+anything in a session resumed after an interruption, or told the work was
+interrupted: never trust the transcript.
 
 ## Plan conventions (all tracks)
 
@@ -182,18 +182,18 @@ any plan follow that header.
   consuming platform. Read when designing an image's operator interface
   (environment surface, ports, shutdown, health). Information only,
   never a requirement source; images stay platform-neutral (root §1).
+- `.claude/docs/harness.md` — how the rule-2 harness is built. Read before
+  adding a language, an artifact type or a check family.
 
 ## Tooling templates (temporary block — delete with the assets dir)
 
 Starter templates live in `.claude/spec-work/handoff/assets/` — rule 1's
 one standing exception, readable from any session while a template
-remains un-instantiated. Skills: `orient`, `resume-step`,
-`handover-step`, `approve-step`. Agents: `step-reviewer`,
-`optimize-memory`, `state-reviewer`, `code-reviewer`, `test-reviewer`.
-Not yet adopted: all nine (step-000 instantiates the four skills and
-`step-reviewer`; the rest wait for their trigger; each adoption or
-explicit drop is logged). Placeholders (`{{PLAN}}`, `{{DECISIONS}}`,
-`{{SPEC}}`, `{{STEP_ID}}`) resolve to the **active track's** files and
-id form (`state-reviewer` alone spans all tracks). Once none remains
-un-instantiated, delete the directory, this block, and every pointer to
-it in one commit.
+remains un-instantiated. Adopted at step-000: the four skills above and
+the `step-reviewer` agent. Not yet adopted: `optimize-memory`,
+`state-reviewer`, `code-reviewer`, `test-reviewer` — each waits for its
+trigger, and every adoption or explicit drop is logged; nothing may name
+one as if it existed. Placeholders resolve to the **active track's**
+files and id form (`state-reviewer` alone spans all tracks). Once none
+remains un-instantiated, delete the directory, this block, and every
+pointer to it in one commit.

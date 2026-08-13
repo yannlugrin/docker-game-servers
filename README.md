@@ -25,12 +25,33 @@ state of the work is in the plans listed below, not duplicated here.
 | `DECISIONS.md` | Root-track decision log |
 | `steamcmd/DECISIONS.md`, `project-zomboid/DECISIONS.md` | Per-track decision logs |
 | `CLAUDE.md` | Standing instructions for the AI implementer — workflow rules, not project documentation |
+| `Makefile`, `tools/` | The check/test/verify harness: pinned linters, the governance checks, and the fixtures they are tested against |
+| `.githooks/` | Pre-commit hook, running the same check as the harness |
+| `.github/workflows/` | CI. Today: the harness on every push and pull request. Image build and publish workflows arrive with the images |
 | `LICENSE` | MIT — covers the image recipes and tooling, not the game content inside the images |
 | `.claude/` | Implementer workspace: settings, working memory, tooling, and the archived specification-phase history — not authoritative for humans |
 
 Documentation written for people lives at the paths above and, as the
 work progresses, in per-image READMEs and `docs/`; everything under
 `.claude/` can be ignored by human readers entirely.
+
+## Working on the repository
+
+From a fresh clone, one setup command installs every pinned tool (a
+repository-local Python environment plus shellcheck and hadolint, verified
+against their checksums) and points git at the repository's hooks:
+
+```sh
+make setup    # install the pinned toolchain, set the hooks path
+make check    # is the working tree well-formed? (linters, schemas, governance)
+make test     # does the harness itself detect breakage? (fixtures)
+make verify   # both
+```
+
+`make check` covers every language and artifact in the tree, untracked files
+included; `ONLY=markdown,shell` narrows it. The same commands run in CI and
+in the pre-commit hook — there is no separate CI-only configuration. Linux
+x86_64 only, matching the images.
 
 ## Authority order
 

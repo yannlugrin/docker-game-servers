@@ -88,7 +88,7 @@ tracks: `steamcmd/PLAN.md`, `project-zomboid/PLAN.md`.
 - **Dependencies**: none.
 - **How to test**: fresh clone → documented setup command → check
   command → one commit — all green. Local and free.
-- **Status**: pending.
+- **Status**: awaiting test.
 
 ### step-001 — LICENSE verification
 

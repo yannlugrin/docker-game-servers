@@ -32,3 +32,126 @@ not-yet-started steps give number *plus title*.
   (rejected outright: transcripts are not versioned, reviewable memory).
 - **Approved by**: operator (bootstrap prompt,
   `.claude/spec-work/handoff/PROMPT.md`).
+
+## D-002 — Harness toolchain, entry points and lint scope
+
+- **Date**: 2026-08-13
+- **Step**: step-000
+- **Context**: rule 2 requires a check family for every language and
+  artifact the repository ships, each tool pinned, all of it runnable by the
+  operator through one documented setup command, locally and in CI.
+- **Decision**: `make` is the entry point (`setup`, `check`, `test`,
+  `verify`), implemented by POSIX-ish bash in `tools/`. Pins: Python tools
+  (yamllint, pymarkdownlnt, ruff, check-jsonschema) by exact version in
+  `tools/requirements.txt`, installed into a repository-local `.venv`;
+  shellcheck and hadolint by version **and** sha256 in
+  `tools/tool-versions.sh`, downloaded to `.tools/bin`. Nine families:
+  markdown, yaml, workflows (GitHub schema), compose (`docker compose
+  config`), shell (`bash -n` + shellcheck), dockerfile (hadolint), python
+  (ruff + byte-compile), json, governance (`tools/lint_governance.py`).
+  `make test` is fixture-driven: each case snapshots the tree, plants one
+  broken or borderline artifact, and asserts how `check` reacts — must-fail
+  cases per family, plus the must-warn case of the CLAUDE.md line budget.
+  Scope: `check` sees tracked and untracked files, git drops gitignored
+  ones, and three paths are excluded by path — `.claude/spec-work/`
+  (rule 1), `.claude/refs/` (operator-supplied, never edited by me, so a
+  finding there could not be acted on) and `tools/tests/fixtures/`
+  (deliberately malformed inputs). Markdown rule MD013 (line length) is
+  disabled: the specifications and reference material are read-only
+  documents with their own wrapping, and the lint bends to them (rule 2).
+  The toolchain installs for linux/x86_64 only, matching the images'
+  linux/amd64 constraint (root §2.1); `make setup` fails loudly elsewhere.
+- **Alternatives considered**: linters run from pinned Docker images
+  (rejected: slower per run, and it makes the harness unusable while the
+  Docker daemon is the thing under repair); `--require-hashes` pip installs
+  (rejected for now: transitive-hash maintenance for no gain over exact
+  version pins on PyPI); a Node toolchain for markdownlint (rejected: it
+  would add a second language runtime to install and pin for one family).
+- **Approved by**: implementer (rule 4, workflow choice left to me);
+  operator informed at the step-000 gate.
+
+## D-003 — Harness CI workflow shape
+
+- **Date**: 2026-08-13
+- **Step**: step-000
+- **Context**: root §2.6 makes GitHub Actions the CI, and rule 2 wants the
+  same harness to run there; root §2.8 warns that scheduled workflows in a
+  public repository are disabled after ~60 idle days.
+- **Decision**: one workflow, `.github/workflows/harness.yml`, running the
+  same `make setup` / `make check` / `make test` as a local clone: `check`
+  and `test` as separate jobs with the toolchain cached on the pins, plus a
+  `fresh-setup` job that runs uncached on a weekly schedule and on manual
+  dispatch, proving the documented setup command still works from nothing.
+  `permissions: contents: read` — this workflow never publishes. The
+  schedule's own deactivation risk is documented in the workflow and is
+  covered by the in-repo staleness check that arrives with the scheduled
+  refresh (step-007). Treated as **unverified until the first authorized
+  push** (step-002).
+- **Alternatives considered**: a single job doing check and test (rejected:
+  the plan asks for separate jobs, and a failed check should not hide a
+  failed test); no uncached run (rejected: pins rot silently — a moved
+  release asset would only surface on a fresh clone, months later).
+- **Approved by**: implementer (rule 4, workflow choice left to me).
+
+## D-004 — Permission and hook baseline
+
+- **Date**: 2026-08-13
+- **Step**: step-000
+- **Context**: rule 9 draws the action boundary in prose; rule 4 says the
+  permission baseline is not within my latitude, so it is proposed rather
+  than chosen. Prefix-matched permission patterns cannot express three of
+  rule 9's distinctions.
+- **Decision**: `.claude/settings.json` carries `allow` (the harness and
+  setup command, the local container lifecycle, read-only remote reads, and
+  the additive/read-only subset of local git — `add`, `commit`, `tag -a`,
+  and the inspection commands), `ask` (everything rule 9 gates: `git push`,
+  any registry publish, GitHub writes through `gh`, blanket prunes, and
+  state-destroying local git — `commit --amend`, `rebase`, `reset --hard`,
+  `clean`, `restore`, branch deletion, `stash`; plus edits to any
+  `SPECIFICATIONS.md`, which rule 1 allows only as an agreed amendment),
+  and `deny` — reserved for what has no authorized use at all: force,
+  mirror and delete pushes, `filter-branch`/`filter-repo`, deleting or
+  moving a `step-*` tag, expiring the reflog or `update-ref -d`, reading
+  the specification-phase archive outside `handoff/assets/`, and editing
+  `.claude/refs/`. A `PreToolUse` guard hook (`.claude/hooks/guard.py`)
+  covers what patterns cannot: the `gh api` read/write split by method and
+  fields, flags that appear late in a line (`git commit … --amend`,
+  `docker … prune` without a scoping filter, `curl -X POST`), and the
+  spec-work read ban for shell commands as well as file tools. The hook
+  denies, asks, or stays silent so the permission rules decide; an internal
+  error in it becomes an ask, never a silent allow.
+- **Alternatives considered**: patterns only (rejected: a bare `git commit`
+  allowance silently admits `--amend`, and `gh api` cannot be split at
+  all); hook only (rejected: patterns are the mechanism the harness enforces
+  first and the operator can read at a glance); denying more broadly
+  (rejected: `deny` with no override forces settings edits mid-step, so it
+  stays reserved for the genuinely never-authorized).
+- **Approved by**: operator — pending review at the step-000 gate; this
+  entry is the proposal.
+
+## D-005 — Workflow tooling adopted at step-000
+
+- **Date**: 2026-08-13
+- **Step**: step-000
+- **Context**: nine starter templates were handed over; CLAUDE.md's
+  tooling block schedules the four rituals and the pre-handover reviewer
+  for this step, the rest on their trigger.
+- **Decision**: instantiate `/orient`, `/resume-step`, `/handover-step`,
+  `/approve-step` and the `step-reviewer` agent, with placeholders resolved
+  to the per-track shape (each ritual carries the three-track map and reads
+  the pointer in CLAUDE.md's "Current state"), the harness placeholders to
+  `make check` / `make test` / `make verify`, and `step-reviewer`'s
+  never-run list to rule 9's whole gated set. Deviation from the templates:
+  their `when_to_use` frontmatter key is folded into `description` and
+  restated as a "When to use" line in the body — Claude Code's skill
+  frontmatter defines `name`, `description` and `allowed-tools`, and a key
+  it does not define is a loading risk for no benefit; the content is kept
+  verbatim in the two places that are read. `optimize-memory`,
+  `state-reviewer`, `code-reviewer` and `test-reviewer` remain not adopted;
+  the governance check fails any file that names one as if it existed.
+- **Alternatives considered**: adopting all nine now (rejected: an agent
+  adopted before its trigger is unreviewed weight); keeping `when_to_use`
+  (rejected: unverifiable benefit against a real risk of the skill not
+  loading).
+- **Approved by**: implementer for the instantiation details (rule 4);
+  the adoption set itself follows CLAUDE.md's tooling block.
