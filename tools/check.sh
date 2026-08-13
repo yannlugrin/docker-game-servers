@@ -133,7 +133,14 @@ PY
 }
 
 fam_governance() {
-  "${VENV_BIN}/python" "${REPO_ROOT}/tools/lint_governance.py"
+  local make_status=0 lint_status=0
+  # The Makefile is a shipped artifact too, and a broken one takes every
+  # entry point with it: parse it without running anything.
+  make --dry-run --silent --directory "$REPO_ROOT" help >/dev/null || make_status=1
+  "${VENV_BIN}/python" "${REPO_ROOT}/tools/lint_governance.py" || lint_status=$?
+  case "$lint_status" in 0 | 2) ;; *) lint_status=1 ;; esac
+  [ "$make_status" -eq 0 ] || return 1
+  return "$lint_status"
 }
 
 # --- driver -----------------------------------------------------------------

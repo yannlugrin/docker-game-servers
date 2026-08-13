@@ -35,8 +35,9 @@ if [ -f "$TOOLS_STAMP" ] && [ "$(cat "$TOOLS_STAMP")" = "$stamp_want" ] &&
   ok "toolchain already at pinned versions"
 else
   info "installing pinned Python tools into .venv"
+  # No pip self-upgrade: it would be the one unpinned fetch in `make setup`,
+  # and the venv's bundled pip installs pinned requirements fine.
   [ -x "${VENV_BIN}/python" ] || python3 -m venv "$VENV_DIR"
-  "${VENV_BIN}/python" -m pip install --quiet --upgrade pip >/dev/null
   "${VENV_BIN}/python" -m pip install --quiet --disable-pip-version-check \
     --requirement "${REPO_ROOT}/tools/requirements.txt"
 
