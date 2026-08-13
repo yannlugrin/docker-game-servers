@@ -1,0 +1,69 @@
+# The rule-2 harness, run on GitHub exactly as it runs locally: same setup
+# command, same check and test entry points. Nothing here builds or publishes
+# an image — image CI arrives with its own workflows (root spec 8).
+---
+name: harness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Weekly uncached run: proves the documented setup command still works from
+  # nothing (pins that rotted, a release asset that moved). Scheduled triggers
+  # in a public repository are disabled after ~60 days of inactivity (root
+  # spec 2.8) — the in-repo staleness check that makes that loud arrives with
+  # the scheduled refresh (step-007), and covers this trigger too.
+  schedule:
+    - cron: '17 5 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check (cached toolchain)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache harness toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            .tools
+          key: >-
+            harness-${{ runner.os }}-${{ hashFiles('tools/requirements.txt',
+            'tools/tool-versions.sh') }}
+      - run: make setup
+      - run: make check
+
+  test:
+    name: test (cached toolchain)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache harness toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            .tools
+          key: >-
+            harness-${{ runner.os }}-${{ hashFiles('tools/requirements.txt',
+            'tools/tool-versions.sh') }}
+      - run: make setup
+      - run: make test
+
+  fresh-setup:
+    name: verify (uncached, fresh setup)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make setup
+      - run: make verify
