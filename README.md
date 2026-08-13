@@ -27,7 +27,8 @@ state of the work is in the plans listed below, not duplicated here.
 | `CLAUDE.md` | Standing instructions for the AI implementer — workflow rules, not project documentation |
 | `Makefile`, `tools/` | The check/test/verify harness: pinned linters, the governance checks, and the fixtures they are tested against |
 | `.githooks/` | Pre-commit hook, running the same check as the harness |
-| `.gitignore`, `ruff.toml`, `.yamllint.yml`, `.pymarkdown.json`, `.hadolint.yaml` | Linter configuration, one file per tool, used by `make check` |
+| `ruff.toml`, `.yamllint.yml`, `.pymarkdown.json`, `.hadolint.yaml` | Linter configuration, one file per tool, used by `make check` |
+| `.gitignore` | Ignored paths — also what `make check` does not look at |
 | `.github/workflows/` | CI. Today: the harness on every push and pull request. Image build and publish workflows arrive with the images |
 | `LICENSE` | MIT — covers the image recipes and tooling, not the game content inside the images |
 | `.claude/` | Implementer workspace: settings, working memory, tooling, and the archived specification-phase history — not authoritative for humans |

@@ -49,6 +49,12 @@ add a case there before adding a pattern, since the failure mode is silence.
   rituals became available mid-session; the `step-reviewer` agent did not —
   invoking it failed with "Agent type not found" until a new session picked
   it up. After adding or renaming tooling, restart before relying on it.
+- **The subagent tool is `Agent` in this harness** (not `Task`): invoking
+  `step-reviewer` through it works, and `handover-step` lists both names so
+  the review cannot silently not happen.
+- **The hook runs under the system `python3`**, not the pinned `.venv` — it
+  must keep working with only the standard library, and a host without
+  `python3` loses the guard entirely (the settings layer still holds).
 - **Not verified from here**: that a hook `ask` overrides an allow-listed
   prefix (`git commit --amend` under `Bash(git commit:*)`). It needs an
   interactive prompt to appear, which only the operator can observe.

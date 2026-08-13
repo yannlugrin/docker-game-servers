@@ -27,9 +27,11 @@ the commit that receives a step tag runs the full one.
 - `tools/test.sh` — snapshot-based behavior tests: each case copies the tree
   into a throwaway git repository, plants one fixture, and asserts how
   `tools/check.sh` reacts.
-- `tools/lint_governance.py` — the governance family (settings, skills,
-  agents, memory pointers, CLAUDE.md's line budget). Exit codes: 0 clean,
-  1 error, 2 warnings only — the driver maps 2 to a non-fatal `WARN`.
+- `tools/lint_governance.py` — most of the governance family (settings,
+  skills, agents, memory pointers, CLAUDE.md's line budget). Exit codes:
+  0 clean, 1 error, 2 warnings only — the driver maps 2 to a non-fatal
+  `WARN`. The family also parses the `Makefile` itself (`make --dry-run
+  help`), the one artifact whose breakage takes every entry point with it.
 - `tools/requirements.txt`, `tools/tool-versions.sh` — the pins. Python tools
   by exact version; downloaded binaries by version *and* sha256.
 

@@ -11,7 +11,10 @@ allowed-tools:
   - Grep
   - Edit
   - Write
+  # Subagent invocation — without it, step 3's review silently never runs.
+  # Named `Agent` in this harness; `Task` in others, so both are listed.
   - Agent
+  - Task
   - Bash(make verify:*)
   - Bash(make check:*)
   - Bash(make test:*)

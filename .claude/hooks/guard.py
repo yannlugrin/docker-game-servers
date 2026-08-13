@@ -21,7 +21,7 @@ import json
 import re
 import sys
 
-SPEC_WORK_BAN = re.compile(r"\.claude/spec-work/(?!handoff/assets)")
+SPEC_WORK_BAN = re.compile(r"\.claude/spec-work(?!/handoff/assets)")
 
 # (pattern, reason) — checked against the whole command line.
 DENY: list[tuple[re.Pattern[str], str]] = [
@@ -35,7 +35,9 @@ DENY: list[tuple[re.Pattern[str], str]] = [
         "rule 6: rewriting history has no authorized use here",
     ),
     (
-        re.compile(r"\bgit\s+tag\s+(-d\b|--delete\b|-f\b|--force\b)"),
+        # Position-independent: `git tag -a -f step-000` moves a tag as surely
+        # as `git tag -f` does, and `-a` is allow-listed.
+        re.compile(r"\bgit\s+tag\b(?=.*(\s-d\b|\s--delete\b|\s-f\b|\s--force\b))"),
         "rule 6: step tags mark operator-approved states and are never moved or deleted",
     ),
     (
@@ -57,10 +59,12 @@ ASK: list[tuple[re.Pattern[str], str]] = [
     (
         re.compile(
             r"\bdocker\s+(compose\s+)?push\b"
-            r"|\bdocker\s+image\s+push\b"
+            r"|\bdocker\s+(image|manifest)\s+push\b"
             # `docker build --push` is the modern spelling; so is an
             # `--output type=registry`, which publishes without saying "push".
-            r"|\bdocker\s+(buildx\s+)?build\b.*(--push\b|--output[= ][^|;]*type=registry)"
+            # `docker compose build --push` and `buildx bake --push` publish too.
+            r"|\bdocker\s+(compose\s+|buildx\s+)?(build|bake)\b.*"
+            r"(--push\b|--output[= ][^|;]*type=registry)"
         ),
         "rule 9: publishing an image outward (release tags are immutable, root spec 7)",
     ),

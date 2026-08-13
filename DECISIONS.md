@@ -48,7 +48,8 @@ not-yet-started steps give number *plus title*.
   `tools/tool-versions.sh`, downloaded to `.tools/bin`. Nine families:
   markdown, yaml, workflows (GitHub schema), compose (`docker compose
   config`), shell (`bash -n` + shellcheck), dockerfile (hadolint), python
-  (ruff + byte-compile), json, governance (`tools/lint_governance.py`).
+  (ruff + byte-compile), json, governance (Makefile parse +
+  `tools/lint_governance.py`).
   `make test` is fixture-driven: each case snapshots the tree, plants one
   broken or borderline artifact, and asserts how `check` reacts — must-fail
   cases per family, plus the must-warn case of the CLAUDE.md line budget.
@@ -87,6 +88,12 @@ not-yet-started steps give number *plus title*.
   covered by the in-repo staleness check that arrives with the scheduled
   refresh (step-007). Treated as **unverified until the first authorized
   push** (step-002).
+  Actions are pinned to major tags (`actions/checkout@v4`), not commit
+  shas — deliberately weaker than the toolchain's version+sha256 pins:
+  these are GitHub's own first-party actions on a repository that publishes
+  nothing from this workflow, and sha pins would need manual bumping for a
+  threat this workflow does not carry. Revisit when a workflow gains
+  `packages: write` (step-004).
 - **Alternatives considered**: a single job doing check and test (rejected:
   the plan asks for separate jobs, and a failed check should not hide a
   failed test); no uncached run (rejected: pins rot silently — a moved

@@ -16,6 +16,7 @@ __pycache__/
 # Local secrets and environment files (CLAUDE.md rule 5 — never committed)
 .env
 .env.*
+!.env.example
 secrets/
 
 # Local test state from smoke runs: game saves, Steam-downloaded content,
