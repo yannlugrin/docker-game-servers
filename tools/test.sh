@@ -114,13 +114,85 @@ run_case skill-dangling-refs governance fail "does not exist" \
 run_case claude-md-over-budget governance fail "budget" \
   'for i in $(seq 1 210); do echo "filler line $i"; done >>"$SNAP/CLAUDE.md"'
 run_case claude-md-near-budget governance warn "budget is" \
-  'lines=$(wc -l <"$SNAP/CLAUDE.md"); while [ "$lines" -lt 195 ]; do echo "" >>"$SNAP/CLAUDE.md"; lines=$((lines + 1)); done'
+  'lines=$(wc -l <"$SNAP/CLAUDE.md");
+   [ "$lines" -lt 195 ] || { echo "fixture needs CLAUDE.md under 195 lines, found $lines" >&2; exit 1; };
+   while [ "$lines" -lt 195 ]; do echo "" >>"$SNAP/CLAUDE.md"; lines=$((lines + 1)); done'
+run_case broken-makefile governance fail "" \
+  'printf "check:\n\techo unterminated \$(\n" >"$SNAP/Makefile"'
 run_case pointer-status-mismatch governance fail "but" \
   'sed -i "s/\(Current step: \*\*step-000\) ([a-z ]*)\*\*/\1 (pending)**/" "$SNAP/CLAUDE.md" &&
    sed -i "0,/- \*\*Status\*\*: [a-z ]*\./s//- **Status**: done./" "$SNAP/PLAN.md"'
 run_case two-steps-in-progress governance fail "more than one step in progress" \
   'sed -i "0,/- \*\*Status\*\*: pending./s//- **Status**: in progress./" "$SNAP/PLAN.md" &&
    sed -i "0,/- \*\*Status\*\*: pending./s//- **Status**: in progress./" "$SNAP/project-zomboid/PLAN.md"'
+
+# --- the rule-9 guard hook: verdicts on the spellings that matter -----------
+#
+# The hook exists because permission patterns match a prefix: every case below
+# has an allow-listed prefix and an outward write hiding later in the line.
+
+guard_verdict() {
+  local tool="$1" value="$2" key="command" out
+  [ "$tool" = "Bash" ] || key="file_path"
+  out="$("${VENV_BIN}/python" - "$tool" "$key" "$value" <<'PY'
+import json
+import subprocess
+import sys
+
+tool, key, value = sys.argv[1:4]
+payload = json.dumps({"tool_name": tool, "tool_input": {key: value}})
+result = subprocess.run(
+    [".claude/hooks/guard.py"], input=payload, capture_output=True, text=True, check=False
+)
+out = result.stdout.strip()
+print(json.loads(out)["hookSpecificOutput"]["permissionDecision"] if out else "silent")
+PY
+  )"
+  printf '%s' "$out"
+}
+
+guard_case() {
+  local label="$1" expect="$2" tool="$3" value="$4" got
+  got="$(guard_verdict "$tool" "$value")"
+  if [ "$got" = "$expect" ]; then
+    ok "guard: ${label} (${expect})"
+    passed=$((passed + 1))
+  else
+    bad "guard: ${label}: expected ${expect}, got ${got} — for: ${value}"
+    failed=$((failed + 1))
+  fi
+}
+
+guard_case "gh api read" silent Bash "gh api repos/yannlugrin/docker-game-servers"
+guard_case "gh api -X DELETE" ask Bash "gh api -X DELETE /user/packages/container/steamcmd"
+guard_case "gh api -XPOST" ask Bash "gh api -XPOST /repos/x/y/releases"
+guard_case "gh api --method=POST" ask Bash "gh api --method=POST /repos/x/y/releases"
+guard_case "gh api -f field" ask Bash "gh api /repos/x/y/dispatches -f event_type=go"
+guard_case "gh workflow run" ask Bash "gh workflow run publish.yml"
+guard_case "git commit" silent Bash 'git commit -m "step-000: x"'
+guard_case "git commit --amend late" ask Bash 'git commit -m "x" --amend'
+guard_case "git push" ask Bash "git push origin main"
+guard_case "git push --force" deny Bash "git push --force origin main"
+guard_case "git tag -a" silent Bash 'git tag -a step-000 -m "x"'
+guard_case "git tag -d" deny Bash "git tag -d step-000"
+guard_case "docker build" silent Bash "docker build -t pz:dev project-zomboid"
+guard_case "docker build --push" ask Bash "docker build --push -t ghcr.io/x/y:1 ."
+guard_case "buildx --output registry" ask Bash "docker buildx build --output type=registry -t ghcr.io/x/y:1 ."
+guard_case "docker push" ask Bash "docker push ghcr.io/x/y:1"
+guard_case "docker volume rm" silent Bash "docker volume rm pz-test"
+guard_case "unscoped prune" ask Bash "docker image prune -a"
+guard_case "scoped prune" silent Bash "docker image prune --filter label=project=games-servers"
+guard_case "docker system prune" ask Bash "docker system prune -af"
+guard_case "curl read" silent Bash "curl -sS https://api.steampowered.com/x"
+guard_case "curl -XPOST" ask Bash "curl -XPOST https://example.test"
+guard_case "curl --json" ask Bash "curl --json '{}' https://example.test"
+guard_case "wget --post-data" ask Bash "wget --post-data=a=b https://example.test"
+guard_case "cat the archive" deny Bash "cat .claude/spec-work/reviews/013.md"
+guard_case "grep handoff assets" silent Bash "grep -r x .claude/spec-work/handoff/assets/"
+guard_case "read the archive" deny Read "/repo/.claude/spec-work/decisions.md"
+guard_case "edit refs" deny Edit "/repo/.claude/refs/image-contract.md"
+guard_case "edit a specification" ask Edit "/repo/project-zomboid/SPECIFICATIONS.md"
+guard_case "edit a plan" silent Edit "/repo/PLAN.md"
 
 say ""
 if [ "$failed" -gt 0 ]; then

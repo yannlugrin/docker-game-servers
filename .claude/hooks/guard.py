@@ -56,7 +56,11 @@ ASK: list[tuple[re.Pattern[str], str]] = [
     ),
     (
         re.compile(
-            r"\bdocker\s+(compose\s+)?push\b|\bdocker\s+buildx\s+build\b.*--push\b|\bdocker\s+image\s+push\b"
+            r"\bdocker\s+(compose\s+)?push\b"
+            r"|\bdocker\s+image\s+push\b"
+            # `docker build --push` is the modern spelling; so is an
+            # `--output type=registry`, which publishes without saying "push".
+            r"|\bdocker\s+(buildx\s+)?build\b.*(--push\b|--output[= ][^|;]*type=registry)"
         ),
         "rule 9: publishing an image outward (release tags are immutable, root spec 7)",
     ),
@@ -71,7 +75,8 @@ ASK: list[tuple[re.Pattern[str], str]] = [
         "rule 9: unscoped prune — scope it by label or filter to this project",
     ),
     (
-        re.compile(r"\bgh\s+api\b.*(-X|--method)\s+(?!GET\b|HEAD\b)"),
+        # The separator is optional: -XPOST, -X POST and --method=POST all work.
+        re.compile(r"\bgh\s+api\b.*(-X\s*|--method[=\s])(?!GET\b|HEAD\b)\w"),
         "rule 9: a non-GET gh api call is a GitHub write",
     ),
     (
@@ -91,7 +96,11 @@ ASK: list[tuple[re.Pattern[str], str]] = [
     ),
     (
         re.compile(
-            r"\b(curl|wget)\b.*((-X|--request)\s+(?!GET\b|HEAD\b)|--data\b|\s-d\s|--form\b|\s-F\s|--upload-file\b|\s-T\s)"
+            r"\b(curl|wget)\b.*("
+            r"(-X\s*|--request[=\s])(?!GET\b|HEAD\b)\w"
+            r"|--data\b|--data-\w+\b|\s-d[\s@']|--json\b|--form\b|\s-F[\s@']"
+            r"|--upload-file\b|\s-T\s|--post-data\b|--post-file\b|--method[=\s](?!GET\b|HEAD\b)\w"
+            r")"
         ),
         "rule 9: this HTTP call writes rather than reads",
     ),

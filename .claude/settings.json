@@ -167,8 +167,7 @@
       "Read(.claude/spec-work/reviews/**)",
       "Read(.claude/spec-work/handoff/PROMPT.md)",
       "Read(.claude/spec-work/handoff/upstream-findings.md)",
-      "Edit(.claude/refs/**)",
-      "Write(.claude/refs/**)"
+      "Edit(.claude/refs/**)"
     ]
   },
   "hooks": {
