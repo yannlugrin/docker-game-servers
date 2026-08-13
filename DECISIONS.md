@@ -168,16 +168,22 @@ not-yet-started steps give number *plus title*.
   to the per-track shape (each ritual carries the three-track map and reads
   the pointer in CLAUDE.md's "Current state"), the harness placeholders to
   `make check` / `make test` / `make verify`, and `step-reviewer`'s
-  never-run list to rule 9's whole gated set. Deviation from the templates:
+  never-run list to rule 9's whole gated set. `state-reviewer` and
+  `optimize-memory` land here too, on the operator's ruling: a milestone
+  close is a certainty, so the two passes it requires must exist before the
+  first one arrives, not be improvised then. Deviation from the templates:
   their `when_to_use` frontmatter key is folded into `description` and
   restated as a "When to use" line in the body — Claude Code's skill
   frontmatter defines `name`, `description` and `allowed-tools`, and a key
   it does not define is a loading risk for no benefit; the content is kept
-  verbatim in the two places that are read. `optimize-memory`,
-  `state-reviewer`, `code-reviewer` and `test-reviewer` remain not adopted;
-  the governance check fails any file that names one as if it existed.
+  verbatim in the two places that are read. `code-reviewer` and
+  `test-reviewer` remain not adopted — each reviews something this
+  repository does not have yet; nothing may name one as if it existed.
 - **Alternatives considered**: adopting all nine now (rejected: an agent
-  adopted before its trigger is unreviewed weight); keeping `when_to_use`
+  that reviews code or tests we do not have is unreviewed weight);
+  deferring the milestone pair until the first milestone closes (rejected by
+  the operator: the trigger is certain, so the tooling is required now);
+  keeping `when_to_use`
   (rejected: unverifiable benefit against a real risk of the skill not
   loading).
 - **Approved by**: implementer for the instantiation details (rule 4);

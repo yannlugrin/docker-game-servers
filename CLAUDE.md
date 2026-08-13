@@ -178,10 +178,12 @@ statuses, boundary-crossing cost, the step-000 exception) live in the root
 
 Starter templates live in `.claude/spec-work/handoff/assets/` — rule 1's one
 standing exception, readable while a template remains un-instantiated.
-Adopted at step-000: the four rituals above and the `step-reviewer` agent.
-Not yet adopted: `optimize-memory`, `state-reviewer`, `code-reviewer`,
-`test-reviewer` — each waits for its trigger, every adoption or drop is
-logged, and nothing may name one as if it existed. Placeholders resolve to
-the **active track's** files and id form (`state-reviewer` spans all
-tracks). Once none remains un-instantiated, delete the directory, this
-block, and every pointer to it in one commit.
+Adopted at step-000: the four rituals above, plus the `step-reviewer`,
+`state-reviewer` and `optimize-memory` agents — the last two because closing
+a milestone is a certainty, not a maybe. Not yet adopted: `code-reviewer`,
+`test-reviewer` — both review something this repository does not have yet;
+each waits for its trigger, every adoption or drop is logged, and nothing
+may name one as if it existed. Placeholders resolve to the **active track's**
+files and id form (`state-reviewer` spans all tracks). Once none remains
+un-instantiated, delete the directory, this block, and every pointer to it
+in one commit.

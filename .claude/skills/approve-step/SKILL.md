@@ -58,9 +58,9 @@ In order:
    then `Approved YYYY-MM-DD.` and a short paragraph of the step's notable
    outcomes.
 4. **Milestone boundary:** if this was the milestone's last step, do not
-   start the next one — suggest the whole-state review and then the
-   memory-compaction pass. Where the agents that perform them exist, use
-   them; where they are still on CLAUDE.md's not-yet-adopted list, brief a
-   fresh subagent inline from a clean context. The passes are required
-   whoever performs them, and this step is their in-ritual trigger.
+   start the next one — suggest the whole-state review (`state-reviewer`)
+   and then, once its findings are settled, the memory-compaction pass
+   (`optimize-memory`, invoked per track, from a clean context). Both
+   passes are required at a milestone boundary, and this step is their
+   in-ritual trigger.
 5. **Never push.** The next step starts only on the operator's go.
