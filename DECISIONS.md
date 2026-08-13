@@ -120,6 +120,19 @@ not-yet-started steps give number *plus title*.
   spec-work read ban for shell commands as well as file tools. The hook
   denies, asks, or stays silent so the permission rules decide; an internal
   error in it becomes an ask, never a silent allow.
+  Two deliberate asymmetries: the settings `ask` on prunes fires even for
+  filter-scoped ones that rule 9 makes free (the hook stays silent there) —
+  erring toward one prompt rather than a host-global mistake; and
+  `Bash(git commit:*)` stays allowed with the hook asking on `--amend`,
+  because the alternative is a prompt on every commit of every step.
+- **Verified at this step** (probes, detail in `.claude/docs/permissions.md`):
+  the settings layer binds and resolves relative paths from the project
+  root; the hook binds live in a running session and its verdicts are
+  asserted by `make test` on every spelling that matters; `Write(path)`
+  rules never fire — `Edit(path)` covers all file-editing tools; skills and
+  agents are only picked up at session start. Not verifiable from here:
+  that a hook `ask` visibly overrides an allow-listed prefix — that needs
+  the operator's own session.
 - **Alternatives considered**: patterns only (rejected: a bare `git commit`
   allowance silently admits `--amend`, and `gh api` cannot be split at
   all); hook only (rejected: patterns are the mechanism the harness enforces
