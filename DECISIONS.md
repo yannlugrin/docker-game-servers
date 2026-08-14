@@ -195,3 +195,34 @@ never reused:
     baked into Linux images.
   - **Approved by:** operator (put the choice to the implementer at
     step-000; ratified with the step's approval).
+
+- **D-008 — Python enters the repository: hook language, test runner
+  and check family**
+  - **Date:** 2026-08-14
+  - **Step:** step-001 — Permission and hook baseline
+  - **Context:** the guard hook is the first executable code in the
+    repository. A PreToolUse hook is handed its tool call as JSON on
+    stdin, so the language has to parse JSON; rule 2 requires the new
+    artifact class to get its check family in this step, and the hook
+    is shipped behaviour, so `just test` stops being a placeholder.
+  - **Decision:** the hook is Python 3 using only the standard library,
+    and `python3` is already a documented prerequisite of this
+    repository. Its tests live in `tests/`, use `unittest` from the
+    standard library, and drive the hook as a subprocess over its real
+    stdin/stdout contract rather than importing its internals.
+    `just test` runs them with the **system** `python3` — the
+    interpreter Claude Code itself runs the hook with — not with
+    `.venv`, which holds the harness only. The check family for the
+    class is `check-ast` (it parses) plus `ruff-check` run unconfigured;
+    its default rules are the defect classes a test suite can miss.
+    Formatting stays unenforced, as it is for the justfile (D-002). No
+    new dependency enters `requirements.txt`.
+  - **Alternatives considered:** a POSIX shell hook — it would need
+    `jq` to read its input, a system-level install rule 9 reserves to
+    the operator, or `python3` anyway; `pytest` — a pinned dependency
+    tree added for two files, whose assertion rewriting buys little over
+    plain subprocess assertions; `bats` or `shellspec` for a shell hook
+    — the same system-install problem, one layer further out;
+    `ruff-format` or a house style — formatting was deliberately left
+    unenforced at step-000 and nothing here changes that argument.
+  - **Approved by:** implementer-within-latitude (workflow choice).

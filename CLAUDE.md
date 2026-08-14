@@ -26,8 +26,8 @@ repository-wide; hard budget 200 lines.
 
 ## Current state
 
-- Active track: root. Current step: **none — `step-000` approved and
-  tagged.** Next: `step-001` — Permission and hook baseline.
+- Active track: root. Current step: **`step-001` — Permission and hook
+  baseline, in progress.** Next: `step-002` — Workflow tooling.
 
 ## Track map
 
@@ -159,7 +159,12 @@ builds sequenced deliberately, shared public state (GHCR, GitHub) last.
   operator interface (env vars, ports, writable paths, configuration,
   shutdown, health, saves). Information, never a requirement source;
   conflicts with the spec are questions for the operator.
-- `.claude/docs/` — working memory, per-topic files: none yet.
+- `.claude/docs/` — working memory, per-topic files:
+  - `permissions.md` — what the permission rules, the PreToolUse hook
+    and workspace trust actually do, measured on the running Claude Code
+    version. Read before editing `.claude/settings.json` or
+    `.claude/hooks/`, before relying on any enforcement claim, and
+    re-measure after a Claude Code update (the file says how).
 - **Tooling templates** (delete this block, the directory and every
   pointer to it in one commit once every template is adopted or
   dropped): `.claude/spec-work/handoff/assets/` holds starter skills

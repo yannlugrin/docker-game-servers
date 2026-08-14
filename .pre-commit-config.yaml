@@ -32,6 +32,10 @@ repos:
       - id: check-shebang-scripts-are-executable
       # Rule 5 backstop: no key material in the repository.
       - id: detect-private-key
+      # New artifact class at step-001: Python. The guard hook and its
+      # tests are the first executable code here, so parse-level
+      # well-formedness joins the harness with them.
+      - id: check-ast
       # Whitespace and line endings.
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -55,6 +59,15 @@ repos:
         entry: just --summary --justfile
         language: system
         files: ^justfile$
+
+  # Python lint (step-001): the ecosystem's standard linter, run
+  # unconfigured — its default rules are exactly the defect classes a
+  # test suite can miss (undefined names, unused imports, unreachable
+  # code). Formatting stays unenforced, as it is for the justfile.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.3
+    hooks:
+      - id: ruff-check
 
   # Prose lint: common misspellings. Word list in `.codespellrc`.
   - repo: https://github.com/codespell-project/codespell

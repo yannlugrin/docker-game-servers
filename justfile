@@ -77,12 +77,16 @@ check scope="all": _require-tooling
 
 # Is the implementation right?
 test:
-    @echo "No shipped behaviour to test yet."
-    @echo
-    @echo "This repository currently holds specifications, plans, decision"
-    @echo "logs and this local harness. None of it has runtime behaviour of"
-    @echo "its own, and third-party tools are not retested here. Test suites"
-    @echo "arrive in the steps that land the code they cover."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{ justfile_directory() }}"
+    # The interpreter is the system python3 on purpose: it is what Claude
+    # Code runs the guard hook with, so the tests exercise the same
+    # interpreter as production. `.venv` holds the harness, not this.
+    #
+    # Only shipped behaviour is covered. Third-party tools are not
+    # retested here, and suites arrive with the code they cover.
+    python3 -m unittest discover --start-directory tests --top-level-directory tests
 
 # The whole-tree `check`, then `test`.
 verify: check test
