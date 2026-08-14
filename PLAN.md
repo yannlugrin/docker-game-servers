@@ -11,9 +11,13 @@ once the operator authorizes the first push.
 
 ## Milestone R1 — Repository foundation
 
-Closing this milestone triggers the memory-compaction pass and state
-review of rule 3 (improvised inline until step-002's agents exist —
-R1 closes after step-003, so they will exist).
+The three gated foundation steps are `step-000`–`step-002`
+(`DECISIONS.md` D-001's "foundation steps" means exactly those);
+step-003 rides in this milestone because it is cheap, local and needed
+before any image build. Closing this milestone triggers the
+memory-compaction pass and state review of rule 3 (improvised inline
+until step-002's agents exist — R1 closes after step-003, so they will
+exist).
 
 ### step-000 — The harness, local only
 
@@ -41,8 +45,10 @@ R1 closes after step-003, so they will exist).
     files included, gitignored paths excluded, with one standing
     exception decided at bootstrap: everything under `.claude/spec-work/`
     is excluded from the harness (keyed on path, not tracked status).
-    Because `pre-commit run --all-files` enumerates tracked files only,
-    check passes the file list explicitly:
+    Because `pre-commit run --all-files` enumerates tracked files only
+    (a tool-behavior claim to verify against the pinned pre-commit
+    version at this step — the negative test below proves it
+    empirically), check passes the file list explicitly:
     `pre-commit run --files $(git ls-files --cached --others
     --exclude-standard)` — read-only glue, never index-priming
     (`git add --intent-to-add` writes state and corrupts the clean-tree
@@ -67,7 +73,12 @@ R1 closes after step-003, so they will exist).
     gate never ran. It is `step-004`, sequenced at the moment the
     operator authorizes the first push.
 - **How the operator tests it:** fresh clone, run the setup command,
-  run `just check`, make one commit — all green. Free local.
+  run `just check`, make one commit — all green. Then the negative
+  paths this step's own musts assert: drop a deliberately broken
+  untracked file → `just check` fails; the same file placed under
+  `.claude/spec-work/` → `just check` passes; run `just test` (reports
+  the no-shipped-behaviour state) and `just verify` once. Free local;
+  cleanup: delete the two throwaway files.
 - **Status:** pending.
 
 ### step-001 — Permission and hook baseline
@@ -104,7 +115,11 @@ R1 closes after step-003, so they will exist).
     Report what each probe found, including mechanisms that turned out
     to enforce nothing; what binds is what is kept.
 - **How the operator tests it:** review the proposed baseline (rule 4:
-  the baseline is never mine alone) plus the probe results. Free local.
+  the baseline is never mine alone) plus the probe results — and one
+  live demonstration, so enforcement is observed rather than
+  self-reported: watch a gated command (e.g. `git push --dry-run`)
+  produce an ask prompt while an allowed one (`git status`) does not.
+  Free local.
 - **Status:** pending.
 
 ### step-002 — Workflow tooling
@@ -255,14 +270,16 @@ and cleanup.
 - **Dependencies:** step-005, step-sc-002; **external:** GHCR owner
   namespace (`ghcr.io/<owner>`); the operator's one-time flip of the
   `steamcmd` package to public visibility at first publish.
-- **Deliverables:** a manually triggered workflow that builds a chosen
-  image and publishes: builder → new date tag (`YYYYMMDD`, `.1`
-  ordinal on same-day rebuilds) plus `latest`, gated by the builder
-  smoke; game → declared branch only, version tag from current branch
-  content, revision computed against what the registry holds. **A
-  publish that would overwrite an existing immutable tag fails the
-  job, never proceeds** (root §7). First real run publishes the
-  builder.
+- **Deliverables:** the on-demand publish workflow, scoped to what
+  this step's gate can exercise: the **builder path** — new date tag
+  (`YYYYMMDD`, `.1` ordinal on same-day rebuilds) plus `latest`,
+  gated by the builder smoke of root §8 (the step-sc-001 predicate) —
+  and the **shared publish machinery**: a publish that would
+  overwrite an existing immutable tag **fails the job, never
+  proceeds** (root §7), and any test publish uses §7's development
+  namespace. The game publish path is deliberately step-008's
+  deliverable — this step's gate never runs it. First real run
+  publishes the builder.
 - **How the operator tests it:** dispatch the workflow for the builder;
   see the date tag and `latest` on GHCR; flip visibility; anonymous
   `docker pull` succeeds. **Crosses the boundary:** registry write —
@@ -271,18 +288,26 @@ and cleanup.
   release.
 - **Status:** pending.
 
-### step-008 — First Project Zomboid publish
+### step-008 — Game publish path and first Project Zomboid publish
 
-- **Objective:** the game image is public as `<version>-r0`.
-- **Spec sections:** root §7 (game tags, moving pointers), §8 (smoke
-  gate on publish, visibility flip), §5.8 (labels: version, revision,
-  buildid, branch, builder reference).
-- **Dependencies:** step-007, step-pz-012 (image and README complete);
-  **external:** the operator's visibility flip of the
-  `project-zomboid` package.
-- **Deliverables:** the publish path of step-007 exercised for the game
-  image: smoke gate green, immutable `<game-version>-r0`, moving
-  `<game-version>` and `latest` pointers, labels correct.
+- **Objective:** the game image is public as `<version>-r0`, through a
+  gated publish path.
+- **Spec sections:** root §7 (game tags, moving pointers,
+  publication-order rule), §8 (smoke gate on every game-image publish,
+  visibility flip), §5.8 (labels: version, revision, buildid, branch,
+  builder reference).
+- **Dependencies:** step-006 (the README this publish's GHCR page
+  links to for shared conventions), step-007, step-pz-012 (image and
+  README complete); **external:** the operator's visibility flip of
+  the `project-zomboid` package.
+- **Deliverables:** the **game publish path** added to step-007's
+  workflow: declared branch only, version tag from current branch
+  content, revision computed against what the registry holds, moving
+  `<game-version>` and `latest` pointers advanced by **publication
+  order of new-version builds, never a version-string sort**
+  (root §7), every game publish **gated by the step-pz-010 smoke
+  script** (root §8) and by step-007's immutable-tag overwrite guard.
+  First real run publishes `<game-version>-r0` with correct labels.
 - **How the operator tests it:** dispatch, watch the gate, flip
   visibility, `docker pull` and inspect labels; optionally run the
   documented quickstart against the published image. **Crosses the
@@ -303,8 +328,10 @@ and cleanup.
   Steam buildid against the buildid label of the newest published
   **release** image (never a dev tag); on any change, build and
   publish per §7 (new version tag, or revision bump on unchanged
-  version string). Steam unreachable or an unparseable label **fails
-  the job** — never "no change".
+  version string) — **through step-008's gated game publish path**
+  (smoke gate and overwrite guard), never a parallel one. Steam
+  unreachable or an unparseable label **fails the job** — never "no
+  change".
 - **How the operator tests it:** dispatch the detection job manually
   once: with no upstream change it reports "up to date" and publishes
   nothing; the failure path is exercised by pointing the comparison at
@@ -322,12 +349,15 @@ and cleanup.
   builder reference).
 - **Dependencies:** step-009.
 - **Deliverables:** one scheduled flow that publishes a fresh builder
-  date tag, advances the pinned builder reference the game builds use
-  (the pin moves only by this deliberate automated act), and rebuilds
-  every game image against the refreshed base — the pin advance final
-  **only when the game rebuilds succeed**, a failed refresh leaving or
-  restoring the previous working pin; tags per §7 (new version's
-  `-r0` if the branch moved, else revision bump); superseded versions
+  date tag (through step-007's gated builder path), advances the
+  pinned builder reference the game builds use (the pin moves only by
+  this deliberate automated act), and rebuilds every game image
+  against the refreshed base — the pin advance final **only when the
+  game rebuilds succeed**, a failed refresh leaving or restoring the
+  previous working pin; tags per §7 (new version's `-r0` if the
+  branch moved, else revision bump), all game publishes **through
+  step-008's gated path** — root §8's smoke gate binds every
+  game-image publish, scheduled ones included; superseded versions
   never re-patched (root §8's stated choice). Plus the in-repo
   staleness check: runs whenever anything else triggers CI, fails
   loudly when the refresh is overdue — blind spot (idle repo, unread
@@ -383,6 +413,7 @@ and cleanup.
 | GHCR package visibility flip: `steamcmd` | step-007 |
 | GHCR package visibility flip: `project-zomboid` | step-008 |
 | *Conditional:* Docker Hub pull credential as a CI secret — only if step-005 resolves root §2.6's throttling with authenticated pulls; flagged the moment that choice is made | step-005 |
+| *Conditional / verify:* repository workflow write permission (`GITHUB_TOKEN` `contents: write` or equivalent) for the refresh's pin-advance commit+push — verified at step-010; only the owner can flip the setting if required | step-010 |
 
 ## Open questions and risks (all tracks)
 
@@ -406,8 +437,10 @@ and cleanup.
 5. **Version-string source for tags** (pz open item e): if it resolves
    unfavorably, PZ tags become buildid-derived (root §7 fallback) —
    an operator-facing naming change, so it would come to you first.
-6. **Actions runner capacity:** the pz image build downloads
-   multi-gigabyte Steam content in CI (steps 005, 007–010). Public
-   runners allow it, but build times will be long; if that becomes
-   painful, options (cache, self-hosted runner) are a decision to
-   bring to you, not assume.
+6. **Actions runner capacity — feasibility to verify, not assume:**
+   the pz image build downloads multi-gigabyte Steam content in CI
+   (steps 005, 008–010), and hosted-runner disk headroom for the
+   builder stage plus final image plus layer cache is a measurement,
+   not a given. Step-005's first CI build measures it; if disk or
+   build time proves prohibitive, the options (cache strategy,
+   self-hosted runner) come to you as a decision, not an assumption.

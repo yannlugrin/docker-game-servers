@@ -30,18 +30,21 @@ it fresh is step-010 there.
     time so the self-update is baked into the layer** (root §4.2).
   - OCI annotations: source repository, description, license MIT
     (root §5.8; game-specific labels do not apply to the builder).
-  - Install capability per root §4.3: the image can install a given
-    app id from a given branch (beta branches with passwords included)
-    with anonymous login and Steam file validation — demonstrated in
-    this step against a deliberately small app id (full-scale exercise
-    is `step-pz-001`'s builder stage, cross-track). The credential
-    guarantee is designed here, channel-neutrally: no path exists by
-    which a build-time credential persists in any layer or in the
-    image's build history — plain build arguments and baked
-    environment variables are exactly what this rules out; the
-    workable channel (BuildKit secret mounts or equivalent) is
-    documented for the non-anonymous future (root §10.4) without
-    building it out.
+  - Install capability per root §4.3, split honestly between what
+    this step can demonstrate and what it can only design:
+    **demonstrated** — anonymous install with Steam file validation,
+    against a deliberately small app id (that such an app exists and
+    is anonymously installable is a premise to verify at the start of
+    this step; full-scale exercise is `step-pz-001`'s builder stage,
+    cross-track); **design-only** — the beta-branch password and
+    credential channel, which root §4.3 only requires the design not
+    to preclude (no test asset with a password-protected branch
+    exists, and none is added): no path may exist by which a
+    build-time credential persists in any layer or in the image's
+    build history — plain build arguments and baked environment
+    variables are exactly what this rules out; the workable channel
+    (BuildKit secret mounts or equivalent) is documented for the
+    non-anonymous future (root §10.4) without building it out.
   - Dockerfile lint (hadolint or ecosystem standard) joins the harness
     with this first Dockerfile (rule 2); a `just` recipe to build the
     image locally; a local smoke check — the built image runs steamcmd

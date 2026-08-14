@@ -4,8 +4,8 @@ Owns the Project Zomboid (Build 42) dedicated-server image. Its
 specification is `project-zomboid/SPECIFICATIONS.md` (§N below);
 root §5 binds in full, root §3 and §5 are standing reading (rule 3).
 Step entry shape, status values and cost taxonomy: `CLAUDE.md` (Plan
-conventions). Publication is root-track work (`PLAN.md` steps 005,
-008–010).
+conventions). CI coverage and publication are root-track work
+(`PLAN.md` steps 005 and 007–010).
 
 **Open facts** (§2 items a–o) are assigned to the step that first needs
 each; every resolution follows rule 1's channel — pre-committed paths
