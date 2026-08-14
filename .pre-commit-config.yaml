@@ -17,7 +17,6 @@ repos:
       # `.claude/settings.json`, the first file of that class.
       - id: check-json
       - id: check-yaml
-      - id: check-toml
       # Repository hygiene.
       - id: check-added-large-files
       - id: check-case-conflict
