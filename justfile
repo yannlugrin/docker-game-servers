@@ -4,10 +4,10 @@
 # git, just, and python3 (>= 3.9) with its `venv` module. Everything
 # else arrives through `just setup`.
 #
-# No recipe here holds its own list of checks. `check`, `check-changed`
-# and the git pre-commit hook all read `.pre-commit-config.yaml`, so the
-# three can differ in how much of the tree they look at and never in
-# what they look for.
+# Nothing here holds its own list of checks. Both scopes of `check` and
+# the git pre-commit hook all read `.pre-commit-config.yaml`, so they
+# can differ in how much of the tree they look at and never in what
+# they look for.
 #
 # Only the single comment line directly above a recipe reaches
 # `just --list`; anything longer belongs in the recipe body.
@@ -30,38 +30,47 @@ setup:
     "{{ pre_commit }}" install-hooks
     echo "Setup complete. Try: just verify"
 
-# Well-formedness of the whole working tree. The gate: handover, CI.
-check: _require-tooling
+# Well-formedness. scope: all (whole tree, the gate) | changed (vs HEAD).
+check scope="all": _require-tooling
     #!/usr/bin/env bash
     set -euo pipefail
-    # Untracked files included, gitignored paths excluded;
-    # `.claude/spec-work/` is excluded by .pre-commit-config.yaml, keyed
-    # on path. The enumeration stays read-only: never
-    # `git add --intent-to-add`, which would write index state and
-    # corrupt the clean-tree signal this gate depends on.
-    git -C "{{ justfile_directory() }}" ls-files --cached --others --exclude-standard -z \
-        | xargs -0 --no-run-if-empty "{{ pre_commit }}" run --files
-
-# The same checks over what differs from HEAD. The development loop.
-check-changed: _require-tooling
-    #!/usr/bin/env bash
-    set -euo pipefail
-    # Staged, unstaged and untracked. Not a substitute for `just check`
-    # at a handover, a milestone review or in CI: it cannot see a file
-    # committed earlier that a config change made here has broken.
-    #
-    # --diff-filter=d drops deletions — a removed path must not be
-    # handed to a hook. `git diff` never reports untracked files, hence
-    # the second enumeration.
-    mapfile -d '' changed < <( {
-        git -C "{{ justfile_directory() }}" diff --name-only --diff-filter=d -z HEAD
-        git -C "{{ justfile_directory() }}" ls-files --others --exclude-standard -z
-    } | sort -zu )
-    if [ "${#changed[@]}" -eq 0 ]; then
-        echo "Nothing changed since HEAD. Run \`just check\` for the whole tree."
+    cd "{{ justfile_directory() }}"
+    case "{{ scope }}" in
+    all)
+        # The gate: step handover, milestone review, CI. Untracked files
+        # included, gitignored paths excluded; `.claude/spec-work/` is
+        # excluded by .pre-commit-config.yaml, keyed on path. The
+        # enumeration stays read-only: never `git add --intent-to-add`,
+        # which would write index state and corrupt the clean-tree
+        # signal this gate depends on.
+        mapfile -d '' files < <(git ls-files --cached --others --exclude-standard -z)
+        empty="No files to check."
+        ;;
+    changed)
+        # The development loop: staged, unstaged and untracked. Not a
+        # substitute for scope=all at a handover, a milestone review or
+        # in CI — it cannot see a file committed earlier that a config
+        # change made here has broken.
+        #
+        # --diff-filter=d drops deletions: a removed path must not be
+        # handed to a hook. `git diff` never reports untracked files,
+        # hence the second enumeration.
+        mapfile -d '' files < <( {
+            git diff --name-only --diff-filter=d -z HEAD
+            git ls-files --others --exclude-standard -z
+        } | sort -zu )
+        empty="Nothing changed since HEAD. Run \`just check\` for the whole tree."
+        ;;
+    *)
+        echo "Unknown scope '{{ scope }}'. Use: all | changed" >&2
+        exit 2
+        ;;
+    esac
+    if [ "${#files[@]}" -eq 0 ]; then
+        echo "$empty"
         exit 0
     fi
-    printf '%s\0' "${changed[@]}" | xargs -0 "{{ pre_commit }}" run --files
+    printf '%s\0' "${files[@]}" | xargs -0 "{{ pre_commit }}" run --files
 
 # Is the implementation right?
 test:

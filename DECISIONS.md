@@ -124,7 +124,8 @@ never reused:
     host.
   - **Approved by:** implementer-within-latitude (workflow choice).
 
-- **D-005 — Two check scopes: `check` gates, `check-changed` iterates**
+- **D-005 — `check` takes a `scope` parameter: `all` gates, `changed`
+  iterates**
   - **Date:** 2026-08-14
   - **Step:** step-000 — The harness, local only
   - **Context:** the operator raised that running every hook over every
@@ -135,21 +136,29 @@ never reused:
     19 files: full `check` 1.03 s, `check-changed` on a one-file diff
     0.45 s — the dominant cost is hook process startup, not file count,
     so the gain grows with the tree rather than being large today.
-  - **Decision:** `just check-changed` runs the same hook definitions
-    over what differs from `HEAD` — staged, unstaged and untracked,
-    deletions filtered out — and reports plainly when nothing changed.
-    `just check` keeps the whole-tree scope and remains the gate for
-    step handover, milestone review and CI; `just verify` keeps calling
-    the full `check`. Neither recipe holds its own list of checks:
-    both, plus the git pre-commit hook, read `.pre-commit-config.yaml`,
-    so the scopes can differ but the check set cannot.
-  - **Alternatives considered:** one parameterised recipe
-    (`just check changed`) — hides the two scopes from `just --list`,
-    where the distinction most needs to be visible; making
-    `check-changed` the default and the full sweep opt-in — inverts
-    the safety default, and the fast form provably cannot catch a
-    committed file broken by a later config change; leaving the git
-    pre-commit hook as the only fast path — it sees staged files only,
-    so it misses the unstaged and untracked work the loop is actually
-    editing.
-  - **Approved by:** operator (requested during step-000).
+  - **Decision:** one recipe, `check scope="all"`, taking the scope as
+    a parameter — `just check` for the whole tree, `just check changed`
+    for what differs from `HEAD` (staged, unstaged and untracked,
+    deletions filtered out). An unknown scope is a hard error naming
+    the valid values, not a silent fallback; an empty file list reports
+    why rather than passing quietly. `all` stays the default and the
+    gate for step handover, milestone review and CI, so `just verify`
+    inherits it. Nothing holds its own list of checks: both scopes,
+    plus the git pre-commit hook, read `.pre-commit-config.yaml`, so
+    the scopes can differ and the check set cannot. Parameters are the
+    reason this repository uses `just` over `make`; a second recipe
+    would have been a `make` shape.
+  - **Alternatives considered:** a separate `check-changed` recipe —
+    built first and rejected by the operator: it duplicates the recipe
+    body for a difference that is one argument, and forgoes the
+    capability `just` was chosen for. (The reason given against the
+    parameter when it was first weighed — that `just --list` would hide
+    the scopes — was simply false: `--list` prints `check scope="all"`,
+    parameter and default included.) Making `changed` the default and
+    the full sweep opt-in — inverts the safety default, and the fast
+    scope provably cannot catch a committed file broken by a later
+    config change. Leaving the git pre-commit hook as the only fast
+    path — it sees staged files only, so it misses the unstaged and
+    untracked work the loop is actually editing.
+  - **Approved by:** operator (requested during step-000, and corrected
+    to the parameter form).

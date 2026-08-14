@@ -53,10 +53,11 @@ exist).
     --exclude-standard)` — read-only glue, never index-priming
     (`git add --intent-to-add` writes state and corrupts the clean-tree
     signal). A lint error in an untracked file must fail check.
-  - `just check-changed` — the same hook definitions over what differs
+  - `just check changed` — the same hook definitions over what differs
     from `HEAD` (staged, unstaged, untracked), for the development
-    loop; `just check` stays the gate for handover, milestone review
-    and CI. Added on operator request during the step (D-005).
+    loop; `check`'s `scope` parameter defaults to `all`, which stays
+    the gate for handover, milestone review and CI. Added on operator
+    request during the step (D-005).
   - `just test` — "is the implementation right?". The repository ships
     no behaviour of its own yet, so a test command that says exactly
     that is the correct state, not a gap. Three standing limits:
