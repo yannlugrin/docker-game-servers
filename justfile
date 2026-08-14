@@ -80,13 +80,21 @@ test:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{ justfile_directory() }}"
-    # The interpreter is the system python3 on purpose: it is what Claude
-    # Code runs the guard hook with, so the tests exercise the same
-    # interpreter as production. `.venv` holds the harness, not this.
+    # Only shipped behaviour is covered. Third-party tools are not retested
+    # here, and suites arrive with the code they cover. Today that is the
+    # Bash guard, which carries its own cases plus a check that no rule goes
+    # unreached.
     #
-    # Only shipped behaviour is covered. Third-party tools are not
-    # retested here, and suites arrive with the code they cover.
-    python3 -m unittest discover --start-directory tests --top-level-directory tests
+    # Executed rather than handed to an interpreter, so this exercises the
+    # exact path Claude Code uses: the shebang and the exec bit. `python3
+    # <file>` would stay green after a lost `+x`, which is one of the ways
+    # the guard silently stops running.
+    #
+    # `just check` runs the same selftest again through pre-commit, and that
+    # is deliberate: the commit hook is what makes a broken guard fail
+    # before it lands, while this is what answers "is the implementation
+    # right?". One definition, two callers, 45 ms.
+    .claude/hooks/bash_guard.py --selftest
 
 # The whole-tree `check`, then `test`.
 verify: check test

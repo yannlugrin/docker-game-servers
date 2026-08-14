@@ -204,50 +204,57 @@ never reused:
     mechanisms proven rather than assumed, so the baseline was designed
     against measurements, recorded in `.claude/docs/permissions.md`
     (Claude Code 2.1.232). Three of those measurements decided the
-    shape: `deny` beats `ask` beats `allow` regardless of specificity,
-    so an ask rule overlapping an intended allow silently cancels it; a
-    permission rule matches a command's *prefix*, so
-    `Bash(git commit -m *)` provably runs `git commit -a --amend -m x`
-    unprompted while the ask rule written for `--amend` never matches;
-    and a hook cannot turn an allowed call into a prompt, because
-    `escalate` is ignored where an allow rule matches while `deny`
-    binds.
+    shape. `deny` beats `ask` beats `allow` regardless of specificity,
+    so an ask rule overlapping an intended allow silently cancels it —
+    and cancels a hook's carve-outs with it. A permission rule matches a
+    command's *prefix*, so `Bash(git commit -m *)` provably ran
+    `git commit -a --amend -m x` unprompted while the ask rule written
+    for `--amend` never matched; no narrower pattern helps, since any
+    prefix allow admits a trailing flag. And a hook *can* turn an
+    allowed call into a prompt: `permissionDecision: "ask"` overrides a
+    matching allow rule. An earlier probe suggested otherwise, but it
+    used `escalate`, which is not one of the four values the harness
+    accepts and is discarded — the correction is what makes gating by
+    prompt possible at all here.
   - **Decision:** a committed, reviewable baseline in
-    `.claude/settings.json`, in four parts. **Allow** covers the free
-    side of rule 9: the harness and its setup command, the local Docker
-    development loop, additive and read-only git, edits anywhere inside
-    the working tree, and anonymous documentation reads. **Ask** covers
-    everything rule 9 gates — `git push` included, never denied, since
-    a denied pattern cannot be lifted in the very exchange rule 9 relies
-    on — plus the state-destroying local-git classifier (history
-    rewriting, tags and branches moved or deleted, uncommitted or
-    untracked work destroyed), unscoped sweeps, edits to the boundary
-    itself (`.claude/settings.json`, `.claude/hooks/`) and edits to the
-    documents rules 1 and 3 make read-only. **Deny** is reserved for
-    what has no authorized use at all and is named rather than left to
-    interpretation: privilege escalation and system package managers,
-    which rule 9 reserves to the operator (this constrains host
-    commands only — `apt` inside an image build is not a Bash call and
-    is unaffected), and reads of credential material. Where no pattern
-    can express the rule, `.claude/hooks/guard-bash.py` re-reads the
-    whole command and refuses the forbidden flag *hidden behind* the
-    prefix an allow rule matched; the same flag written first is the
-    spelling an ask rule matches, so it passes through to its prompt and
-    stays approvable. Bypass and auto permission modes are disabled for
-    this project, since either dissolves the baseline wholesale.
-  - **Alternatives considered:** broad allow rules (`Bash(git *)`,
-    `Bash(docker *)`) with the hook clawing back the gated forms —
-    measured impossible, the hook's `escalate` is ignored over an allow
-    rule and only `deny` binds, which would have converted every gated
-    action into a refusal the operator cannot approve; no allow rule for
-    `git commit` at all, leaving every commit to a prompt — safe but
-    against rule 6's small, frequent commits, and no narrower spelling
-    exists because any prefix allow admits a trailing `--amend`; a guard
-    that denies every history-rewriting form — simpler and stricter, but
-    it takes away the in-exchange approval rule 9 is written around;
-    keeping the baseline in `.claude/settings.local.json` — not
-    committed, so not reviewable and not shared, which is the opposite
-    of what rule 9 asks for.
+    `.claude/settings.json`, paired with a guard hook that decides on
+    parsed arguments, `.claude/hooks/bash_guard.py`. The hook is a
+    shared template; only its registry is this project's. **Allow** is
+    deliberately broad where the guard is watching — `Bash(git:*)`,
+    `Bash(docker:*)`, `Bash(rm:*)` — because a prefix pattern cannot
+    express "a force push however it is spelled", and a long enumerated
+    allow list is brittle in exactly the way measured above. **For those
+    three tools the guard is the boundary, not the rule list**; every
+    other command has no allow rule and is gated by that absence.
+    **The guard** carries the gating: git's ground rules (force push and
+    history rewriting denied, push, amend, reset, clean, tag and branch
+    deletion asked) plus four project rules — `--no-verify` and
+    `git config`, both of which can disable the pre-commit harness rule
+    2 requires, and `remote add` / `remote set-url`, which decide where
+    a push lands; docker's registry writes, host-global sweeps and
+    credential handling; and `rm`, gated by default with one proven-safe
+    shape, paths under `.local/` (D-004), resolved before comparison so
+    a `..` traversal is not a granted shape. **Ask** in settings is only
+    what carves out of the broad `Edit(/**)` — the boundary's own files,
+    the documents rule 1 keeps read-only, environment files — plus the
+    tools the guard says nothing about. No `ask` rule may name a tool
+    the guard gates. **Deny** is the fail-open backstop: a hook that
+    stops loading is skipped silently, so the acts that cannot be undone
+    are denied by pattern as well, prefix-weak but unconditional. Bypass
+    and auto permission modes are disabled, which is what makes gating
+    by absence real: under either, an unmatched command is
+    auto-approved.
+  - **Alternatives considered:** the enumerated allow list this
+    replaced — some eighty prefix patterns, which is the brittleness the
+    measurements describe, and which still admitted `git commit -a
+    --amend`; a guard that denies rather than asks — what the `escalate`
+    mistake forced, and it takes away the in-exchange approval rule 9 is
+    written around; restating the guard's asks in settings as well —
+    a prefix rule is strictly weaker (`Bash(git push:*)` misses
+    `git -C dir push`), so it would be a second source of truth, and for
+    a gated tool it would cancel the guard's own carve-outs; keeping the
+    baseline in `.claude/settings.local.json` — not committed, so not
+    reviewable and not shared, the opposite of what rule 9 asks for.
   - **Approved by:** operator (proposed at step-001 under rule 4, which
     excludes the baseline from implementer latitude; ratified with the
     step's approval).
@@ -263,22 +270,27 @@ never reused:
     is shipped behaviour, so `just test` stops being a placeholder.
   - **Decision:** the hook is Python 3 using only the standard library,
     and `python3` is already a documented prerequisite of this
-    repository. Its tests live in `tests/`, use `unittest` from the
-    standard library, and drive the hook as a subprocess over its real
-    stdin/stdout contract rather than importing its internals.
-    `just test` runs them with the **system** `python3` — the
-    interpreter Claude Code itself runs the hook with — not with
-    `.venv`, which holds the harness only. The check family for the
-    class is `check-ast` (it parses) plus `ruff-check` run unconfigured;
-    its default rules are the defect classes a test suite can miss.
-    Formatting stays unenforced, as it is for the justfile (D-002). No
-    new dependency enters `requirements.txt`.
+    repository. It carries its own tests: `bash_guard.py --selftest`
+    runs the case table beside the registry, and fails on a rule no case
+    reaches, so a rule added without a case is a lint error rather than
+    an oversight. `just test` executes the file — shebang and exec bit,
+    the exact path Claude Code uses, which `python3 <file>` would not
+    exercise — and `just check` runs the same selftest through
+    pre-commit, deliberately: the commit hook is what stops a broken
+    guard from landing, while `just test` is what answers "is the
+    implementation right?". One definition, two callers. The check
+    family for the class is `check-ast` (it parses) plus `ruff-check`
+    run unconfigured; its default rules are the defect classes a test
+    suite can miss. Formatting stays unenforced, as it is for the
+    justfile (D-002). No new dependency enters `requirements.txt`.
   - **Alternatives considered:** a POSIX shell hook — it would need
     `jq` to read its input, a system-level install rule 9 reserves to
-    the operator, or `python3` anyway; `pytest` — a pinned dependency
-    tree added for two files, whose assertion rewriting buys little over
-    plain subprocess assertions; `bats` or `shellspec` for a shell hook
-    — the same system-install problem, one layer further out;
+    the operator, or `python3` anyway; a separate `tests/` suite under
+    `unittest` or `pytest` — built first and dropped when the guard
+    arrived with its own cases, since a second suite would have tested
+    the same contract from further away, and `pytest` would have added a
+    pinned dependency tree for one file; `bats` or `shellspec` for a
+    shell hook — the same system-install problem, one layer further out;
     `ruff-format` or a house style — formatting was deliberately left
     unenforced at step-000 and nothing here changes that argument.
   - **Approved by:** implementer-within-latitude (workflow choice).

@@ -60,6 +60,19 @@ repos:
         language: system
         files: ^justfile$
 
+      # The Bash guard fails open: if it stops loading, Claude Code logs the
+      # failure and proceeds to the permission rules, which are broad by
+      # design. So its selftest is part of the lint rather than something to
+      # remember. always_run, because a commit that touches nothing under
+      # `.claude/` can still have broken it — a renamed path, a lost `+x`, a
+      # new Python version.
+      - id: bash-guard-selftest
+        name: bash guard selftest
+        entry: .claude/hooks/bash_guard.py --selftest
+        language: system
+        always_run: true
+        pass_filenames: false
+
   # Python lint (step-001): the ecosystem's standard linter, run
   # unconfigured — its default rules are exactly the defect classes a
   # test suite can miss (undefined names, unused imports, unreachable

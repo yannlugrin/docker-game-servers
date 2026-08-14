@@ -96,10 +96,13 @@ human first, and which are refused outright. It is checked in so that it
 can be reviewed and argued with, like any other file here.
 
 Permission rules match a command's *prefix*, so a flag further along the
-same command escapes them. `.claude/hooks/guard-bash.py` closes exactly
-that gap by reading the whole command; `just test` covers it, because a
-hook that is missing or broken fails open and takes its protection with
-it.
+same command escapes them — a rule cannot say "no force push, however it
+is spelled". `.claude/hooks/bash_guard.py` decides on parsed arguments
+instead, one subcommand at a time, and `git`, `docker` and `rm` are
+allowed broadly on the strength of it: for those three the guard is the
+boundary, not the rule list. `just check` and `just test` both run its
+selftest, because a hook that is missing or broken fails open and takes
+its protection with it.
 
 Two things are worth knowing about a fresh clone. The restricting rules
 apply immediately, while the permitting ones apply only after the

@@ -1,7 +1,7 @@
 # What the permission and hook mechanisms actually do
 
 Read this before editing `.claude/settings.json` or
-`.claude/hooks/guard-bash.py`, and before assuming any sentence below is
+`.claude/hooks/bash_guard.py`, and before assuming any sentence below is
 still true: every claim here is a measurement, not a reading of the
 documentation, and the mechanisms belong to a tool that updates itself.
 
@@ -9,9 +9,27 @@ documentation, and the mechanisms belong to a tool that updates itself.
 at root `step-001`.** Each probe ran a separate non-interactive session
 (`claude -p --output-format json`) that was asked to attempt exactly one
 command; the outcome was read from the harness's own
-`permission_denials` array and from the startup warnings on stderr, not
-from the model's prose. Probes are independent: one passing says nothing
-about another.
+`permission_denials` array, from the startup warnings on stderr, and in
+one case from the hook debug log — not from the model's prose. Probes
+are independent: one passing says nothing about another.
+
+## Which side of the boundary each tool sits on
+
+This is the thing to get right before reasoning about any of the rest.
+
+`.claude/settings.json` allows `Bash(git:*)`, `Bash(docker:*)` and
+`Bash(rm:*)` outright. **For those three tools the permission rules no
+longer draw the line — the guard does.** They are allowed broadly on
+purpose, because a prefix rule cannot express "a force push however it
+is spelled", and the guard claws back the dangerous shapes by reading
+parsed argv.
+
+Every other command is the other way round: no allow rule matches, so
+the permission rules prompt on their own and the guard, if it says
+anything, only adds a reason to a prompt that was already coming.
+
+That split decides what a broken guard costs, so it is repeated in the
+fail-open note below rather than left to be inferred.
 
 ## Precedence, measured rather than assumed
 
@@ -26,11 +44,12 @@ about another.
 The two refusal messages differ, which is how a probe tells a hard denial
 from a prompt that could not be shown in a non-interactive session.
 
-The practical consequence for this repository: **an `ask` rule that
-overlaps an intended `allow` rule silently cancels it.** A blanket
-`Bash(rm *)` in `ask` would have cancelled the `Bash(rm .local/*)`
-allowance, so gating by *absence* of an allow rule is the tool that fits
-the disposable state root, not a broad ask rule.
+The practical consequence: **an `ask` rule that overlaps an intended
+`allow` rule silently cancels it**, and it cancels a hook's carve-outs
+too, since a matching `ask` prompts even when a hook returned `allow`.
+So no tool the guard gates may carry an `ask` rule in settings — the
+exception belongs in the guard, as a `Grant`. The `ask` entries that
+remain (`gh`, `curl`, `wget`) name tools the guard says nothing about.
 
 ## Where prefix matching runs out
 
@@ -50,38 +69,70 @@ what comes later in the same command. Measured:
 - A command containing a command substitution is refused outright —
   "Contains command_substitution" — even when an allow rule matches its
   prefix. So `docker rm $(docker ps -aq)` cannot slip through an allow
-  rule, and no guard is needed for that shape.
+  rule, and no guard rule is needed for that shape.
 
-`.claude/hooks/guard-bash.py` exists for the first item and nothing else.
+The first item is why `.claude/hooks/bash_guard.py` exists at all: it
+decides on parsed argv, one subcommand at a time, so a flag is found
+wherever it sits.
 
 ## What a PreToolUse hook can and cannot do
 
 | Probe | Result |
 |---|---|
 | Hook returns `deny` while an allow rule matches | Call blocked |
+| Hook returns `ask` while an allow rule matches | Call stopped for a prompt |
 | Hook returns `escalate` while an allow rule matches | **Call ran** |
-| Hook returns `escalate` on a built-in read-only command | Call ran |
 | Hook exits 1 after writing to stderr | Call ran |
 | Hook script missing from the configured path | Call ran |
-| Undocumented `"ask"` value in `permissionDecision` | Call blocked |
+
+`escalate` is not a valid decision. Claude Code validates hook output
+against a schema, and the debug log prints it:
+
+> `"permissionDecision": "\"allow\" | \"deny\" | \"ask\" | \"defer\""`
+
+An `escalate` output fails that validation, is discarded, and the call
+proceeds to the permission rules — which is why it looked like a hook
+could not force a prompt. It can: `ask` is honoured
+(`Hook result has permissionBehavior=ask` in the debug log), and it
+overrides a matching allow rule. In `claude -p` that shows up as a
+refusal only because there is nobody to answer the prompt.
 
 Two consequences shape the guard:
 
-1. **A hook cannot turn an allowed call into a prompt.** `escalate` is
-   ignored where an allow rule already grants the call, so `deny` is the
-   only decision that binds. A guarded form is therefore refused
-   outright rather than put to the operator — which is why the guard
-   covers only the forms an allow rule would otherwise carry through
-   unprompted, and leaves the plain spellings (`git commit --amend ...`,
-   `git push ...`) to their ask rules, where they still prompt.
+1. **A hook can force a prompt over a blanket allow.** So gating does
+   not have to mean refusing: `git commit -a --amend` asks, and the
+   operator approves it in the exchange rule 9 is written around. `deny`
+   is kept for what has no authorized use at all.
 2. **A hook is fail-open.** A missing, unreadable or crashing hook lets
-   the call through, silently. The permission rules are the boundary;
-   the guard only subtracts from what they allow. `just check` (the file
-   parses, is executable, has its shebang) and `just test` (41 cases on
-   its real stdin/stdout contract) are what keep it honest.
+   the call through silently — Claude Code logs the failure and falls
+   back to the permission rules. What that costs depends on which side
+   of the boundary the tool sits:
+   - For `git`, `docker` and `rm`, the blanket allow is left standing
+     with nothing in front of it: an unprompted `git push`,
+     `docker system prune`, `rm -rf /etc`. The backstops are the `deny`
+     list in settings — prefix-weak, so it catches `git push --force`
+     but not `git push origin --force`, and unconditional — and the
+     `--selftest`, which `just check` runs through pre-commit on every
+     commit and `just test` runs directly, so a broken guard fails the
+     lint before it lands.
+   - For everything else, a dead guard costs extra prompts and nothing
+     more.
 
-`${CLAUDE_PROJECT_DIR}` in a hook's `command` resolves: the guard blocked
-a call in this repository from a session started here.
+`${CLAUDE_PROJECT_DIR}` in a hook's `command` resolves: the guard
+blocked a call in this repository from a session started here.
+
+## Gating by absence depends on the permission mode
+
+Several acts are gated by having no allow rule at all rather than by any
+rule: `sudo`, `apt`, `gh`, `curl`, `wget`, and every command neither the
+allow list nor the guard mentions. Under `default` (and `plan`,
+`acceptEdits`) an unmatched command prompts, so absence is a real gate.
+Under `auto` or `bypassPermissions` an unmatched command is
+**auto-approved**, and absence gates nothing.
+
+That is what `disableAutoMode` and `disableBypassPermissionsMode` in
+`.claude/settings.json` are holding up. They are not belt-and-braces
+here: remove them and every act gated by absence becomes silent.
 
 ## Workspace trust splits a committed baseline in two
 
@@ -129,18 +180,24 @@ enforced, not just declared.
 
 ## Re-measuring after a Claude Code update
 
-Nothing here is guaranteed across versions, and two findings would
-silently weaken the baseline if they changed: hook `deny` beating an
-allow rule, and the guard being reached at all. The cheapest live check,
-run from the repository:
+Nothing here is guaranteed across versions, and three findings would
+silently weaken the baseline if they changed: a hook `ask` overriding a
+blanket allow, a hook `deny` binding, and the guard being reached at
+all. The cheapest live check, run from the repository:
 
 1. `git status --porcelain` — must run with no prompt (allow rules and
    workspace trust are in force).
-2. `git tag --sort=-v:refname -d step-nonexistent-probe` — must be
-   refused by the guard, naming `-d`. If it runs, the hook is not
-   reaching the tool call.
-3. `git push --dry-run origin main` — must prompt (ask rules are in
-   force).
+2. `git tag --sort=-v:refname -d step-nonexistent-probe` — must **ask**,
+   naming the tag rule. If it runs unprompted, the hook is not reaching
+   the tool call and `Bash(git:*)` is standing alone.
+3. `git push --force origin main` — must be **denied** outright, by the
+   guard and by the settings backstop both.
+4. `git push --dry-run origin main` — must ask.
 
-Any change in those three, or a new startup warning on stderr, is a
+`.claude/hooks/bash_guard.py --selftest` covers the registry itself and
+is wired into `just check` and `just test`; the four probes above cover
+what no selftest can see, which is whether Claude Code still calls the
+hook and still honours what it returns.
+
+Any change in those four, or a new startup warning on stderr, is a
 finding to bring to the operator before trusting the baseline again.

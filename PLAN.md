@@ -119,6 +119,13 @@ exist).
     Probes are independent — one passing says nothing about another.
     Report what each probe found, including mechanisms that turned out
     to enforce nothing; what binds is what is kept.
+  - **Delivered as** (D-007, which records why): allow is broad where
+    the guard watches — `Bash(git:*)`, `Bash(docker:*)`, `Bash(rm:*)` —
+    rather than an enumerated subset, because a prefix pattern provably
+    cannot keep `--amend` out of an allowed `git commit`. The classifier
+    above lives in `.claude/hooks/bash_guard.py`, which decides on
+    parsed arguments; settings keep a deny backstop for the acts a
+    fail-open hook would otherwise leave uncovered.
 - **How the operator tests it:** review the proposed baseline (rule 4:
   the baseline is never mine alone) plus the probe results — and one
   live demonstration, so enforcement is observed rather than
