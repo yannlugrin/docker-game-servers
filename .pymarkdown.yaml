@@ -3,7 +3,7 @@
 # Root PLAN.md (step-000): the specifications and `.claude/refs/` are
 # read-only, so this config bends to the documents as they already are.
 # Every rule turned off below is a logged decision (root DECISIONS.md
-# D-002), not a quiet config line.
+# D-003), not a quiet config line.
 plugins:
   # md013 line-length: the documents wrap prose at ~72 columns already,
   # but tables and reference links legitimately run long.
