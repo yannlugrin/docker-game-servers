@@ -18,7 +18,11 @@ repos:
       - id: check-json
       - id: check-yaml
       # Repository hygiene.
+      # --enforce-all: without it the hook inspects only files staged as
+      # added, so it would always pass under `just check` (which stages
+      # nothing) — a false green on the exact gate that matters here.
       - id: check-added-large-files
+        args: [--enforce-all]
       - id: check-case-conflict
       - id: check-illegal-windows-names
       - id: check-merge-conflict
