@@ -133,7 +133,7 @@ never reused:
     and asked for a narrowed development-loop form. Rule 2 already
     allows a narrowed fast form mid-step and requires the full `check`
     on every commit that receives a step tag. Measured at this size,
-    19 files: full `check` 1.03 s, `check-changed` on a one-file diff
+    19 files: full `check` 1.03 s, `check changed` on a one-file diff
     0.45 s — the dominant cost is hook process startup, not file count,
     so the gain grows with the tree rather than being large today.
   - **Decision:** one recipe, `check scope="all"`, taking the scope as
