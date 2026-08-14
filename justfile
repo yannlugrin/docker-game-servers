@@ -3,6 +3,14 @@
 # Prerequisites installed by hand, once, outside this repository:
 # git, just, and python3 (>= 3.9) with its `venv` module. Everything
 # else arrives through `just setup`.
+#
+# No recipe here holds its own list of checks. `check`, `check-changed`
+# and the git pre-commit hook all read `.pre-commit-config.yaml`, so the
+# three can differ in how much of the tree they look at and never in
+# what they look for.
+#
+# Only the single comment line directly above a recipe reaches
+# `just --list`; anything longer belongs in the recipe body.
 
 venv := justfile_directory() / ".venv"
 pre_commit := venv / "bin" / "pre-commit"
@@ -22,36 +30,29 @@ setup:
     "{{ pre_commit }}" install-hooks
     echo "Setup complete. Try: just verify"
 
-# Is what is committed here well-formed? The whole working tree,
-# untracked files included, gitignored paths excluded; `.claude/spec-work/`
-# is excluded by .pre-commit-config.yaml, keyed on path. This is the gate:
-# step handover, milestone review, CI. Use `check-changed` while working.
-check:
+# Well-formedness of the whole working tree. The gate: handover, CI.
+check: _require-tooling
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -x "{{ pre_commit }}" ]; then
-        echo "Tooling missing. Run: just setup" >&2
-        exit 1
-    fi
-    # Read-only file enumeration: never `git add --intent-to-add`, which
-    # would write index state and corrupt the clean-tree signal.
+    # Untracked files included, gitignored paths excluded;
+    # `.claude/spec-work/` is excluded by .pre-commit-config.yaml, keyed
+    # on path. The enumeration stays read-only: never
+    # `git add --intent-to-add`, which would write index state and
+    # corrupt the clean-tree signal this gate depends on.
     git -C "{{ justfile_directory() }}" ls-files --cached --others --exclude-standard -z \
         | xargs -0 --no-run-if-empty "{{ pre_commit }}" run --files
 
-# The development-loop form of `check`: only what differs from HEAD —
-# staged, unstaged and untracked. Not a substitute for `just check` at a
-# handover, a milestone review or in CI: it cannot see a file that was
-# already committed and is broken by a config change made here.
-check-changed:
+# The same checks over what differs from HEAD. The development loop.
+check-changed: _require-tooling
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -x "{{ pre_commit }}" ]; then
-        echo "Tooling missing. Run: just setup" >&2
-        exit 1
-    fi
-    # --diff-filter=d drops deletions: a removed path must not be handed
-    # to a hook. Untracked files are added separately; `git diff` never
-    # reports them.
+    # Staged, unstaged and untracked. Not a substitute for `just check`
+    # at a handover, a milestone review or in CI: it cannot see a file
+    # committed earlier that a config change made here has broken.
+    #
+    # --diff-filter=d drops deletions — a removed path must not be
+    # handed to a hook. `git diff` never reports untracked files, hence
+    # the second enumeration.
     mapfile -d '' changed < <( {
         git -C "{{ justfile_directory() }}" diff --name-only --diff-filter=d -z HEAD
         git -C "{{ justfile_directory() }}" ls-files --others --exclude-standard -z
@@ -71,5 +72,13 @@ test:
     @echo "its own, and third-party tools are not retested here. Test suites"
     @echo "arrive in the steps that land the code they cover."
 
-# Both of the above.
+# The whole-tree `check`, then `test`.
 verify: check test
+
+[private]
+_require-tooling:
+    #!/usr/bin/env bash
+    if [ ! -x "{{ pre_commit }}" ]; then
+        echo "Tooling missing. Run: just setup" >&2
+        exit 1
+    fi
