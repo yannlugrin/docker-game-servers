@@ -7,7 +7,7 @@ game is the Project Zomboid dedicated server (Build 42). Images are
 generic and platform-agnostic — usable with plain `docker run`,
 compose, or any orchestrator.
 
-**Status: planning.** The specifications are final; implementation
+**Status: in progress.** The specifications are final; implementation
 proceeds step by step under the plans below, each step reviewed and
 approved by a human before the next begins. Current progress lives in
 the plans — this file does not duplicate it.

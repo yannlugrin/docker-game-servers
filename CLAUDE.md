@@ -26,8 +26,8 @@ repository-wide; hard budget 200 lines.
 
 ## Current state
 
-- Active track: root. Current step: **`step-000` — awaiting test.**
-  Next: `step-001`.
+- Active track: root. Current step: **none — `step-000` approved and
+  tagged.** Next: `step-001` — Permission and hook baseline.
 
 ## Track map
 
