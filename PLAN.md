@@ -5,18 +5,27 @@ workflow tooling, CI, shared documentation, publication. Step entry
 shape, status values and the cost taxonomy are defined in `CLAUDE.md`
 (Plan conventions). Cross-track sequence: the foundation milestone
 precedes everything; then `step-sc-001`–`step-sc-002` (builder image),
-then the project-zomboid track, then this track's CI-and-publication
-milestone. `step-004` may interleave earlier, any time after `step-003`,
-once the operator authorizes the first push.
+then the project-zomboid track, then this track's image-CI and
+publication milestone. CI over the harness is not in that tail: it
+closes the foundation milestone, so it covers every commit the image
+tracks make.
 
 ## Milestone R1 — Repository foundation
 
 The three gated foundation steps are `step-000`–`step-002`
 (`DECISIONS.md` D-001's "foundation steps" means exactly those);
 step-003 rides in this milestone because it is cheap, local and needed
-before any image build. Closing this milestone triggers the
+before any image build, and step-004 because CI is part of the
+bootstrap rather than of publication (D-009) — the harness and the
+workflow that runs it are one deliverable, and every commit of the
+image tracks is then covered by it.
+
+Step-004 is the one step here that leaves this machine. It needs the
+GitHub repository, its remote and the operator's authorization of the
+first push, so this milestone no longer closes on local work alone, and
+the image tracks do not start until it does. Closing it triggers the
 memory-compaction pass and state review of rule 3 (improvised inline
-until step-002's agents exist — R1 closes after step-003, so they will
+until step-002's agents exist — R1 closes after step-004, so they will
 exist).
 
 ### step-000 — The harness, local only
@@ -194,14 +203,6 @@ exist).
   Free local.
 - **Status:** pending.
 
-## Milestone R2 — CI and publication
-
-Runs after the project-zomboid track completes (except step-004, which
-may interleave any time after step-003 once the first push is
-authorized). Every step here except step-006 crosses rule 9's boundary:
-GitHub and GHCR are shared public state, and each test names its cost
-and cleanup.
-
 ### step-004 — Harness CI workflow
 
 - **Objective:** CI runs exactly the local harness; the two never
@@ -222,6 +223,12 @@ and cleanup.
   to the public repository — the history becomes public; cleanup is
   none (additive, and the repository is meant to be public).
 - **Status:** pending.
+
+## Milestone R2 — CI and publication
+
+Runs after the project-zomboid track completes. Every step here except
+step-006 crosses rule 9's boundary: GitHub and GHCR are shared public
+state, and each test names its cost and cleanup.
 
 ### step-005 — Image build-and-smoke CI (no publish)
 
@@ -433,10 +440,14 @@ and cleanup.
    milestones. I propose treating that track's completion (after
    step-sc-002) as its one milestone close, triggering the rule 3
    compaction and state review. Confirm or reorder.
-2. **When to run step-004.** It can interleave any time after step-003
-   once you authorize the first push. Earlier gives CI coverage over
-   the whole pz track's commits; later keeps everything local longer.
-   Your call; the plans assume "at your convenience".
+2. **The foundation milestone now waits on GitHub.** step-004 moved
+   into R1 (D-009), so the bootstrap cannot close until the repository
+   exists, is public with Actions enabled, its remote is configured and
+   you authorize the first push. step-002 and step-003 proceed
+   meanwhile, but the milestone — and with it the image tracks — stays
+   open until that arrives. If it blocks longer than expected, the
+   fallback is to close R1 on step-003 and let step-004 trail, which is
+   what the plan did before.
 3. **Open-fact fallout.** Several project-zomboid open items can only
    resolve at pz steps, and unfavorable resolutions of (d), (e), (f),
    (g), (k), (l) come back to you before any amendment (rule 1).

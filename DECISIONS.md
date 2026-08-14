@@ -294,3 +294,38 @@ never reused:
     `ruff-format` or a house style — formatting was deliberately left
     unenforced at step-000 and nothing here changes that argument.
   - **Approved by:** implementer-within-latitude (workflow choice).
+
+- **D-009 — The harness CI workflow belongs to the foundation
+  milestone**
+  - **Date:** 2026-08-14
+  - **Step:** step-004 — Harness CI workflow
+  - **Context:** the plan put step-004 in milestone R2 on the cost
+    taxonomy alone. R1 was everything a fresh clone can do offline and
+    free; step-004 is the first step that crosses rule 9's boundary,
+    needing a GitHub repository and the operator's authorization of the
+    first push, and its own gate cannot run locally — step-000 records
+    why: nothing local exercises a workflow, and a tagged step must not
+    carry an artifact its own gate never ran. A carve-out let it
+    interleave any time after step-003, leaving *when* an open question.
+  - **Decision:** step-004 moves into R1, after step-003. CI over the
+    harness is part of the bootstrap: the harness and the workflow that
+    runs it are one deliverable, and placing it here means every commit
+    the image tracks make is covered by it rather than only the ones
+    made after publication work begins. Two consequences are accepted
+    rather than worked around: R1 stops being a milestone that closes on
+    local work alone — it waits on the repository, its remote and the
+    first push — and rule 3's memory-compaction pass and state review,
+    which fire at the milestone close, move from step-003 to step-004.
+    Step numbers are untouched, 004 already sorting after 003, so no
+    reference sweep is owed; R2's preamble drops the interleave
+    carve-out, and the plan's open-questions list keeps the item, now
+    stating what the milestone waits on and what the fallback is.
+  - **Alternatives considered:** leaving it in R2 with the interleave
+    clause — cheaper, and R1 stays free and local, but it reads as
+    though CI belonged to publication and leaves "when" a standing
+    question rather than a settled part of the bootstrap; giving it a
+    number inside the R1 block — pointless, since 004 already follows
+    003, and renumbering a pending step costs a full reference sweep for
+    nothing.
+  - **Approved by:** operator (directed; the previous rationale is
+    recorded above so the reversal stays legible).
