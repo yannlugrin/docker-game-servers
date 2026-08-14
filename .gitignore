@@ -1,1 +1,26 @@
+# Local tooling installed by `just setup` (pins in requirements.txt).
+/.venv/
+__pycache__/
+
+# Agent workspace. Review reports stay untracked on purpose: the
+# reviewer templates assume it, and a tracked report would block every
+# clean-tree precondition downstream.
 .claude/worktrees/
+.claude/reviews/
+
+# Operator-local standing instructions, never committed.
+CLAUDE.local.md
+
+# Local test state: bind-mount roots and downloaded game or steamcmd
+# content from hand-run containers and smoke tests (multi-gigabyte,
+# always rebuildable). Convention: everything local and disposable
+# lives under /.local/ (root DECISIONS.md D-004).
+/.local/
+
+# Local environment and credential files used in testing. Rule 5:
+# secrets never enter the repository — committed examples carry
+# placeholders only and are re-included explicitly.
+.env
+.env.*
+!.env.example
+*.env

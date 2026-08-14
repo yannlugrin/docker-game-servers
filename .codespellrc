@@ -1,0 +1,6 @@
+[codespell]
+check-filenames =
+# "unparseable" is a standard variant spelling and is the form the
+# read-only root specification uses (root SPECIFICATIONS.md, CI
+# section); the plans quote it.
+ignore-words-list = unparseable

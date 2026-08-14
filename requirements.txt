@@ -1,0 +1,14 @@
+# Local development tooling only — this project ships no Python code.
+# Installed into ./.venv by `just setup`. Fully pinned, transitive
+# dependencies included; the linters themselves are pinned separately by
+# `rev:` in .pre-commit-config.yaml.
+cfgv==3.5.0
+distlib==0.4.3
+filelock==3.32.3
+identify==2.6.19
+nodeenv==1.10.0
+platformdirs==4.11.3
+pre-commit==4.6.2
+python-discovery==1.5.2
+PyYAML==6.0.3
+virtualenv==21.7.4

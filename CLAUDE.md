@@ -26,8 +26,8 @@ repository-wide; hard budget 200 lines.
 
 ## Current state
 
-- Active track: root. Current step: **none — bootstrap done, plans
-  awaiting operator approval.** Next: `step-000`.
+- Active track: root. Current step: **`step-000` — awaiting test.**
+  Next: `step-001`.
 
 ## Track map
 

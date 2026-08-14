@@ -1,0 +1,60 @@
+# Well-formedness harness for the whole working tree.
+#
+# `just check` and the git pre-commit hook installed by `just setup` both
+# run these definitions, so the two local runners cannot diverge. Hook
+# versions are pinned by `rev:`; `just setup` installs them.
+#
+# Standing exclusion (root PLAN.md, step-000): everything under
+# `.claude/spec-work/` is outside the harness, keyed on path rather than
+# on tracked status.
+exclude: '^\.claude/spec-work/'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Structured-file well-formedness. check-json covers
+      # `.claude/settings.json`, the first file of that class.
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+      # Repository hygiene.
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-illegal-windows-names
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      # Rule 5 backstop: no key material in the repository.
+      - id: detect-private-key
+      # Whitespace and line endings.
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Prose lint: Markdown structure.
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.39
+    hooks:
+      - id: pymarkdown
+        args: [--config, .pymarkdown.yaml, scan]
+
+  # New artifact class at step-000: the justfile. Well-formedness is
+  # "just can parse it"; formatting is not enforced, `just --fmt` being
+  # an unstable flag as of just 1.45.
+  - repo: local
+    hooks:
+      - id: justfile-parses
+        name: justfile parses
+        entry: just --summary --justfile
+        language: system
+        files: ^justfile$
+
+  # Prose lint: common misspellings. Word list in `.codespellrc`.
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell

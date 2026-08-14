@@ -79,7 +79,7 @@ exist).
   `.claude/spec-work/` → `just check` passes; run `just test` (reports
   the no-shipped-behaviour state) and `just verify` once. Free local;
   cleanup: delete the two throwaway files.
-- **Status:** pending.
+- **Status:** awaiting test.
 
 ### step-001 — Permission and hook baseline
 
