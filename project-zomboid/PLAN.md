@@ -80,7 +80,10 @@ always do).
   - Spec amendments + decision entries for each resolution per
     rule 1's split; unfavorable (e) (buildid-derived tags) or any
     requirement-touching outcome goes to the operator before
-    amendment.
+    amendment. Entries log per the cross-document rule in the root
+    `DECISIONS.md` header: a resolution amending the root
+    specification logs in the root log even when it lands during a
+    component-track step.
 - **How the operator tests it:** re-run the reproduction commands in
   `.claude/docs/pz-facts.md` for any item and observe the recorded
   outcome. Free local (default-profile runs briefly register on the
@@ -114,10 +117,6 @@ track.
     loud fatal before the game starts; `$HOME` set unconditionally to
     a documented location inside the state root, overriding any
     operator value.
-  - Adoption of the `code-reviewer` template (first code exists) and,
-    with the first test fixtures, `test-reviewer` — after which no
-    template remains and the assets directory, `CLAUDE.md`'s template
-    block and rule 1's carve-out are deleted in one commit (rule 3).
 - **How the operator tests it:** documented `docker run` matrix — as
   uid 0 (fatal), with `ALLOW_UID0=true` (proceeds), garbage value
   (fatal naming it), arbitrary uid without mount (fatal), with mount
@@ -243,7 +242,7 @@ track.
   **i**, **k**), §3 (probe targets effective ports); root §5.5
   (entire: stdout policy already held, HEALTHCHECK predicates,
   start_period reasoning, the two must-capabilities, the two static
-  clients).
+  clients), §2.9 (the clients' size expectation this step measures).
 - **Dependencies:** step-pz-007 (the fallback probe channel is the
   mediation channel).
 - **Deliverables:** items (f), (i), (k) settled per their pre-committed
@@ -251,7 +250,12 @@ track.
   they add a variable or ship a documented-degraded profile); both
   pinned static clients shipped (query client drives the HEALTHCHECK;
   RCON client for operators — pins recorded, which per rule 2 is the
-  whole coverage obligation for third-party binaries); HEALTHCHECK
+  whole coverage obligation for third-party binaries), their size
+  cost **measured** against root §2.9/§5.5's megabytes-not-tens
+  expectation and recorded through rule 1's open-fact channel (a
+  confirming measurement is an autonomous amendment; tens of
+  megabytes questions the recommended default and goes to the
+  operator); HEALTHCHECK
   against effective configuration, predicates per root §5.5 (no
   early-healthy, goes-false-on-hang, documented start_period sized
   with the stated trade-off); non-Steam profile auto-detected and

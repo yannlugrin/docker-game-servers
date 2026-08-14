@@ -17,9 +17,9 @@ it fresh is step-010 there.
 - **Objective:** a locally built, lint-clean builder image with a
   working, pre-warmed steamcmd, usable as the build stage for every
   game image and on its own.
-- **Spec sections:** root §4.1–§4.4, §2.1, §2.2, §3.1, §5.8 (the
-  annotations that apply to a non-game image: source, description,
-  license).
+- **Spec sections:** root §4.1–§4.4, §2.1, §2.2, §2.9 (the size
+  expectation this step measures), §3.1, §5.8 (the annotations that
+  apply to a non-game image: source, description, license).
 - **Dependencies:** `step-000` (harness), `step-003` (LICENSE — the
   license annotation's value should not precede the license file).
 - **Deliverables:**
@@ -49,12 +49,28 @@ it fresh is step-010 there.
     with this first Dockerfile (rule 2); a `just` recipe to build the
     image locally; a local smoke check — the built image runs steamcmd
     to completion on an anonymous metadata query (the same predicate
-    root §8's builder gate later reuses).
+    root §8's builder gate later reuses) — wired into `just test`,
+    the repository's first shipped-behavior test.
+  - Root §2.9's size expectation measured, not assumed: the built
+    image's size recorded against the Debian-slim-floor claim, the
+    resolution landing through rule 1's open-fact channel (a
+    measurement that merely confirms is an autonomous amendment; one
+    that undermines the base choice goes to the operator first).
+  - Adoption of the `code-reviewer` and `test-reviewer` templates —
+    this step lands their triggers (first code, first
+    shipped-behavior test), each adoption logged (rule 4). No
+    template then remains, so the assets retirement follows as its
+    own dedicated commit inside this step: the assets directory,
+    `CLAUDE.md`'s template block and rule 1's carve-out deleted
+    together (rule 3), nothing else riding along.
 - **How the operator tests it:** `just check` green; run the documented
-  local build recipe; run the smoke check; optionally run the
-  small-app install demonstration. Free local (steamcmd's anonymous
-  Steam downloads are part of the free build, rule 9). Cleanup:
-  `docker rmi` the local tag if unwanted.
+  local build recipe; run the smoke check (`just test`); optionally
+  run the small-app install demonstration; invoke the two newly
+  adopted reviewer agents and see each do what it claims (a new agent
+  may only be picked up at session start — the handover states
+  whether a restart is part of the test). Free local (steamcmd's
+  anonymous Steam downloads are part of the free build, rule 9).
+  Cleanup: `docker rmi` the local tag if unwanted.
 - **Status:** pending.
 
 ### step-sc-002 — Builder README
@@ -91,3 +107,4 @@ binding sections are root §4.1–§4.4.
 | root §4.2 (base, pre-warmed self-update) | step-sc-001 |
 | root §4.3 (install: app id, branch, beta, validation, credential non-persistence) | step-sc-001 (design + small-app demo), exercised at scale by step-pz-001 |
 | root §4.4 (nothing beyond steamcmd's needs) | step-sc-001 |
+| root §2.9 (builder/base size expectation, measured) | step-sc-001 |

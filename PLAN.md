@@ -135,10 +135,10 @@ exist).
     certainty of this plan — `state-reviewer` and `optimize-memory`
     (every milestone close needs both; tooling created during the event
     it handles arrives too late). `code-reviewer` and `test-reviewer`
-    wait for their conditional triggers (first entrypoint code, first
-    test suite — see `project-zomboid/PLAN.md` step-pz-003) and stay on
-    `CLAUDE.md`'s not-yet-adopted list, the documented-fallback
-    carve-out.
+    wait for their conditional triggers — first code and first
+    shipped-behavior test, both landing at `step-sc-001`, which owns
+    their adoption — and stay on `CLAUDE.md`'s not-yet-adopted list,
+    the documented-fallback carve-out.
   - Every placeholder filled with this repository's real commands and
     paths — with the monorepo exception: the governance set
     (`{{PLAN}}`, `{{DECISIONS}}`, `{{SPEC}}`, `{{STEP_ID}}`) resolves
@@ -383,7 +383,7 @@ and cleanup.
 | §2.6 | step-005 (throttling decision), 007/008 (GHCR, visibility) |
 | §2.7 | step-pz-001/pz-002 (Steam client libraries) |
 | §2.8 | step-010 (deactivation-resistant refresh) |
-| §2.9 | open-fact verification across pz steps (rule 1 channel) |
+| §2.9 | its three items each owned: steamclient resolution → step-pz-002; the size claims measured → step-sc-001 (builder/base) and step-pz-008 (§5.5 clients); steamcmd behavioral drift → a standing risk absorbed by the date-stamped, pre-warmed builder design (§4, §7) and Open questions #4 |
 | §3.1–§3.2 | step-sc-001, step-pz-001 |
 | §3.3 | step-006 (conventions stated once) |
 | §3.4 | step-pz-003, step-pz-010 |

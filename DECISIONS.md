@@ -4,6 +4,13 @@ Decisions governing repository-wide files land here; each component
 track keeps its own log, and decision ids are per log — a citation
 crossing logs names the file (`project-zomboid/DECISIONS.md D-003`).
 
+The root specification is a repository-wide file: an amendment to it
+logs **here**, even when the resolution lands during a
+component-track step. When one resolution amends the root document
+and a per-game document in the same breath, a single entry in this
+log carries both, the component log is not duplicated into, and
+rule 1's one-commit rule spans the entry and both amendments.
+
 Entry format — ids are assigned in file order, frozen once assigned,
 never reused:
 

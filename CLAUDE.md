@@ -95,7 +95,8 @@ Exactly one step is in progress repository-wide; history stays linear.
    directive toward the implementer; standing orders live here only.
 9. **Boundary.** Free, without asking: anything local and read-only;
    installing the repository's pinned dependencies through the
-   documented setup command; bootstrapping the toolchain before that
+   documented setup command — fetching anything *not* pinned in the
+   repository is not local; bootstrapping the toolchain before that
    command exists — each tool via its canonical distribution channel,
    user-level, pinned once chosen; a tool needing a system-level
    install (apt, anything wanting root) is never scripted or run by
@@ -167,6 +168,6 @@ builds sequenced deliberately, shared public state (GHCR, GitHub) last.
   `code-reviewer`, `test-reviewer`) — the one readable path under
   `.claude/spec-work/`, rule 1's standing exception. Not yet adopted:
   all of them (step-002 instantiates the certain-trigger set;
-  `code-reviewer` and `test-reviewer` wait for code and tests to
-  exist). A name on this list is the documented fallback, not a
-  dangling reference.
+  `code-reviewer` and `test-reviewer` adopt at step-sc-001, whose
+  Dockerfile and smoke test are their triggers). A name on this list
+  is the documented fallback, not a dangling reference.
