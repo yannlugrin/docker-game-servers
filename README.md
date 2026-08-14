@@ -37,7 +37,7 @@ When documents disagree, the earlier one in this list wins:
 | `project-zomboid/` | The Project Zomboid (Build 42) image: specification, plan, decision log (image sources arrive with its plan's steps) |
 | `CLAUDE.md` | Standing instructions for the implementing AI — not documentation of the project |
 | `.claude/` | Implementation-agent workspace (settings, working notes, references). Everything human-facing is authoritative without it |
-| `justfile` | Task runner: `just setup`, `just check`, `just test`, `just verify` |
+| `justfile` | Task runner: `just setup`, `just check`, `just check-changed`, `just test`, `just verify` |
 | `requirements.txt` | Pinned local tooling, installed by `just setup` into `.venv/` |
 | `.pre-commit-config.yaml` | The well-formedness harness, shared by `just check` and the git pre-commit hook |
 | `.pymarkdown.yaml`, `.codespellrc` | Prose-lint configuration |
@@ -59,14 +59,20 @@ It creates `.venv/`, installs the pinned tooling from
 | Command | What it answers |
 |---|---|
 | `just check` | Is what is committed here well-formed? The whole working tree, untracked files included, gitignored paths excluded |
+| `just check-changed` | The same checks over what differs from `HEAD` — staged, unstaged and untracked — for the development loop |
 | `just test` | Is the implementation right? Nothing here has runtime behaviour of its own yet, and the command says so |
-| `just verify` | Both |
+| `just verify` | `check` and `test` |
 
-The git pre-commit hook runs the same `.pre-commit-config.yaml`
-definitions over the staged files, so the two local runners cannot
-disagree about *what* gets checked; `just check` is the wider scope of
-the two. Everything under `.claude/spec-work/` sits outside the
-harness, keyed on path.
+`just check` is the gate: step handover, milestone review, CI.
+`just check-changed` is the fast form and does not replace it — it
+cannot see a file that was committed earlier and is broken by a config
+change made now.
+
+All three run the same `.pre-commit-config.yaml` definitions, as does
+the git pre-commit hook (over the staged files), so no runner can
+disagree with another about *what* gets checked — only about how much
+of the tree it looks at. Everything under `.claude/spec-work/` sits
+outside the harness, keyed on path.
 
 Local, disposable test state — bind-mount roots, downloaded game or
 steamcmd content — belongs under `.local/`, which is ignored.
