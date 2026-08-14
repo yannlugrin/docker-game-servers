@@ -196,6 +196,62 @@ never reused:
   - **Approved by:** operator (put the choice to the implementer at
     step-000; ratified with the step's approval).
 
+- **D-007 — The permission and hook baseline**
+  - **Date:** 2026-08-14
+  - **Step:** step-001 — Permission and hook baseline
+  - **Context:** rule 9's boundary was textual only; instructions shape
+    behaviour, settings and hooks enforce it. The plan requires the
+    mechanisms proven rather than assumed, so the baseline was designed
+    against measurements, recorded in `.claude/docs/permissions.md`
+    (Claude Code 2.1.232). Three of those measurements decided the
+    shape: `deny` beats `ask` beats `allow` regardless of specificity,
+    so an ask rule overlapping an intended allow silently cancels it; a
+    permission rule matches a command's *prefix*, so
+    `Bash(git commit -m *)` provably runs `git commit -a --amend -m x`
+    unprompted while the ask rule written for `--amend` never matches;
+    and a hook cannot turn an allowed call into a prompt, because
+    `escalate` is ignored where an allow rule matches while `deny`
+    binds.
+  - **Decision:** a committed, reviewable baseline in
+    `.claude/settings.json`, in four parts. **Allow** covers the free
+    side of rule 9: the harness and its setup command, the local Docker
+    development loop, additive and read-only git, edits anywhere inside
+    the working tree, and anonymous documentation reads. **Ask** covers
+    everything rule 9 gates — `git push` included, never denied, since
+    a denied pattern cannot be lifted in the very exchange rule 9 relies
+    on — plus the state-destroying local-git classifier (history
+    rewriting, tags and branches moved or deleted, uncommitted or
+    untracked work destroyed), unscoped sweeps, edits to the boundary
+    itself (`.claude/settings.json`, `.claude/hooks/`) and edits to the
+    documents rules 1 and 3 make read-only. **Deny** is reserved for
+    what has no authorized use at all and is named rather than left to
+    interpretation: privilege escalation and system package managers,
+    which rule 9 reserves to the operator (this constrains host
+    commands only — `apt` inside an image build is not a Bash call and
+    is unaffected), and reads of credential material. Where no pattern
+    can express the rule, `.claude/hooks/guard-bash.py` re-reads the
+    whole command and refuses the forbidden flag *hidden behind* the
+    prefix an allow rule matched; the same flag written first is the
+    spelling an ask rule matches, so it passes through to its prompt and
+    stays approvable. Bypass and auto permission modes are disabled for
+    this project, since either dissolves the baseline wholesale.
+  - **Alternatives considered:** broad allow rules (`Bash(git *)`,
+    `Bash(docker *)`) with the hook clawing back the gated forms —
+    measured impossible, the hook's `escalate` is ignored over an allow
+    rule and only `deny` binds, which would have converted every gated
+    action into a refusal the operator cannot approve; no allow rule for
+    `git commit` at all, leaving every commit to a prompt — safe but
+    against rule 6's small, frequent commits, and no narrower spelling
+    exists because any prefix allow admits a trailing `--amend`; a guard
+    that denies every history-rewriting form — simpler and stricter, but
+    it takes away the in-exchange approval rule 9 is written around;
+    keeping the baseline in `.claude/settings.local.json` — not
+    committed, so not reviewable and not shared, which is the opposite
+    of what rule 9 asks for.
+  - **Approved by:** operator (proposed at step-001 under rule 4, which
+    excludes the baseline from implementer latitude; ratified with the
+    step's approval).
+
 - **D-008 — Python enters the repository: hook language, test runner
   and check family**
   - **Date:** 2026-08-14

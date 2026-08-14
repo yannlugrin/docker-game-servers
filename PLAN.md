@@ -125,7 +125,7 @@ exist).
   self-reported: watch a gated command (e.g. `git push --dry-run`)
   produce an ask prompt while an allowed one (`git status`) does not.
   Free local.
-- **Status:** pending.
+- **Status:** awaiting test.
 
 ### step-002 — Workflow tooling
 

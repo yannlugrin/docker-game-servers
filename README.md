@@ -88,6 +88,27 @@ tree is whitespace-clean today, so nothing fires.
 Local, disposable test state — bind-mount roots, downloaded game or
 steamcmd content — belongs under `.local/`, which is ignored.
 
+## The enforced boundary
+
+`.claude/settings.json` carries a committed permission baseline: which
+commands the implementing agent may run unattended, which ones prompt a
+human first, and which are refused outright. It is checked in so that it
+can be reviewed and argued with, like any other file here.
+
+Permission rules match a command's *prefix*, so a flag further along the
+same command escapes them. `.claude/hooks/guard-bash.py` closes exactly
+that gap by reading the whole command; `just test` covers it, because a
+hook that is missing or broken fails open and takes its protection with
+it.
+
+Two things are worth knowing about a fresh clone. The restricting rules
+apply immediately, while the permitting ones apply only after the
+workspace has been trusted once — until then the effect is extra
+prompts, never fewer. And every enforcement claim behind the design is a
+measurement against a specific Claude Code version, recorded in
+`.claude/docs/permissions.md` together with how to re-check it after an
+update.
+
 ## For reviewers
 
 A review of this repository — human or AI — should frame findings this
