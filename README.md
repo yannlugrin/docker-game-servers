@@ -74,6 +74,16 @@ disagree with another about *what* gets checked — only about how much
 of the tree it looks at. Everything under `.claude/spec-work/` sits
 outside the harness, keyed on path.
 
+**A failing check can modify the working tree.** Three hooks —
+`end-of-file-fixer`, `trailing-whitespace` and `mixed-line-ending` —
+repair what they find rather than only reporting it, which is the
+pre-commit convention and what makes the commit hook worth having. A
+*passing* check never writes anything; a failing one prints `files were
+modified by this hook` and leaves the change visible in `git diff`. The
+read-only documents are not exempt: stray whitespace in a
+`SPECIFICATIONS.md` would be repaired in place. Every document in the
+tree is whitespace-clean today, so nothing fires.
+
 Local, disposable test state — bind-mount roots, downloaded game or
 steamcmd content — belongs under `.local/`, which is ignored.
 

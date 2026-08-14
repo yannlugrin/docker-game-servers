@@ -9,6 +9,9 @@
 # can differ in how much of the tree they look at and never in what
 # they look for.
 #
+# A failing `check` can modify the working tree: three of the hooks
+# repair rather than report (D-006). A passing one never writes.
+#
 # Only the single comment line directly above a recipe reaches
 # `just --list`; anything longer belongs in the recipe body.
 

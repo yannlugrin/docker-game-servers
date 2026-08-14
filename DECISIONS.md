@@ -162,3 +162,36 @@ never reused:
     untracked work the loop is actually editing.
   - **Approved by:** operator (requested during step-000, and corrected
     to the parameter form).
+
+- **D-006 — The repairing hooks are documented, not suppressed**
+  - **Date:** 2026-08-14
+  - **Step:** step-000 — The harness, local only
+  - **Context:** three hooks in the harness — `end-of-file-fixer`,
+    `trailing-whitespace`, `mixed-line-ending` — rewrite what they find
+    instead of only reporting it. So a failing `just check` can modify
+    the working tree, and rule 1 makes every `SPECIFICATIONS.md`
+    read-only, `.claude/refs/` too (rule 3). The operator asked whether
+    to suppress the rewriting under the check commands or to document
+    it.
+  - **Decision:** keep the repair behaviour and document it — in
+    `README.md` under Local checks, and in the justfile header.
+    Checked against the pinned hooks rather than assumed: only
+    `mixed-line-ending` offers a report-only mode (`--fix=no`);
+    `trailing-whitespace` and `end-of-file-fixer` have none. Suppressing
+    one of three would leave the harness inconsistent and the exposure
+    intact. A passing check never writes; a failing one announces
+    `files were modified by this hook` and the change stays visible in
+    `git diff`. Every document in the tree is whitespace-clean today,
+    so nothing fires there; the residual exposure is a hook behaviour
+    change, which can only arrive through a deliberate `rev:` bump.
+  - **Alternatives considered:** report-only replacements for the two
+    hooks that lack the mode — a bespoke linter, which the plan bars
+    without prior operator agreement, built to remove a risk that is
+    currently zero; excluding the read-only documents from the three
+    hooks — a documented exclusion that would also stop the harness
+    noticing a CRLF arriving in a specification, the one whitespace
+    defect that would genuinely matter there; dropping the three hooks
+    — forfeits the CRLF guard that protects the shell entrypoints later
+    baked into Linux images.
+  - **Approved by:** operator (put the choice to the implementer at
+    step-000; ratified with the step's approval).
