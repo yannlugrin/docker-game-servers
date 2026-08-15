@@ -329,3 +329,126 @@ never reused:
     nothing.
   - **Approved by:** operator (directed; the previous rationale is
     recorded above so the reversal stays legible).
+
+- **D-010 — Governance well-formedness: PyMarkdown's front-matter
+  extension is the whole check family**
+  - **Date:** 2026-08-14
+  - **Step:** step-002 — Workflow tooling
+  - **Context:** skills and agents are a new artifact class — Markdown
+    carrying a YAML front-matter block — so rule 2 owes them a check
+    family in this step. The bar is "the frontmatter parses": a
+    malformed skill does not fail, it silently never loads. Two facts
+    decided the answer, both measured against the pinned hooks. With
+    the front-matter extension **off**, PyMarkdown reads the `---`
+    fences as headings and a *well-formed* skill fails md041, md022 and
+    md003 — so the config had to change either way. With it **on**, a
+    well-formed file passes and a block PyMarkdown cannot read as front
+    matter (an unterminated quote, a stray indent, a missing closing
+    fence) fails exactly those rules instead.
+  - **Decision:** enable `extensions.front-matter` in
+    `.pymarkdown.yaml`; that is the class's whole check family. No
+    bespoke frontmatter linter is written, so step-000's "no house
+    linters" bar is never approached. Two limits are accepted and
+    stated rather than papered over: PyMarkdown's front-matter reader
+    is not a YAML parser, so it is stricter in places (a hard tab in a
+    value is rejected, and md010 flags it anyway) and blind to key
+    *presence* — nothing checks that `name` and `description` exist, or
+    that a skill's `name` matches its directory. That is the parse-only
+    bar the workflow prescribes, and the resolution checks beyond it
+    are a "should" this repository declines for now: a whole-tree
+    reference scanner is a false-positive machine, and seven files do
+    not justify one. The failure is also indirect — a broken skill
+    surfaces as md041 on line 1, not as "your frontmatter is broken" —
+    which is why the reason sits in `.pymarkdown.yaml` beside the
+    setting.
+  - **Alternatives considered:** a small stdlib Python checker
+    extracting the block and parsing it with PyYAML plus a required-key
+    assertion — exact and about thirty lines, but it is a house linter,
+    which step-000 bars without prior operator agreement, and it would
+    still need the extension enabled to stop PyMarkdown failing valid
+    files, so it buys key-presence only; a `local` pre-commit hook
+    pulling `python-frontmatter` — the same, with a new pinned
+    dependency for a repository holding no Python packages; leaving the
+    class unchecked and excluding the files from prose lint — an
+    exclusion is a logged decision too (D-003), and it would forfeit
+    the lint on the seven files whose prose the operator actually
+    reads.
+  - **Approved by:** implementer-within-latitude (workflow choice).
+
+- **D-011 — Adoption of the step rituals and the reviewer agents**
+  - **Date:** 2026-08-14
+  - **Step:** step-002 — Workflow tooling
+  - **Context:** the four rituals and three of the five agent templates
+    have triggers that are certainties of these plans — every step is
+    oriented, handed over and approved; every milestone close needs a
+    state review and a memory compaction. Tooling created during the
+    event it exists to handle arrives too late.
+  - **Decision:** instantiate `orient`, `resume-step`, `handover-step`
+    and `approve-step` as skills, and `step-reviewer`, `state-reviewer`
+    and `optimize-memory` as agents. `code-reviewer` and `test-reviewer`
+    wait for their conditional triggers — first code and first
+    shipped-behaviour test, both at `step-sc-001` — and stay on
+    `CLAUDE.md`'s not-yet-adopted list, which is what keeps the two
+    names `state-reviewer` cites from dangling. Three adaptations are
+    worth recording. The governance placeholders resolve the active
+    track **at invocation** from `CLAUDE.md`'s Track map and Current
+    state pointer rather than to a literal path, and the close ritual
+    names the track of the step just **closed** to the milestone
+    passes, since the pointer has already moved. `optimize-memory`'s
+    template prescribed a decision-entry format this repository does
+    not use (`## D-NNN (date) — title`); the format in `DECISIONS.md`'s
+    own header wins and the agent was rewritten to it. And the agent
+    tool lists were cut to what the probe found real — `Read, Bash`
+    rather than `Read, Glob, Grep, Bash` — because `Glob` and `Grep` do
+    not exist as tools in Claude Code 2.1.233 and are silently dropped;
+    a third came out of this step's own review: the templates have each agent restate
+    rule 9's gated set, and the two instantiated copies had already
+    drifted apart — so both now cite rule 9, which a probe confirmed is
+    in every subagent's context, and carry only what rule 9 does not
+    say: that for a subagent the gated set is forbidden outright. These
+    findings sit in `.claude/docs/permissions.md`.
+  - **On the reviewers' model — the criterion, and how it was missed:**
+    a review must not run on the model that wrote the work. The
+    templates encoded that by pinning `model: fable` while
+    implementation runs on Opus, but they stated it as "the strongest
+    model available", so the reason was invisible. I read the stated
+    criterion, could not measure "strongest", substituted one I could
+    (match the session model) and pinned `opus` — satisfying my
+    criterion by defeating theirs, and making the reviewer the same
+    model as the author of the work under review. The ruling: **no
+    agent here pins a model**, and the rituals that invoke them pass
+    the override at invocation. The reason is that the requirement is
+    relational — "different from whatever implements" — and no fixed
+    value states a relation: a pinned `fable` silently becomes
+    same-model the day implementation moves to `fable`. Two costs are
+    accepted rather than worked around. Omission is **not** neutral: an
+    agent with no `model:` inherits the session's, so a ritual that
+    forgets the override produces exactly the forbidden outcome,
+    silently — hence the imperative in `/handover-step` step 3 and
+    `/approve-step` step 4, and the one line in each agent file saying
+    the absence is deliberate. And enforcement moves from the harness
+    to judgment: the pin is what made this mistake visible as a diff,
+    and without one a future session's forgetting leaves no trace.
+  - **Measured, for the record:** both aliases resolve on 2.1.233 —
+    `model: opus` starts a session reporting `claude-opus-5`,
+    `model: fable` one reporting `claude-fable-5`, read from the
+    stream's `init` event rather than from the model's self-report,
+    which was wrong in both runs. Resolution was never the open
+    question; the criterion was.
+  - **Alternatives considered:** instantiating all five agents now —
+    `code-reviewer` and `test-reviewer` would review a repository with
+    neither code nor shipped behaviour to review, and the workflow
+    reserves waiting for exactly that case; writing the rituals from
+    scratch — the templates are proven and rule 11 prefers the boring
+    existing thing; keeping a pinned `fable` and stating the invariant
+    beside it — the harness would keep enforcing something, and it was
+    the recommendation, but it still encodes a relation as a constant
+    and would need editing the day the implementing model changes;
+    pinning plus a ritual-side check of the two against each other —
+    the most robust, rejected as a third moving part in files already
+    long, for a rule two rituals can simply state.
+  - **Approved by:** operator (the model rule; they supplied the
+    criterion the templates left implicit and chose where it lives).
+    The rest: implementer-within-latitude (workflow choice; the
+    workflow prescribes which templates are adopted at this step and
+    when the rest may be).
