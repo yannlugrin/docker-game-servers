@@ -19,14 +19,53 @@ other. Only tokenizing resolves quoting; only splitting separates invocations.
 A line can also hide a command inside another one. Assignments bind to what
 runs next (`GIT_SSH_COMMAND=… git fetch`), wrappers run something else (`sudo
 git push --force`), a shell's `-c` argument is a command line in its own right,
-and a substitution or subshell is another command again (`echo $(git push
---force)`). Each is walked through to the command underneath, and every command
-position found is judged — so gating a wrapper never hides what it wraps.
+and a substitution or subshell is another command again — `echo $(git push
+--force)`, and equally `git commit -m "$(git push --force)"`, where the quoting
+hides it from the tokenizer entirely. Each is walked through to the command
+underneath, and every command position found is judged — so gating a wrapper
+never hides what it wraps.
 
 Decisions: **deny** what has no authorized use, **ask** for anything that
 writes outward or destroys work, stay silent otherwise. Silence is not approval
 — it hands the call back to the permission rules and the current permission
-mode, which under `auto` or `bypassPermissions` will approve.
+mode, which under `auto` or `bypassPermissions` will approve. There is also one
+**allow**, which is the exception the next section is about.
+
+
+WHERE THE GUARD GRANTS
+----------------------
+
+Almost nowhere, and the constraint is worth stating before the exception.
+
+A hook's `"allow"` skips the interactive prompt — and measurement says it also
+lifts two things the documentation does not mention: the bash safety
+heuristics, and the **working-directory sandbox**. `touch ../escaped.txt`,
+blocked outright when merely permitted by a rule, runs when a hook allows it.
+So granting is not "approving a prompt on the operator's behalf"; it is
+switching off the boundary that keeps a mistake inside the project. What it
+cannot do is override a `deny` or `ask` rule from settings — those still hold,
+which is why they, not this file, are the right place for anything that must
+never happen.
+
+That rules out the tempting general form, "if every command in the line is
+silent, allow it". `touch "$(cat evil.txt)"` has nothing gated in it, and the
+substitution's output becomes a path, which the guard never sees because it
+does not exist until after the decision.
+
+What remains is a grant keyed to a *shape whose output cannot direct a write*.
+`git commit -m "$(…)"` qualifies: whatever comes back is a commit message.
+That earns the one `Rule("allow", …)` in the registry, hedged three ways — it
+ranks below deny and ask, it is withheld if anything else in the line has an
+opinion, and `allow_globals` withholds it if any global option was used.
+
+The reason it is worth having at all: Claude Code prompts on *any* line
+containing a substitution, no permission rule can lift that, and the system
+prompt pushes Claude toward writing them. Without the grant that prompt is
+unavoidable and constant, which is how operators end up in `auto` mode — where
+the sandbox is gone for everything, not just for one proven shape.
+
+Before adding a second one, satisfy yourself that no expansion of the granted
+command can become a path or a command. If it can, the answer is silence.
 
 
 CHOOSING A RULE KIND
@@ -58,8 +97,9 @@ deny an act that a grant would otherwise have waved through.
 WHAT MUST LAND IN settings.json
 -------------------------------
 
-This guard only ever *gates*. It never grants, so it cannot make anything run
-that the permission rules would not have run anyway. Pair it accordingly:
+This guard gates, and grants in exactly one place (see WHERE THE GUARD GRANTS).
+It cannot loosen a `deny` or `ask` rule, so those remain yours alone. Pair it
+accordingly:
 
 1.  **Allow the tool broadly; let the guard claw back.** For every tool in the
     registry, add a broad allow — `Bash(git:*)`, and one line per tool the
@@ -153,19 +193,23 @@ WHAT THIS DOES NOT SEE
 The guard reads a command line; it does not run a shell. These are known and
 accepted, listed so nobody mistakes silence for coverage.
 
-*Substitution inside quotes, and backticks.* An unquoted `$(…)`, `<(…)` or
-`(…)` is examined — the lexer hands back the parentheses as their own tokens,
-which both locates the command and proves it was unquoted. Quoting defeats
-that: `"$(git push --force)"` stays inside a single token, and posix tokenizing
-has already discarded which quote was used, so it cannot be told from the
-literal `'$(git push --force)'`. Reading either would mean gating an `echo`.
-Backticks are never split out at all. Both are asserted in ENGINE_CASES so the
-boundary is visible rather than assumed.
+*Nothing, for substitution.* It used to be listed here. An unquoted `$(…)`,
+`<(…)` or `(…)` is split into its own tokens by the lexer and walked like any
+other command; a quoted one — `-m "$(git push --force)"` — never reaches that
+splitting, so it is read off the raw line instead, counting parentheses and
+tracking single quotes. Double quotes and backticks run, so they are judged;
+single quotes do not, so they are left alone. All of it is asserted in
+ENGINE_CASES.
 
-*A leader we do not recognise.* `myrunner git push --force` is silent, because
-the first word is neither a registered tool, a known wrapper, nor a shell. See
-UNRECOGNISED_LEADER for the knob and why the default is silence. A known
-wrapper we cannot see past is a different case and always asks.
+*A runner we do not recognise.* `myrunner git push --force` is silent, because
+the first word is neither a registered tool, a known wrapper, nor a shell. The
+fix is to add the runner to SHELL_WRAPPERS — deliberately, rather than by
+guessing. An earlier version did guess, asking whenever a registered name
+appeared anywhere in such a line, and it gated `ls ../docker`, `ls time` and
+`cat docs/env`: a tool's name is also an ordinary word and an ordinary
+directory. Narrowing it did not help, because the signal is absent rather than
+weak. A known wrapper we cannot see past is a different case, with a real
+signal behind it, and always asks.
 
 *Program text in another language.* A shell's `-c` argument is re-examined;
 `python3 -c` and `node -e` are not, since reading their argument as shell would
@@ -227,16 +271,6 @@ DASH_C = re.compile(r"^-[a-zA-Z]*c$")  # -c, -lc, -ec …
 MAX_DEPTH = 3  # `sh -c 'sh -c …'` must terminate
 
 
-# Modes in which the permission rules will not catch what the guard lets pass:
-# no matching rule means auto-approved, so the guard's silence is the last word.
-# In every other mode an unmatched command still prompts (or is denied under
-# dontAsk), so silence is backed and the false positives are not worth paying —
-# the leader check would otherwise fire on `grep git README.md` or `man git`.
-#
-# Claude Code sends `permission_mode` on every call. An unknown or missing one
-# falls outside this set and stays silent.
-UNBACKED_MODES = {"auto", "bypassPermissions"}
-
 # Claude Code's documented separator set is `&&`, `||`, `;`, `|`, `|&`, `&` and
 # newlines. Testing the characters rather than the whole token covers all of
 # them and the runs shlex groups into one token besides — `\n\n\n` from blank
@@ -278,6 +312,11 @@ Matcher = re.Pattern[str] | Callable[[str], bool]
 # What makes a location a glob rather than a plain directory, in `under`.
 GLOB_CHARS = set("*?[")
 
+# Whether Claude Code's own substitution heuristic will fire on this line —
+# the only situation in which a grant is used rather than downgraded to
+# silence. Textual on purpose: the thing being predicted is itself textual.
+SUBSTITUTION = re.compile(r"\$\(|`")
+
 # Operands and flag values of a *gated* tool must look like ordinary words.
 # Anything stranger is unproven rather than safe.
 VALUE_OK = re.compile(r"^[\w./=@:+-]+$")
@@ -289,7 +328,7 @@ AUDIT: set[Rule] | None = None
 
 @dataclass(frozen=True)
 class Rule:
-    """A dangerous act: this subcommand path, optionally with one of these flags.
+    """An act worth a verdict: this subcommand path, optionally with these flags.
 
     `path` is matched as a prefix of the invocation's operands, so ("push",)
     covers `git push origin main`, and ("reflog", "expire") reaches a
@@ -306,13 +345,24 @@ class Rule:
     say "never --force"; it cannot say "never -i production". Value conditions
     live only in `Grant.flag_values` / `Grant.env_values`, and yield `ask`
     rather than `deny`.
+
+    A verdict of `"allow"` is the one that grants, and it is the exception to
+    everything else in this file — see WHERE THE GUARD GRANTS. It wins only
+    when nothing else matched, it is withheld unless every command embedded in
+    the line is silent too, and `allow_globals` bounds which of the tool's
+    global options may be present. That list is closed-world like the rest: an
+    unlisted global withholds the grant, because a forgotten entry must cost a
+    prompt rather than give one away. `git --exec-path=/tmp/x commit` runs
+    `/tmp/x/git-commit`, and `-c core.pager=…` is the same kind of hole, so the
+    default of "no globals at all" is the honest starting point.
     """
 
-    verdict: str  # "deny" | "ask"
+    verdict: str  # "deny" | "ask" | "allow"
     path: tuple[str, ...]
     reason: str
     flags: frozenset[str] | None = None  # None: the path alone is the act
     env: frozenset[str] | None = None  # None: no environment condition
+    allow_globals: frozenset[str] = frozenset()  # allow rules only
 
 
 @dataclass(frozen=True)
@@ -457,6 +507,7 @@ class Invocation:
     words: tuple[str, ...] = ()  # operands in order; subcommand path first
     flags: dict[str, str | None] = field(default_factory=dict)
     env: dict[str, str] = field(default_factory=dict)  # leading FOO=bar
+    globals_seen: frozenset[str] = frozenset()  # stripped from before the subcommand
     malformed: bool = False  # a value flag with nothing after it
 
 
@@ -584,6 +635,54 @@ def split_substitutions(argv: list[str]) -> list[list[str]]:
     return [piece for piece in pieces if piece]
 
 
+def embedded_commands(command: str) -> list[str]:
+    """Command lines hidden inside a single token: `-m "$(git push --force)"`.
+
+    A quoted substitution survives tokenizing as one word, so `split_commands`
+    never sees the parentheses and the command inside is never judged. That is
+    a shape Claude reaches for constantly — a commit message built from
+    `$(cat …)` — so it cannot be left unexamined.
+
+    Read off the raw line rather than the tokens, tracking single quotes as it
+    goes. Tokens are the wrong instrument twice over: posix tokenizing has
+    already discarded which quote was used — and the difference decides
+    everything, since the shell runs `"$(…)"` and does not run `'$(…)'` — while
+    a backticked command containing a space is split across two tokens, so no
+    token ever holds a complete pair.
+
+    Parentheses are counted, so `$(a $(b))` yields the outer text and the
+    recursion finds the inner one.
+    """
+    found: list[str] = []
+    index, end, in_single = 0, len(command), False
+    while index < end:
+        char = command[index]
+        if in_single:
+            in_single = char != "'"
+            index += 1
+        elif char == "'":
+            in_single = True
+            index += 1
+        elif char == "`":
+            close = command.find("`", index + 1)
+            if close == -1:
+                break
+            found.append(command[index + 1 : close])
+            index = close + 1
+        elif command.startswith("$(", index):
+            depth, scan = 1, index + 2
+            while scan < end and depth:
+                depth += (command[scan] == "(") - (command[scan] == ")")
+                scan += 1
+            if depth:
+                break  # unbalanced; the line will not parse anyway
+            found.append(command[index + 2 : scan - 1])
+            index = scan
+        else:
+            index += 1
+    return [inner for inner in found if inner.strip()]
+
+
 def nested_at(tool: Tool, argv: list[str], index: int) -> tuple[Nested | None, int]:
     """The tool's longest handoff whose subcommand path starts at `index`.
 
@@ -598,7 +697,7 @@ def nested_at(tool: Tool, argv: list[str], index: int) -> tuple[Nested | None, i
 
 
 def segment_verdicts(
-    argv: list[str], tools: dict[str, Tool], depth: int = 0, mode: str = ""
+    argv: list[str], tools: dict[str, Tool], depth: int = 0
 ) -> list[tuple[str, str]]:
     """Every verdict earned by one segment.
 
@@ -652,7 +751,7 @@ def segment_verdicts(
             elif name in EVAL_RUNNERS and index + 1 < len(argv):
                 payload = " ".join(argv[index + 1 :])
             if payload is not None:
-                verdict = decide_bash(payload, tools, depth + 1, mode)
+                verdict = decide_bash(payload, tools, depth + 1)
                 if verdict:
                     verdicts.append(verdict)
                 return verdicts
@@ -664,13 +763,22 @@ def segment_verdicts(
                     verdicts.append(verdict)
             return verdicts
 
-        # Nothing recognised in command position. Inside a wrapper we know some
-        # command is being run and could not identify it, so a registered name
-        # anywhere in the rest is enough to ask — and the prompt is how an
-        # unlisted wrapper announces itself for adding to SHELL_WRAPPERS. Outside it,
-        # ask only where silence would not be backed by a prompt anyway;
-        # elsewhere it would fire on `grep git README.md`.
-        if (wrapped or mode in UNBACKED_MODES) and names_a_tool(argv[index:], tools):
+        # Nothing recognised in command position. Inside a wrapper that is
+        # enough to ask: we stepped over something whose job is to run a
+        # command, so one *is* being run and we lost it — most likely to an
+        # option we do not know takes a value. The prompt is also how an
+        # unlisted wrapper announces itself for adding to SHELL_WRAPPERS.
+        #
+        # Outside a wrapper this must not fire, and the temptation is real: an
+        # unrecognised leader in a mode where silence means execution looks
+        # like a hole worth covering. It is not coverable this way. The test
+        # below asks whether a registered name appears *anywhere* in the rest,
+        # and a tool's name is also an ordinary word and an ordinary directory:
+        # `ls ../docker`, `ls time`, `cat docs/env` would all prompt. Narrowing
+        # it does not help — `ls docker` survives every variant — because the
+        # signal is absent, not weak. Unknown runners are covered by listing
+        # them in SHELL_WRAPPERS, which is why that list is generous.
+        if wrapped and names_a_tool(argv[index:], tools):
             verdicts.append(
                 ("ask", "a command this guard cannot identify is running a gated tool")
             )
@@ -681,11 +789,14 @@ def segment_verdicts(
 def parse(tool: Tool, args: list[str], env: dict[str, str]) -> Invocation:
     """Split args into a subcommand path plus operands, and flags with values."""
     index = 0
+    seen: set[str] = set()  # remembered: an allow rule cares which were used
     while index < len(args):  # global options sit before the subcommand
         name = args[index].partition("=")[0]
         if name in tool.global_value_opts:
+            seen.add(name)
             index += 1 if "=" in args[index] else 2
         elif name in tool.global_bare_opts:
+            seen.add(name)
             index += 1
         else:
             break
@@ -711,7 +822,9 @@ def parse(tool: Tool, args: list[str], env: dict[str, str]) -> Invocation:
                 awaiting = name
             else:
                 flags[name] = None
-    return Invocation(tuple(words), flags, env, awaiting is not None)
+    return Invocation(
+        tuple(words), flags, env, frozenset(seen), awaiting is not None
+    )
 
 
 def matches(matcher: Matcher, value: str) -> bool:
@@ -814,22 +927,31 @@ def matching_rules(tool: Tool, invocation: Invocation) -> list[Rule]:
 
 
 def judge(tool: Tool, invocation: Invocation) -> tuple[str, str] | None:
-    """Strongest verdict for one invocation; deny outranks ask, order-free."""
+    """Strongest verdict for one invocation: deny, then ask, then allow.
+
+    Order-free within each rank, so a table cannot be broken by reordering it.
+    An allow ranks last on purpose — anything with an opinion outranks a grant.
+    """
     verdicts: list[tuple[str, str]] = []
     for rule in matching_rules(tool, invocation):
         if AUDIT is not None:  # the selftest is checking which rules can fire
             AUDIT.add(rule)
+        if rule.verdict == "allow" and not (
+            invocation.globals_seen <= rule.allow_globals
+        ):
+            continue  # a global we have not accounted for: no grant
         verdicts.append((rule.verdict, rule.reason))
     if tool.grants is not None and not is_granted(tool, invocation):
         verdicts.append(("ask", tool.gated_reason))
-    for verdict in verdicts:
-        if verdict[0] == "deny":
-            return verdict
-    return verdicts[0] if verdicts else None
+    for rank in ("deny", "ask", "allow"):
+        for verdict in verdicts:
+            if verdict[0] == rank:
+                return verdict
+    return None
 
 
 def decide_bash(
-    command: str, tools: dict[str, Tool], depth: int = 0, mode: str = ""
+    command: str, tools: dict[str, Tool], depth: int = 0
 ) -> tuple[str, str] | None:
     line = strip_heredocs(command)
     commands = split_commands(line)
@@ -840,13 +962,40 @@ def decide_bash(
         return None
 
     asked: tuple[str, str] | None = None
+    allowed: tuple[str, str] | None = None
     for argv in commands:
         for piece in split_substitutions(argv):
-            for verdict in segment_verdicts(piece, tools, depth, mode):
+            for verdict in segment_verdicts(piece, tools, depth):
                 if verdict[0] == "deny":
                     return verdict
+                if verdict[0] == "allow":
+                    allowed = allowed or verdict
+                else:
+                    asked = asked or verdict
+
+    # A substitution that was quoted never reached the splitting above: it is
+    # still sitting inside one token. Judge those command lines too.
+    if depth < MAX_DEPTH:
+        for inner in embedded_commands(line):
+            verdict = decide_bash(inner, tools, depth + 1)
+            if verdict is None:
+                continue
+            if verdict[0] == "deny":
+                return verdict
+            if verdict[0] != "allow":
                 asked = asked or verdict
-    return asked
+
+    # An ask anywhere in the line withholds a grant made elsewhere in it: the
+    # grant speaks for one command, never for its neighbours.
+    if asked or allowed is None:
+        return asked
+
+    # A grant is only *used* where it is needed. Without a substitution the
+    # line would reach the permission rules unaided, and granting it would
+    # waive the working-directory sandbox for nothing. This is the textual test
+    # again, and correctly so: the question is whether Claude Code's own
+    # textual heuristic will fire, not what the command does.
+    return allowed if SUBSTITUTION.search(line) else None
 
 
 # =========================== REGISTRY ======================================
@@ -945,6 +1094,22 @@ GIT = Tool(
             "deny", ("gc",), "destroying git's recovery data has no authorized use",
             flags=frozenset({"--prune"}),
         ),
+        # The one grant. `git commit -m "$(…)"` is the shape Claude writes
+        # constantly, and Claude Code prompts on any line containing a
+        # substitution — a decision no permission rule can lift, so without
+        # this the prompt is unavoidable and constant.
+        #
+        # It is safe *for this shape only*: whatever the substitution turns out
+        # to expand to, it becomes a commit message, and a message cannot
+        # direct a write anywhere. Compare `touch "$(cat x)"`, where the same
+        # output becomes a path — which is why the grant names a subcommand and
+        # a flag rather than being a general rule about silent commands.
+        #
+        # `allow_globals` is empty, so `git -C /elsewhere commit -m …` is not
+        # granted: -C moves the repository, and granting also waives the
+        # working-directory sandbox.
+        Rule("allow", ("commit",), "a commit message cannot direct a write",
+             flags=frozenset({"-m", "--message"})),
         Rule("ask", ("push",), "pushing is an outward write"),
         Rule(
             "ask", ("commit",), "this rewrites the last commit",
@@ -1142,9 +1307,9 @@ TOOLS: dict[str, Tool] = registry(GIT, DOCKER, RM)
 # =========================== hook entry point ==============================
 
 
-def decide(tool_name: str, tool_input: dict, mode: str = "") -> tuple[str, str] | None:
+def decide(tool_name: str, tool_input: dict) -> tuple[str, str] | None:
     if tool_name == "Bash":
-        return decide_bash(str(tool_input.get("command", "")), TOOLS, mode=mode)
+        return decide_bash(str(tool_input.get("command", "")), TOOLS)
     return None
 
 
@@ -1152,9 +1317,7 @@ def main() -> int:
     try:
         payload = json.load(sys.stdin)
         verdict = decide(
-            str(payload.get("tool_name", "")),
-            payload.get("tool_input") or {},
-            str(payload.get("permission_mode") or ""),
+            str(payload.get("tool_name", "")), payload.get("tool_input") or {}
         )
     # A broken guard must not fail open: any internal error becomes an ask.
     # This cannot catch a module that fails to load — see KEEPING IT HONEST.
@@ -1279,6 +1442,15 @@ CASES: tuple[tuple[str, str], ...] = (
     # --- the development loop must stay quiet -------------------------------
     ("git commit -m 'step-001: land the guard'", "silent"),
     ("git commit -m subject -m body", "silent"),
+    # a commit message built from a substitution: Claude Code prompts on every
+    # such line and no permission rule can lift it, so this is the one grant
+    ('git commit -m "$(cat msg.txt)"', "allow"),
+    ('git commit -m "step-002: $(git rev-parse --short HEAD)"', "allow"),
+    # withheld wherever anything else in the line has an opinion
+    ('git commit -n -m "$(cat msg.txt)"', "ask"),  # this project's harness rule
+    ('git commit --amend -m "$(cat msg.txt)"', "ask"),
+    ('git commit -m "$(git push --force)"', "deny"),
+    ('git -C /tmp commit -m "$(cat msg.txt)"', "silent"),  # a global moves the repo
     ("git add -A", "silent"),
     ("git tag -a step-001 -m approved", "silent"),
     ("git describe --tags --abbrev=0 --match 'step-*'", "silent"),
@@ -1552,8 +1724,13 @@ ENGINE_CASES: tuple[tuple[str, str], ...] = (
     # python's -c is another language, and is deliberately not read as shell
     ("python3 -c 'print(1)'", "silent"),
     # --- an unrecognised leader is silent by default ------------------------
-    ("myrunner stubtool wipe", "silent"),  # see UNRECOGNISED_LEADER
-    ("grep stubtool README.md", "silent"),  # why the default is silent
+    # A runner that is not in SHELL_WRAPPERS is not seen through — the fix is
+    # to list it there, not to guess from a name appearing in the line, which
+    # would gate the second case too.
+    ("myrunner stubtool wipe", "silent"),
+    ("grep stubtool README.md", "silent"),
+    ("ls ../stubtool", "silent"),
+    ("cat docs/env", "silent"),  # `env` is a wrapper name, and also a filename
     # --- a tool that hands off to another command ---------------------------
     # The outer invocation and the inner one are both judged; strongest wins.
     ("stubtool exec box stubtool wipe", "deny"),
@@ -1638,13 +1815,17 @@ ENGINE_CASES: tuple[tuple[str, str], ...] = (
     ("(cd /srv && stubtool wipe)", "deny"),
     ("echo $(date)", "silent"),  # substitution of something ungated
     ("stubtool --syntax-check $(git rev-parse HEAD).yml", "silent"),
-    # Quoting defeats it: posix tokenizing keeps the substitution inside one
-    # token and discards which quote was used, so `"$(…)"` (live) cannot be
-    # told from `'$(…)'` (literal). Asserted so the gap is visible rather than
-    # discovered. See WHAT THIS DOES NOT SEE.
-    ('echo "$(stubtool wipe)"', "silent"),
-    ("echo '$(stubtool wipe)'", "silent"),
-    ("echo `stubtool wipe`", "silent"),
+    # A quoted substitution never reaches the splitting above — it is still one
+    # token — so it is read off the raw line instead, tracking quotes. Double
+    # quotes and backticks run; single quotes do not.
+    ('echo "$(stubtool wipe)"', "deny"),
+    ("echo `stubtool wipe`", "deny"),
+    ('stubtool --syntax-check "$(stubtool wipe)"', "deny"),
+    ("echo '$(stubtool wipe)'", "silent"),  # literal: the shell runs nothing
+    ("echo '`stubtool wipe`'", "silent"),
+    ('echo "$(stubtool --syntax-check a.yml)"', "silent"),  # nothing gated inside
+    ('echo "$(echo $(stubtool wipe))"', "deny"),  # parentheses are counted
+    ('echo "no substitution here"', "silent"),
 )
 
 
