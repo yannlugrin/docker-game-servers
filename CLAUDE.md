@@ -26,8 +26,8 @@ repository-wide; hard budget 200 lines.
 
 ## Current state
 
-- Active track: root. Current step: **`step-002` — Workflow tooling,
-  `awaiting test`.** Next: `step-003` — LICENSE.
+- Active track: root. Current step: **none — `step-002` approved and
+  tagged.** Next: `step-003` — LICENSE.
 
 ## Track map
 

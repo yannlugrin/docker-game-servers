@@ -145,48 +145,26 @@ memory-compaction pass and state review of rule 3, run by the
 
 ### step-002 — Workflow tooling
 
-- **Objective:** the step rituals and reviewer agents exist before the
-  events they handle; nothing improvised at a milestone boundary.
-- **Spec sections:** none directly (rule 3's tooling namespace).
-- **Dependencies:** step-001.
-- **Deliverables:**
-  - Instantiated from `.claude/spec-work/handoff/assets/`: the four
-    skills `orient`, `resume-step`, `handover-step`, `approve-step`;
-    the `step-reviewer` agent; and the agents whose trigger is a
-    certainty of this plan — `state-reviewer` and `optimize-memory`
-    (every milestone close needs both; tooling created during the event
-    it handles arrives too late). `code-reviewer` and `test-reviewer`
-    wait for their conditional triggers — first code and first
-    shipped-behavior test, both landing at `step-sc-001`, which owns
-    their adoption — and stay on `CLAUDE.md`'s not-yet-adopted list,
-    the documented-fallback carve-out.
-  - Every placeholder filled with this repository's real commands and
-    paths — with the monorepo exception: the governance set
-    (`{{PLAN}}`, `{{DECISIONS}}`, `{{SPEC}}`, `{{STEP_ID}}`) resolves
-    the active track **at invocation** from `CLAUDE.md`'s track map and
-    Current state pointer, `{{SPEC}}` on a component track including
-    the root specification; rituals fired while closing a step key on
-    the track of the step **just closed**, named by the close ritual,
-    never the advanced pointer. Where a template's enumeration of a
-    routine is narrower than the rule it executes, the rule wins and
-    the enumeration is rewritten. A state-reviewer placeholder whose
-    referent does not exist yet (architecture vocabulary, inspection
-    commands) is seeded from the specification's component vocabulary
-    and kept current under rule 6. No instantiated file names a skill
-    or agent not adopted (the not-yet-adopted list is the one
-    carve-out). Each adoption logged (rule 4).
-  - Governance well-formedness checks join the harness with this
-    step's first files of the class: skill/agent frontmatter must
-    parse.
-  - Rule 2's probe for the mechanism this step introduces: agent
-    `tools:` frontmatter — does it actually restrict? Reported like
-    step-001's probes. (The `.claude/rules/` probe waits for the step
-    that first adopts a rules file, if any.)
-- **How the operator tests it:** invoke each ritual and see it do what
-  it claims — a new skill or agent may only be picked up at session
-  start, so the handover states whether a restart is part of the test.
-  Free local.
-- **Status:** awaiting test.
+Approved 2026-08-15, tag `step-002`. The four rituals ship as skills
+(`orient`, `resume-step`, `handover-step`, `approve-step`) and three
+agents as `.claude/agents/` (`step-reviewer`, `state-reviewer`,
+`optimize-memory`); `code-reviewer` and `test-reviewer` stay on
+`CLAUDE.md`'s not-yet-adopted list until **step-sc-001**, which owns
+their adoption. The governance placeholders resolve the active track at
+invocation, and the close ritual names the track of the step just closed
+to the milestone passes. Skills and agents brought their check family
+with them: PyMarkdown's front-matter extension (D-010). Adoption and its
+adaptations are D-011; the reviewers' model rule lives there too —
+`state-reviewer` and `optimize-memory` must not run on the model that
+wrote the work, `step-reviewer` may, and no agent pins a model.
+
+Handed to later steps: **step-sc-001** adopts `code-reviewer` and
+`test-reviewer` and deletes those entries from the not-yet-adopted list;
+whichever step closes milestone R1 (**step-004**) runs the two milestone
+passes through `/approve-step`. Detail in git history between the step
+tags.
+
+- **Status:** done.
 
 ### step-003 — LICENSE
 
