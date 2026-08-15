@@ -1,8 +1,8 @@
 {
   "autoMemoryEnabled": false,
   "permissions": {
+    "defaultMode": "acceptEdits",
     "disableBypassPermissionsMode": "disable",
-    "disableAutoMode": "disable",
     "allow": [
       "Bash(git:*)",
       "Bash(docker:*)",
@@ -21,11 +21,7 @@
       "Bash(.venv/bin/pre-commit run*)",
       "Bash(.claude/hooks/bash_guard.py --selftest)",
 
-      "Bash(mkdir *)",
-      "Bash(touch *)",
       "Bash(chmod +x *)",
-
-      "Edit(/**)",
 
       "WebSearch",
       "WebFetch(domain:code.claude.com)",
@@ -47,7 +43,6 @@
       "Edit(**/.env)",
       "Edit(**/*.env)",
 
-      "Bash(gh)",
       "Bash(gh:*)",
       "Bash(curl:*)",
       "Bash(wget:*)"
