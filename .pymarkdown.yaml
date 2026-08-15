@@ -19,3 +19,14 @@ plugins:
   # heading. The rule cannot tell the two apart.
   md036:
     enabled: false
+
+# New artifact class at step-002: skills and agents, Markdown carrying a
+# YAML front-matter block. Enabling the extension is what gives that
+# class the parse check rule 2 asks for (root DECISIONS.md D-010): a
+# block PyMarkdown cannot read as front matter is not treated as one, its
+# `---` fences become headings, and the file fails on md041 and its
+# neighbours. Without the extension a *well-formed* skill fails the same
+# way, which is the other half of the reason.
+extensions:
+  front-matter:
+    enabled: true
