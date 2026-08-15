@@ -136,9 +136,26 @@ allow list nor the guard mentions. Under `default` (and `plan`,
 Under `auto` or `bypassPermissions` an unmatched command is
 **auto-approved**, and absence gates nothing.
 
-That is what `disableAutoMode` and `disableBypassPermissionsMode` in
-`.claude/settings.json` are holding up. They are not belt-and-braces
-here: remove them and every act gated by absence becomes silent.
+**Amended at `step-002` (D-012): only `disableBypassPermissionsMode`
+remains.** `disableAutoMode` was removed deliberately, so `auto` is now
+the user's to select, and with it the paragraph above is the cost the
+operator accepted. Two things bound that cost, and one is a gap:
+
+- **The guard is unaffected by the mode.** Measured on 2.1.233 with
+  `defaultMode: auto` and a bare `Bash(git:*)` allow:
+  `git tag -d step-nonexistent-probe` was still stopped, carrying the
+  guard's own reason ("this moves or deletes a tag"). So `auto` widens
+  what an *unmatched* command may do; it does not touch git, docker or
+  rm, where the guard is the boundary. `deny` rules are untouched too.
+- **The claim above was not re-verified at this step.** Two attempts to
+  reproduce the auto-versus-default difference failed for reasons
+  unrelated to permissions: a read-only command (`whoami`) ran without
+  a prompt in *both* modes — Claude Code evidently auto-approves
+  provably read-only commands whatever the mode, which is itself worth
+  knowing — and every write attempt was intercepted first by the
+  working-directory sandbox in a never-trusted scratch directory. The
+  sentence stands as measured at `step-001` and is flagged here rather
+  than re-asserted.
 
 ## Workspace trust splits a committed baseline in two
 
@@ -169,6 +186,17 @@ Claude Code says so at startup:
 `Edit(path)` covers every file-editing tool, `Read(path)` every
 file-reading tool, and a `Read` deny also blocks edits and writes to the
 same path. The baseline uses those two spellings only.
+
+**An `ask` rule outranks `acceptEdits`** — measured on 2.1.233, in a
+workspace with `defaultMode: acceptEdits` and one rule,
+`ask: ["Edit(/protected.md)"]`. Editing `protected.md` was refused and
+the file was left untouched; editing an unlisted file in the same
+session succeeded with no prompt. This is why the baseline can drop its
+blanket `Edit(/**)` allow (D-012) without losing anything: under
+`acceptEdits` the mode supplies the allow, and the carve-outs that
+matter — the boundary's own files, the documents rule 1 keeps
+read-only, environment files — keep biting. Change the default mode and
+that first half goes away; the carve-outs do not.
 
 Startup also catches typos: a rule naming no known tool
 (`Nonexistent(foo)`) is reported as "matches no known tool — check for

@@ -258,6 +258,11 @@ never reused:
   - **Approved by:** operator (proposed at step-001 under rule 4, which
     excludes the baseline from implementer latitude; ratified with the
     step's approval).
+  - **Amended in part by D-012:** the `Edit(/**)` allow and
+    `disableAutoMode` are gone, the mode now supplying the first and
+    the operator choosing the second. The rest of this entry — the
+    broad allows for git, docker and rm, the guard as their boundary,
+    the ask carve-outs, the deny backstop — stands unchanged.
 
 - **D-008 — Python enters the repository: hook language, test runner
   and check family**
@@ -460,3 +465,51 @@ never reused:
     The rest: implementer-within-latitude (workflow choice; the
     workflow prescribes which templates are adopted at this step and
     when the rest may be).
+
+- **D-012 — The mode carries what the allow list used to; `auto` becomes
+  the user's choice**
+  - **Date:** 2026-08-15
+  - **Step:** stepless (`meta:`), during step-002 — the changes arose
+    from the operator's devcontainer environment pass, not from
+    step-002's deliverables
+  - **Context:** D-007 built the baseline around a broad `Edit(/**)`
+    allow with `ask` carve-outs over it, and around
+    `disableAutoMode` plus `disableBypassPermissionsMode` holding up
+    every act gated by having no allow rule at all. Working in the
+    devcontainer, the operator changed both: `defaultMode` is now
+    `acceptEdits`, `Edit(/**)`, `Bash(mkdir *)` and `Bash(touch *)`
+    leave the allow list, `disableAutoMode` is removed,
+    `Bash(claude --version)` is added, and the redundant `Bash(gh)` ask
+    goes since `Bash(gh:*)` already covers it. Committed at their
+    request; this entry is the sweep D-007 and
+    `.claude/docs/permissions.md` were owed.
+  - **Decision:** **the mode supplies the allow.** Under `acceptEdits`
+    an edit needs no rule, so `Edit(/**)` was doing nothing — verified
+    rather than assumed: with `defaultMode: acceptEdits` and a single
+    `ask: ["Edit(/protected.md)"]`, the protected file was refused and
+    left untouched while an unlisted file in the same session was
+    edited with no prompt. An `ask` outranks the mode, so the
+    carve-outs that carry the real protection — the boundary's own
+    files, the documents rule 1 keeps read-only, environment files —
+    are unaffected by the removal. **And `auto` becomes the user's to
+    select:** `disableAutoMode` is gone because the choice belongs to
+    whoever is running the session, not to a committed file. The cost
+    is stated rather than hidden — under `auto` a command matching no
+    rule is auto-approved, so gating by absence stops gating — and it
+    is bounded by a measurement: with `defaultMode: auto` the guard
+    still stopped `git tag -d`, carrying its own reason, so the mode
+    widens what *unmatched* commands may do and leaves git, docker and
+    rm exactly where the guard put them. `deny` is likewise untouched.
+    `disableBypassPermissionsMode` stays.
+  - **Alternatives considered:** keeping `Edit(/**)` alongside
+    `acceptEdits` — harmless but inert, and an inert rule reads as a
+    load-bearing one to the next reader; keeping `disableAutoMode` —
+    it is the stronger default and D-007 chose it, but it decides for
+    the operator something the operator wants to decide per session,
+    and the guard is what actually holds the dangerous tools; setting
+    `defaultMode` to `default` and keeping the allow list — the pre-
+    devcontainer arrangement, rejected as prompting on every edit in a
+    workflow that edits constantly.
+  - **Approved by:** operator (directed; rule 4 keeps the permission
+    baseline out of implementer latitude, and the reasons recorded here
+    are theirs — the measurements and the residual-gap note are mine).
