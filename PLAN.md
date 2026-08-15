@@ -24,9 +24,9 @@ Step-004 is the one step here that leaves this machine. It needs the
 GitHub repository, its remote and the operator's authorization of the
 first push, so this milestone no longer closes on local work alone, and
 the image tracks do not start until it does. Closing it triggers the
-memory-compaction pass and state review of rule 3 (improvised inline
-until step-002's agents exist — R1 closes after step-004, so they will
-exist).
+memory-compaction pass and state review of rule 3, run by the
+`state-reviewer` and `optimize-memory` agents adopted at step-002
+(D-011), in that order.
 
 ### step-000 — The harness, local only
 
@@ -186,7 +186,7 @@ exist).
   it claims — a new skill or agent may only be picked up at session
   start, so the handover states whether a restart is part of the test.
   Free local.
-- **Status:** pending.
+- **Status:** awaiting test.
 
 ### step-003 — LICENSE
 

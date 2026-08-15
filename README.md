@@ -36,8 +36,7 @@ When documents disagree, the earlier one in this list wins:
 | `steamcmd/` | The steamcmd builder image: specification, plan, decision log (image sources arrive with its plan's steps) |
 | `project-zomboid/` | The Project Zomboid (Build 42) image: specification, plan, decision log (image sources arrive with its plan's steps) |
 | `CLAUDE.md` | Standing instructions for the implementing AI — not documentation of the project |
-| `.claude/` | Implementation-agent workspace: the committed permission baseline (`settings.json`), the guard hook it relies on (`hooks/`), working notes (`docs/`) and references. Everything human-facing is authoritative without it |
-| `tests/` | Tests for what this repository itself ships; run by `just test` |
+| `.claude/` | Implementation-agent workspace: the committed permission baseline (`settings.json`), the guard hook it relies on (`hooks/`), the step rituals and reviewer agents (`skills/`, `agents/`), working notes (`docs/`) and references. Everything human-facing is authoritative without it |
 | `justfile` | Task runner: `just setup`, `just check [scope]`, `just test`, `just verify` |
 | `requirements.txt` | Pinned local tooling, installed by `just setup` into `.venv/` |
 | `.pre-commit-config.yaml` | The well-formedness harness, shared by `just check` and the git pre-commit hook |

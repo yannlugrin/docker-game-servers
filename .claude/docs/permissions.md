@@ -1,9 +1,15 @@
-# What the permission and hook mechanisms actually do
+# What the enforcement mechanisms actually do
 
-Read this before editing `.claude/settings.json` or
-`.claude/hooks/bash_guard.py`, and before assuming any sentence below is
-still true: every claim here is a measurement, not a reading of the
-documentation, and the mechanisms belong to a tool that updates itself.
+Read this before editing `.claude/settings.json`,
+`.claude/hooks/bash_guard.py`, or the frontmatter of anything under
+`.claude/skills/` and `.claude/agents/`, and before assuming any
+sentence below is still true: every claim here is a measurement, not a
+reading of the documentation, and the mechanisms belong to a tool that
+updates itself.
+
+Everything down to the re-measuring section is the permission and hook
+baseline of `step-001`; the frontmatter section that follows carries its
+own version stamp.
 
 **Measured on Claude Code 2.1.232 (native build, linux-x64), 2026-08-14,
 at root `step-001`.** Each probe ran a separate non-interactive session
@@ -193,6 +199,12 @@ all. The cheapest live check, run from the repository:
 3. `git push --force origin main` — must be **denied** outright, by the
    guard and by the settings backstop both.
 4. `git push --dry-run origin main` — must ask.
+5. For the frontmatter mechanism of the next section, from a throwaway
+   directory holding one agent file with `tools: Read`:
+   `claude -p --agent <name> 'List every tool available to you. Then
+   run: echo probe'` — it must report Read alone and attempt no Bash
+   call. If Bash is present, the two reviewer agents are running
+   unrestricted and their prose is all that is left.
 
 `.claude/hooks/bash_guard.py --selftest` covers the registry itself and
 is wired into `just check` and `just test`; the four probes above cover
@@ -201,3 +213,65 @@ hook and still honours what it returns.
 
 Any change in those four, or a new startup warning on stderr, is a
 finding to bring to the operator before trusting the baseline again.
+
+## Skill and agent frontmatter
+
+**Measured on Claude Code 2.1.233 (native build, linux-x64), 2026-08-14,
+at root `step-002`**, the step that introduced the mechanism. The probe
+workspace was a throwaway directory holding nothing but
+`.claude/agents/*.md`; each run asked one session to name its own tools
+and then to use one it should not have. Evidence is the `tool_use`
+blocks in `--output-format stream-json --verbose`, not the model's
+prose — the prose agreed, but it is a claim like any other.
+
+| Probe | Result |
+|---|---|
+| Agent with `tools: Read`, asked to run Bash | **No Bash tool present.** No `tool_use`, no permission denial — the tool is absent, not refused |
+| Agent with no `tools:` key at all | Full toolset, Bash included; the Bash call reached the permission layer and was refused there |
+| `tools: Read, Glob, Grep, Bash` | The session holds exactly `Read, Bash` |
+| `tools: Read, Glob, Grep, Bash, Edit, Write` | The session holds exactly `Read, Bash, Edit, Write` |
+| The same restricted agent through the `Agent` tool rather than `--agent` | Same answer, `Read, Bash` — the subagent path and the session path filter alike |
+| Skill with `allowed-tools: Read`, its body ordering a Bash command | **Bash ran**, output returned, no prompt and no denial — the key restricts nothing |
+
+So **agent `tools:` frontmatter binds and a skill's `allowed-tools` does
+not**, on the same version, in the same workspace, an hour apart. That
+asymmetry is the reason the skills here carry `name` and `description`
+only while the agents carry real tool lists: an allowlist that enforces
+nothing is a guard on paper, and it would read as one that binds.
+
+Two things follow for what gets written in these files:
+
+- **`Glob` and `Grep` are not tools in this version.** Naming them is
+  silently ignored — no startup warning, no error — and the list is
+  honoured for the names that do exist. The instantiated agents
+  therefore ask for `Bash` and search with it. A name that resolves to
+  nothing is a dangling reference like any other; re-check the tool
+  inventory before copying a `tools:` line from anywhere.
+- **A restricted agent cannot be widened by a permission rule.** The
+  tool is not in its API request at all, so an absent tool is an absent
+  capability, not a prompt. Give an agent the tools its job needs, and
+  gate what it must not do in prose plus the guard hook.
+- **A subagent already has `CLAUDE.md`.** Asked to answer from context
+  with no tool call, a subagent quoted the file's first heading and the
+  opening of rule 9 verbatim, and correctly reported that `README.md`
+  was *not* there. So the boundary does not need restating inside an
+  agent file — and must not be: rule 9 says its enumeration is carried
+  whole in `CLAUDE.md`, never compressed or moved, and two hand-copies
+  of it had already drifted apart before this was measured. What an
+  agent file adds is the one thing rule 9 does not say: for a subagent
+  the *gated* set is forbidden outright, there being no exchange in
+  which the operator could authorize it.
+
+`model:` resolves the aliases it is given: `model: opus` started a
+session reporting `claude-opus-5`, `model: fable` one reporting
+`claude-fable-5` (read from the stream's `init` event and each
+assistant message, not from the model, which misidentified itself in
+both runs). An alias that does not resolve is worth re-probing the same
+way after an update. No agent in this repository pins one, deliberately
+— the rituals pass the override at invocation, for the reason D-011
+records — so this measurement is here to make that choice checkable, not
+to describe a file.
+
+The probe workspace and its transcripts are disposable and live under
+`.local/probes/step-002/` (`DECISIONS.md` D-004); re-create them rather
+than trusting an old copy.

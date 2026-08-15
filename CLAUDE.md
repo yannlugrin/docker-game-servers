@@ -21,13 +21,13 @@ repository-wide; hard budget 200 lines.
    where we are before touching anything.
 3. A session resumed after an interruption, or told the work was
    interrupted, runs `/resume-step` before touching anything — never
-   trusting the transcript. Until step-002 instantiates that skill,
-   apply steps 1–2 above directly instead.
+   trusting the transcript. Steps 1–2 are `/orient`, which is the
+   normal way to run them.
 
 ## Current state
 
-- Active track: root. Current step: **none — `step-001` approved and
-  tagged.** Next: `step-002` — Workflow tooling.
+- Active track: root. Current step: **`step-002` — Workflow tooling,
+  `awaiting test`.** Next: `step-003` — LICENSE.
 
 ## Track map
 
@@ -160,19 +160,22 @@ builds sequenced deliberately, shared public state (GHCR, GitHub) last.
   shutdown, health, saves). Information, never a requirement source;
   conflicts with the spec are questions for the operator.
 - `.claude/docs/` — working memory, per-topic files:
-  - `permissions.md` — what the permission rules, the PreToolUse hook
-    and workspace trust actually do, measured on the running Claude Code
-    version. Read before editing `.claude/settings.json` or
-    `.claude/hooks/`, before relying on any enforcement claim, and
-    re-measure after a Claude Code update (the file says how).
+  - `permissions.md` — what the permission rules, the PreToolUse hook,
+    workspace trust and agent `tools:` frontmatter actually do, measured
+    on the running Claude Code version. Read before editing
+    `.claude/settings.json`, `.claude/hooks/`, or the frontmatter under
+    `.claude/skills/` and `.claude/agents/`; before relying on any
+    enforcement claim; and re-measure after a Claude Code update (the
+    file says how).
 - **Tooling templates** (delete this block, the directory and every
   pointer to it in one commit once every template is adopted or
   dropped): `.claude/spec-work/handoff/assets/` holds starter skills
   (`orient`, `resume-step`, `handover-step`, `approve-step`) and agents
   (`step-reviewer`, `optimize-memory`, `state-reviewer`,
   `code-reviewer`, `test-reviewer`) — the one readable path under
-  `.claude/spec-work/`, rule 1's standing exception. Not yet adopted:
-  all of them (step-002 instantiates the certain-trigger set;
-  `code-reviewer` and `test-reviewer` adopt at step-sc-001, whose
-  Dockerfile and smoke test are their triggers). A name on this list
-  is the documented fallback, not a dangling reference.
+  `.claude/spec-work/`, rule 1's standing exception. Adopted at
+  step-002 (D-011): the four skills, `step-reviewer`, `state-reviewer`
+  and `optimize-memory`. Not yet adopted: `code-reviewer` and
+  `test-reviewer`, which adopt at step-sc-001, whose Dockerfile and
+  smoke test are their triggers. A name on this list is the documented
+  fallback, not a dangling reference.
