@@ -32,14 +32,9 @@ Hand the current step over for operator testing. In order:
 3. **Review:** run the `step-reviewer` agent over the step's diff
    (last `step-*` tag → HEAD). The diff shows committed work only, so
    the step's work and the sweep must be in commits before it runs.
-   **Spawn it on a model other than the one you are running**, passing
-   the override explicitly at invocation: a review by the model that
-   wrote the work inherits its blind spots, and the agent pins none —
-   omitting the override does not mean "no opinion", it means the
-   reviewer inherits your model, which is the one outcome to avoid
-   (D-011). If no second model is available, say so in the handover
-   rather than passing the same-model review off as independent.
-   Address or explicitly rebut each finding before handover.
+   It may run on your own model — a cold context is what this review
+   buys, and the model-diversity rule is the milestone passes' alone
+   (D-011). Address or explicitly rebut each finding before handover.
 4. **Tree clean:** everything above — the step's work, the sweep, the
    review fixes — is already in small, coherent commits whose subjects
    carry the step id (committed as the work happened, not batched

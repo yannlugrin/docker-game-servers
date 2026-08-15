@@ -45,10 +45,12 @@ In order:
    (`state-reviewer`) and then the memory-compaction pass
    (`optimize-memory`), both invoked for the track of the step just
    closed and in that order, so the compaction runs after the review
-   has read the uncompacted memory. **Spawn both on a model other than
-   the one you are running**, passing the override explicitly at
-   invocation: they judge work your model produced, and neither agent
-   pins a model — omitting the override does not mean "no opinion", it
+   has read the uncompacted memory. **Spawn both on a model that did
+   not write the milestone's work** — normally any model other than
+   yours, but a milestone spans many steps and may span models, so the
+   one to exclude is whichever implemented, not merely your own. Pass
+   the override explicitly at invocation: neither agent pins a model —
+   omitting the override does not mean "no opinion", it
    means they inherit yours, which is the one outcome to avoid
    (D-011). If no second model is available, say so when reporting the
    passes rather than presenting them as independent.

@@ -389,7 +389,7 @@ never reused:
     wait for their conditional triggers — first code and first
     shipped-behaviour test, both at `step-sc-001` — and stay on
     `CLAUDE.md`'s not-yet-adopted list, which is what keeps the two
-    names `state-reviewer` cites from dangling. Three adaptations are
+    names `state-reviewer` cites from dangling. Four adaptations are
     worth recording. The governance placeholders resolve the active
     track **at invocation** from `CLAUDE.md`'s Track map and Current
     state pointer rather than to a literal path, and the close ritual
@@ -401,34 +401,42 @@ never reused:
     tool lists were cut to what the probe found real — `Read, Bash`
     rather than `Read, Glob, Grep, Bash` — because `Glob` and `Grep` do
     not exist as tools in Claude Code 2.1.233 and are silently dropped;
-    a third came out of this step's own review: the templates have each agent restate
+    a fourth came out of this step's own review: the templates have
+    each agent restate
     rule 9's gated set, and the two instantiated copies had already
     drifted apart — so both now cite rule 9, which a probe confirmed is
     in every subagent's context, and carry only what rule 9 does not
     say: that for a subagent the gated set is forbidden outright. These
     findings sit in `.claude/docs/permissions.md`.
-  - **On the reviewers' model — the criterion, and how it was missed:**
-    a review must not run on the model that wrote the work. The
-    templates encoded that by pinning `model: fable` while
-    implementation runs on Opus, but they stated it as "the strongest
-    model available", so the reason was invisible. I read the stated
-    criterion, could not measure "strongest", substituted one I could
-    (match the session model) and pinned `opus` — satisfying my
-    criterion by defeating theirs, and making the reviewer the same
-    model as the author of the work under review. The ruling: **no
-    agent here pins a model**, and the rituals that invoke them pass
-    the override at invocation. The reason is that the requirement is
-    relational — "different from whatever implements" — and no fixed
-    value states a relation: a pinned `fable` silently becomes
-    same-model the day implementation moves to `fable`. Two costs are
-    accepted rather than worked around. Omission is **not** neutral: an
-    agent with no `model:` inherits the session's, so a ritual that
-    forgets the override produces exactly the forbidden outcome,
-    silently — hence the imperative in `/handover-step` step 3 and
-    `/approve-step` step 4, and the one line in each agent file saying
-    the absence is deliberate. And enforcement moves from the harness
-    to judgment: the pin is what made this mistake visible as a diff,
-    and without one a future session's forgetting leaves no trace.
+  - **On the milestone passes' model — the criterion, and how it was
+    missed twice:** `state-reviewer` and `optimize-memory` must not run
+    on the model that wrote the work; `step-reviewer` may, and does. The
+    templates encoded the first half by pinning `model: fable` on those
+    two only, while implementation runs on Opus — but they stated the
+    reason as "the strongest model available", so it was invisible. I
+    read the stated criterion, could not measure "strongest",
+    substituted one I could (match the session model) and pinned `opus`
+    on both — satisfying my criterion by defeating theirs, and making
+    the milestone reviewer the same model as the author of the work.
+    Told the real reason, I then over-corrected and extended the rule to
+    `step-reviewer`, which the templates had deliberately left unpinned;
+    the operator struck that too. A per-step review buys a **cold
+    context**, which any model gives; the milestone passes buy an
+    **independent judgement**, which only a different one gives.
+    The ruling: **no agent here pins a model**, and `/approve-step`
+    passes the override for its two passes at invocation. The reason it
+    is not a pin is that the requirement is relational — "different from
+    whatever implements" — and no fixed value states a relation: a
+    pinned `fable` silently becomes same-model the day implementation
+    moves to `fable`. Two costs are accepted rather than worked around.
+    Omission is **not** neutral: an agent with no `model:` inherits the
+    session's, so a ritual that forgets the override produces exactly
+    the forbidden outcome, silently — hence the imperative in
+    `/approve-step` step 4 and the line in each of the two agent files
+    saying the absence is deliberate. And enforcement moves from the
+    harness to judgment: the pin is what made the first mistake visible
+    as a diff, and without one a future session's forgetting leaves no
+    trace.
   - **Measured, for the record:** both aliases resolve on 2.1.233 —
     `model: opus` starts a session reporting `claude-opus-5`,
     `model: fable` one reporting `claude-fable-5`, read from the

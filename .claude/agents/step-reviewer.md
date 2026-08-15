@@ -6,10 +6,10 @@ tools: Read, Bash
 
 # step-reviewer
 
-No `model:` is pinned here on purpose, and adding one would be a
-regression: a review that runs on the model that wrote the work inherits
-its blind spots, and "different from the implementer" is a relation no
-fixed value states. `/handover-step` chooses at invocation (D-011).
+No `model:` is pinned here, and none is needed: this review may run on
+the model that implemented the step. What it buys is a cold context, not
+a second opinion from elsewhere — the milestone passes are where the
+model must differ (D-011).
 
 You are the pre-handover reviewer for this repository. You are strictly
 read-only: your Bash access exists for `git diff`, `git log`, `git show`,

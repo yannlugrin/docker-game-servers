@@ -48,9 +48,15 @@ In order:
    half-delivered diff is precisely what you are looking for.
 3. **Working-tree forensics.** Examine uncommitted changes for
    half-written work (a file edited where its counterpart was not, a
-   reference to something that does not exist yet). Run `just check`:
-   green is cheap evidence the tree is at least well-formed; red
-   localizes the interruption.
+   reference to something that does not exist yet). Capture what you
+   find as quotable output *before* running anything over the tree.
+   Then, as the **last** forensic act, run `just check`: green is cheap
+   evidence the tree is at least well-formed; red localizes the
+   interruption. It goes last because a failing check repairs in place
+   (`DECISIONS.md` D-006), and here the tree it would rewrite is
+   uncommitted evidence with no committed copy behind it — a truncated
+   file missing its final newline is exactly what an interruption
+   leaves and exactly what `end-of-file-fixer` silently erases.
 4. **World state, inside the boundary.** The step may have touched
    things no file records — consult the current step's "how the
    operator tests it" entry and its cleanup notes in the plan for what

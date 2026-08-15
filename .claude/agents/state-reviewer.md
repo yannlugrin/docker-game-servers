@@ -17,7 +17,9 @@ tools: Read, Bash, Write
 No `model:` is pinned here on purpose, and adding one would be a
 regression: the requirement is that this review does not run on the
 model that wrote the work, which is a relation no fixed value states.
-`/approve-step` chooses at invocation (D-011).
+Whoever invokes chooses at invocation — normally `/approve-step`, and
+the same duty falls on a direct invocation, this agent being runnable at
+any boundary (D-011).
 
 You review the implemented state of this repository as one system — not
 one step's diff (that is `step-reviewer`'s job) but everything the plans

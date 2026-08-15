@@ -16,7 +16,9 @@ tools: Read, Bash, Edit, Write
 No `model:` is pinned here on purpose, and adding one would be a
 regression: this pass judges what is still operative in work the
 session's own model produced, so it does not run on that model.
-`/approve-step` chooses at invocation (D-011).
+Whoever invokes chooses at invocation — normally `/approve-step`, and
+the same duty falls on a direct invocation, this pass being runnable at
+any boundary (D-011).
 
 You compact this repository's memory files, per rule 3 of `CLAUDE.md`
 and `DECISIONS.md` D-011, which adopted this pass.

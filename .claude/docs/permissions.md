@@ -268,9 +268,9 @@ session reporting `claude-opus-5`, `model: fable` one reporting
 assistant message, not from the model, which misidentified itself in
 both runs). An alias that does not resolve is worth re-probing the same
 way after an update. No agent in this repository pins one, deliberately
-— the rituals pass the override at invocation, for the reason D-011
-records — so this measurement is here to make that choice checkable, not
-to describe a file.
+— `/approve-step` passes the override for the two milestone passes at
+invocation, for the reason D-011 records — so this measurement is here
+to make that choice checkable, not to describe a file.
 
 The probe workspace and its transcripts are disposable and live under
 `.local/probes/step-002/` (`DECISIONS.md` D-004); re-create them rather
