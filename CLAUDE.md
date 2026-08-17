@@ -68,12 +68,14 @@ passes first: `just check <scope>` (is what is committed well-formed?),
 file of their class, in the step that lands it**, never ahead of it.
 Third-party tools are never retested; a must-warn case is required only where a
 warning tier already exists; where the repository ships no behaviour of its own
-yet, a `test` saying so is correct. **No justfile recipe ever performs an act
-rule 9 gates** — the guard sees `just release`, not the `docker push` inside
+yet, a `test` saying so is correct. A narrowed `check` is legitimate mid-step,
+but **the commit that receives a step tag runs the full scope** — that commit
+is the state every later session treats as known-good. **No justfile recipe
+ever performs an act rule 9 gates** — the guard sees `just release`, not the `docker push` inside
 it; gated acts live in CI or in a command the operator invokes. Prove each
 enforcement mechanism at the step introducing it and record the measurement in
-`.claude/docs/` with version, method and re-measure recipe — never here and
-never in a plan, where a version-stamped fact outlives its version in silence.
+`.claude/docs/` with version, method and re-measure recipe — **never here**,
+where a version-stamped fact outlives its version in silence.
 
 **3. All memory lives in files.** Per track: `PLAN.md` and `DECISIONS.md` in
 the track's directory. Repository-wide: exactly one `CLAUDE.md` — this file —

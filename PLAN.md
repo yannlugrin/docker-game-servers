@@ -30,6 +30,10 @@ Four steps, drawn by what a working repository needs rather than by cost
 class. CI is the first step that leaves this machine, which is why it comes
 last *within* the foundation — not a reason to move it into a later
 milestone. The project is not bootstrapped until its CI has run green.
+**They are four separate steps because each is separately testable, and
+because they must not all be built before the operator has seen any of
+them:** a foundation delivered whole arrives with everything already
+written, and the operator's first correction then costs the lot.
 Closing this milestone triggers the whole-state review and the
 memory-compaction pass (`CLAUDE.md`, rule 3).
 
@@ -60,22 +64,30 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     therefore has to install `pre-commit` itself; `pip` and the `venv`
     module are available. Which bootstrap it uses is a logged workflow
     decision (rule 4).
-  - The rule-2 harness, **configured rather than written**: `pre-commit`
-    (<https://pre-commit.com>) as the hook runner, `just`
-    (<https://github.com/casey/just>) as the task runner, each ecosystem's
-    standard linter pinned in one place, no house preference.
+  - The rule-2 harness, **configured rather than written**: the
+    **`pre-commit` framework** (<https://pre-commit.com>) as the hook
+    runner — **the tool of that name, not merely git hooks** — and **`just`**
+    (<https://github.com/casey/just>) as the task runner, because **this
+    stack brings no runner of its own**; each ecosystem's standard linter
+    pinned in one place, no house preference.
     - `check` — "is what is committed here well-formed?" — syntax, lint and
       formatting over the working tree, **untracked files included and
-      gitignored paths excluded**, with two standing exclusions keyed on the
-      path and not on tracked status: everything under `.claude/spec-work/`
-      (rule 1 makes that directory no session's reading material) and
-      everything under `.claude/refs/` (operator-supplied reference
-      material, read-only under rule 3 and owned elsewhere).
-    - `check` takes a **scope**: the whole-tree gate as the default, and the
-      narrowed what-changed form the development loop runs between gates —
-      **one entry point taking a scope, never a second recipe**, because two
-      recipes hold two lists of checks and will eventually differ in *what*
-      they look for, not only in how much.
+      gitignored paths excluded**, with two standing exclusions **settled
+      here and not re-litigable**, keyed on the path and not on tracked
+      status: everything under `.claude/spec-work/` (rule 1 makes that
+      directory no session's reading material) and everything under
+      `.claude/refs/` (operator-supplied reference material, read-only under
+      rule 3 and owned elsewhere — **not this repository's product to
+      lint**).
+    - `check` takes a **scope**, **in both of rule 2's forms from the
+      start — since every step after this one uses it**: the whole-tree gate
+      as the default, and the narrowed what-changed form the development loop
+      runs between gates — **one entry point taking a scope, never a second
+      recipe**, because two recipes hold two lists of checks and will
+      eventually differ in *what* they look for, not only in how much. A fast
+      narrowed pass is legitimate mid-step; **the commit that receives a step
+      tag runs the full one — that commit is the state every later session
+      treats as known-good.**
     - The file list is passed to `pre-commit` **explicitly** —
       `git ls-files --cached --others --exclude-standard` — because runners
       that enumerate from git (`pre-commit run --all-files` among them) see
@@ -97,17 +109,27 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     - The same harness wired into the **commit hooks**, so the local runners
       cannot diverge.
   - Check families **only for artifact classes that exist at this step**
-    (rule 2's never-ahead rule): the governance and human-facing documents
-    (markdown/prose lint, configured to the documents as they already are —
-    the specifications are read-only under rule 1, so the lint bends to them
-    and never the reverse, and excluding a document from a rule is a logged
+    (rule 2's never-ahead rule): the governance documents themselves — **the
+    specifications, the plans, the rest**, since **in this repository
+    documents are load-bearing** — and the human-facing ones (markdown/prose
+    lint, configured to the documents as they already are — the
+    specifications are read-only under rule 1, so the lint bends to them and
+    never the reverse, and excluding a document from a rule is a logged
     decision, not a quiet config line), and JSON well-formedness for
-    `.claude/settings.json`. Dockerfile lint, entrypoint-language lint,
+    `.claude/settings.json` — **which is the enforcement mechanism itself, so
+    malforming it after `step-001`'s one-time probe fails exactly as quietly
+    as a malformed skill that silently never loads**. Dockerfile lint,
+    entrypoint-language lint,
     workflow validation, Python lint and the skill/agent frontmatter parse
     arrive with their first artifact, in the step that lands it — so this
     step's green gate says nothing about files that are not there.
   - Documented commands, runnable by the operator too, listed in
     `README.md`.
+  - **The CI workflow is deliberately not in this step** but in `step-003`:
+    nothing local can exercise a workflow, and **a tagged step must not carry
+    an artifact its own gate never ran**. Adding anything under
+    `.github/workflows/` here is out of scope, however convenient the moment
+    looks.
 - **How I test it.** All free and local. From a fresh clone of this branch
   (`git clone . /tmp/gs-clone`): run the documented setup command; run
   `just check`; make a trivial commit and watch the hook run. Then, in the
@@ -141,9 +163,10 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     never the `docker push` inside it. That is why rule 2 carries the
     **no-gated-act justfile invariant**; record it here as a rule of the
     baseline, and keep the justfile honest to it whenever a recipe changes.
-  - Every rule added gets a `CASES` entry: `--selftest` fails on a rule no
-    case reaches, which is what keeps the intent executable rather than
-    remembered.
+  - Every rule **and every grant** added gets a `CASES` entry: `--selftest`
+    fails on **a rule or a grant** no case reaches, which is what keeps the
+    intent executable rather than remembered — and grants are the carve-out
+    half of the registry, the half that widens the surface.
   - **Then the settings**, per the docstring's pairing: one broad allow per
     registry tool; **no `ask` rule for anything the guard gates** (a
     matching `ask` prompts even where the guard says allow, so it cancels
@@ -168,7 +191,9 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     no behaviour cases, so a lint stays a lint, and the silent deaths (a
     syntax error from an edit, a lost `+x`, a rename) fail the commit.
     `bash_guard.py --selftest` in the *test* entry point: liveness, then
-    every case, then coverage.
+    every case, then coverage — **a rule or grant no case reaches fails
+    it**. **A guard that stops working must fail a gate, not fail quietly** —
+    which binds any further way the guard might die, not only these two.
   - The proposal says plainly **what a dead guard would leave open** — a
     broad allow plus a dead hook is a wider surface than a narrow allow list
     ever was, which is exactly where the `deny` backstop earns its place.
@@ -184,9 +209,13 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     filenames are passed explicitly.
   - **Then measure, and write down what was measured.** Rule 2's probes for
     this step's mechanisms run here, and the results land in a
-    `.claude/docs/` file — never in `CLAUDE.md` and never in a plan: a
-    version-stamped fact restated in standing instructions outlives its
-    version in silence. Every claim carries the version it was taken on
+    `.claude/docs/` file — **never in `CLAUDE.md`**, which has no staleness
+    discipline: a version-stamped fact restated in standing instructions
+    outlives its version in silence. (Where this plan quotes a measured
+    figure, it is a **dated bootstrap observation** that the `.claude/docs/`
+    file supersedes as soon as it exists; the plan is not its home, and a
+    step entry is deleted on approval.) Every claim carries the version it
+    was taken on
     (Claude Code 2.1.233 today), the method, and a short re-measure recipe
     to re-run after a Claude Code update. Probe at least: whether the
     settings keys set here are honoured (`autoMemoryEnabled: false`
@@ -198,12 +227,18 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     hook is reached: if it merely prompts, the hook is not wired and the
     `deny` backstop is all that is left, while `--selftest` and `--liveness`
     would still pass — they answer whether the file is correct, not whether
-    anything calls it.
+    anything calls it. **Assume nothing here, including from this plan:** a
+    mechanism that turns out to enforce nothing is a guard on paper, and the
+    failure announces nothing. **Whatever the probe finds, what binds is what
+    you keep** — measurement beats documented belief, including this plan's.
   - **The permission mode**, named in the proposal and set as a committed
     setting (`permissions.defaultMode`), not left to a per-session choice —
     it decides how much the rest has to carry. This plan names no modes and
     asserts no mode behaviour deliberately: the mode set, and what each mode
-    does to an unmatched command, are properties of the installed version.
+    does to an unmatched command, are properties of the installed version —
+    **modes exist that prompt, that auto-approve, and that judge by
+    classifier and can deny outright: three different answers to what backs
+    the guard's silence**.
     Take the list from the running version and **probe the mode proposed**:
     what an unmatched command does under it, and **whether a hook `ask`
     still prompts** — the close ritual attempts its push in reliance on
@@ -256,6 +291,10 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     rule it claims to execute, **the rule wins** and the enumeration is
     rewritten to match (`orient`'s steps 1–2 against `CLAUDE.md`'s
     multi-track session routine is the known instance).
+  - **A template arrives with placeholders on purpose:** a leftover one is
+    visible, while a plausible wrong filename is not — so a placeholder is
+    filled with a verified real path or left as a placeholder, never guessed
+    at.
   - A placeholder whose referent does not exist yet — the state reviewer's
     `{{ARCHITECTURE_VOCABULARY}}` and `{{INSPECTION_COMMANDS}}`, in a
     repository where nothing is built — is seeded from the specification's
@@ -280,8 +319,13 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     tokens and asserting each resolves is a false-positive machine that
     grows worse as the repository does.
   - Each adoption logged (rule 3, rule 4).
-  - **Probes, run at this step because these are this step's mechanisms.**
-    Whether an agent's `tools:` frontmatter restricts anything at all; and
+  - **Probes, run at this step because these are this step's mechanisms —
+    and the probes are independent, so one passing says nothing about
+    another** (pinning them all to the first step would mean probing
+    mechanisms that do not exist yet, which reports a pass for nothing).
+    Whether **a skill's frontmatter** restricts anything at all — a distinct
+    mechanism from, and probed separately from, whether **an agent's `tools:`
+    frontmatter** restricts anything; and
     **whether `CLAUDE.md` reaches a subagent's context at all** — one
     exchange with the first agent this step spawns ("quote rule 9's opening
     line"), never the bootstrap cold reviewer, whose context must stay
@@ -296,10 +340,13 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     does today.
 - **How I test it.** Free and local. **A new skill or agent may only be
   picked up at session start, so restart the session (or `/clear`) before
-  testing.** Then invoke `/orient` and see the session-routine report;
-  invoke `/resume-step` and see it verify against git rather than the
-  transcript; read `/handover-step` and `/approve-step` and confirm every
-  command they name exists and runs; confirm the probe results in
+  testing.** Then **invoke each ritual and see it do what it claims** — not
+  read it: `/orient` delivers the session-routine report; `/resume-step`
+  verifies against git rather than the transcript; `/handover-step` hands
+  **this very step** over (its natural first use — checks green, staleness
+  sweep, the `step-reviewer` agent over the step's diff); and `/approve-step`
+  closes it once the operator approves, which is also the first exercise of
+  the compacted-entry and annotated-tag shape. Confirm the probe results in
   `.claude/docs/`. `just check` covers the new frontmatter family.
 - **Status.** `pending`
 
@@ -313,9 +360,11 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
 - **Depends on.** `step-000` (the entry points), `step-002` (the tooling the
   workflow's own lint covers).
 - **Deliverables.**
-  - A GitHub Actions workflow that **reuses `step-000`'s entry points**
-    rather than restating a single check — CI and the local runners must
-    never be able to disagree about what "green" means.
+  - A GitHub Actions workflow, **written from scratch — there is no existing
+    workflow of the operator's to copy or adapt** — that **reuses
+    `step-000`'s entry points** rather than restating a single check: CI and
+    the local runners must never be able to disagree about what "green"
+    means.
   - Check and test as **separate jobs once both exist**; the toolchain
     cached.
   - A way of proving a **fresh setup** still works. That proof may later
@@ -341,8 +390,10 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   forward.
 - **Status.** `pending`
 
-*Nothing in this milestone is exempt from the small-step rule. If any of
-the four is still too big for a single test, it is split further in this
+*Nothing in this milestone is exempt from the small-step rule. If any of the
+four is still too big for a single test — **or cut in the wrong place for
+this project**, which is the harder failure to notice, since a step can be
+the right size and still draw its seam badly — it is split or re-cut in this
 plan rather than defended.*
 
 ---
@@ -778,8 +829,8 @@ excluded.
    `step-011` with reasons rather than fixing them here, where they would be
    a number nobody has thought about since.
 6. **`CLAUDE.md` does not fit its 220-line budget, and I am raising that
-   rather than packing the file** (rule 3 says to). It stands at **297
-   lines** (18.6 KB): the eleven rules take **185** — rule 9's boundary
+   rather than packing the file** (rule 3 says to). It stands at **299
+   lines** (18.7 KB): the eleven rules take **187** — rule 9's boundary
    enumeration alone is **35** and must be carried whole — and the sections
    the workflow requires by name take **112** (session routine, layout, track
    map, plan conventions, the temporary templates block, `Current state`).
@@ -789,7 +840,7 @@ excluded.
    instantiation detail moved into `step-002`'s entry here, and per-track
    detail (the open-facts escalation list above all) now lives in the plans
    and is cited from `CLAUDE.md` rather than duplicated. What remains is
-   operative clauses; the next 77 lines can only come out by deleting rules
+   operative clauses; the next 79 lines can only come out by deleting rules
    or by deleting a section the workflow names. Two remedies, and the choice
    is yours:
    - **Log a project-specific budget** — I suggest a 320-line cap with a
