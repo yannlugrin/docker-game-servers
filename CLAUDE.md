@@ -204,6 +204,9 @@ operator-supplied reference material (rule 3).
 
 - **`.claude/docs/workflow.md`** — rule mechanics and reasoning; its own
   header lists when to read which section.
+- **`.claude/docs/environment.md`** — this machine, as measured. Read it
+  **before assuming a tool is installed**, and **before a step whose test
+  needs disk, bandwidth or the container runtime**.
 - **`.claude/refs/image-contract.md`** — the image contract of a hosting
   platform that will consume these images. Read it **before designing a game
   image's runtime interface** (uid handling, state paths, stop behaviour,
@@ -255,6 +258,6 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
   (rule 1).
 - **Open obligations:** `PLAN.md`'s external prerequisites — the GHCR package
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
-- **`.claude/docs/` pointers:** `workflow.md` (above). `step-000` adds
-  `environment.md` (measured toolchain), `step-002` the permission and hook
-  measurements, `step-pz-001` `pz-facts.md`.
+- **`.claude/docs/` pointers:** `workflow.md` and `environment.md` (both
+  above). `step-002` adds the permission and hook measurements,
+  `step-pz-001` `pz-facts.md`.

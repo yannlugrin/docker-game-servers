@@ -19,10 +19,11 @@ Images are published on GHCR, linux/amd64 only. Licence: MIT — it covers the
 image recipes and tooling; the game content inside the images belongs to its
 publishers and is not relicensed.
 
-**Nothing is built yet.** This repository is at the start of implementation:
-the specifications are complete, the plans are written, and no image, harness
-or workflow exists so far. For what exists at any moment, read the plans —
-they are the current-state record, and this file does not duplicate them.
+**No image is built yet.** This repository is at the start of implementation:
+the specifications are complete, the plans are written, the local check
+harness runs, and no image or CI workflow exists so far. For what exists at
+any moment, read the plans — they are the current-state record, and this file
+does not duplicate them.
 
 ## What each file is for
 
@@ -35,6 +36,9 @@ they are the current-state record, and this file does not duplicate them.
 | `steamcmd/PLAN.md`, `steamcmd/DECISIONS.md` | The same two documents for the builder image. |
 | `project-zomboid/PLAN.md`, `project-zomboid/DECISIONS.md` | The same two documents for the Project Zomboid image. |
 | `CLAUDE.md` | Standing instructions for the AI implementing this repository. Not a description of the project — see the note below. |
+| `justfile` | The check harness's entry points: `setup`, `check`, `test`, `verify`. See "Working on this repository" below. |
+| `.pre-commit-config.yaml` | What "well-formed" means here — the single declaration both `just check` and the git commit hook run, so the two cannot disagree. |
+| `requirements.txt` | The pinned toolchain `just setup` installs into `./.venv`. |
 | `LICENSE` | MIT. |
 | `.claude/` | Implementation-side working material: the AI's own memory, tooling and reference inputs. Nothing here is a requirement source, and a human reader can ignore it entirely. |
 
@@ -44,10 +48,32 @@ directory is its own track with its own plan and log. Ownership follows where
 the files live, not how far a change's effects reach — so CI belongs to the
 root track even when it publishes an image another track owns.
 
-As the repository grows, this map grows with it: `justfile` and the check
-harness, `docs/` (human-facing guides), `steamcmd/Dockerfile`, each game's
-`Dockerfile` and entrypoint, and `.github/workflows/`. Each arrives with the
-plan step that creates it.
+As the repository grows, this map grows with it: `docs/` (human-facing
+guides), `steamcmd/Dockerfile`, each game's `Dockerfile` and entrypoint, and
+`.github/workflows/`. Each arrives with the plan step that creates it.
+
+## Working on this repository
+
+Prerequisites, none of them installed by the setup command because they are
+what runs it: [`just`](https://github.com/casey/just), `python3` with the
+`venv` module, and `git`.
+
+```sh
+just setup           # install the pinned toolchain into ./.venv, wire the commit hooks
+just check           # is what is committed here well-formed? (whole tree)
+just check <path>    # the same checks, narrowed to a pathspec
+just test            # is the implementation right?
+just verify          # both, in order
+```
+
+`just check` looks at tracked *and* untracked files, skipping anything
+`.gitignore` covers, plus `.claude/spec-work/` and `.claude/refs/` — material
+this repository does not own. The same checks run automatically on `git
+commit` over what is staged.
+
+`just test` currently reports that there is no behaviour of this repository's
+own to test yet, which is the accurate answer rather than a gap: check
+families and tests arrive with the artifacts they cover, never ahead of them.
 
 ## Authority order
 

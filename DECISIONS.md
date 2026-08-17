@@ -259,3 +259,89 @@ renumbering sweep still leaves the reference decodable.
     track, and `step-006` stayed there.
 - **Approved by:** operator (who supplied the criterion and overruled the
   proportion argument)
+
+## D-006 — The toolchain bootstrap: a venv behind `just setup`
+
+- **Date:** 2026-08-17
+- **Step:** `step-000` — The harness skeleton, local only
+- **Context:** `PLAN.md`'s `step-000` requires pinned dependencies installable
+  through **one documented setup command**, and leaves the bootstrap
+  mechanism to a logged workflow decision. The measured machine
+  (`.claude/docs/environment.md` §1) has `python3` with `venv` and
+  `ensurepip`, `pip`, and `just` 1.45.0; `pre-commit` and every linter are
+  absent, and so are `uv` and `pipx`.
+- **Decision:** `just setup` is the one documented setup command. It creates
+  `./.venv` with `python3 -m venv`, installs `requirements.txt` into it, and
+  runs `pre-commit install` and `install-hooks`. Three consequences, each
+  deliberate:
+  - **`requirements.txt` pins `pre-commit` and nothing else.** Every linter
+    is declared in `.pre-commit-config.yaml` and pinned there by revision,
+    which `pre-commit` installs into its own isolated environments. Listing a
+    linter in both places would give it two pinned versions that can
+    disagree.
+  - **The pin is a direct `==`, not a hash-locked transitive set.** The
+    dependency surface is one tool used to run linters, not a runtime this
+    repository ships; a lock file is machinery to maintain for a risk that
+    does not exist yet. Revisit if a transitive break is ever actually
+    observed (rule 11 — built at the moment of need).
+  - **`just` itself is a prerequisite, not a pinned dependency.** It is the
+    runner that invokes the setup command, so it cannot be installed by it.
+    `README.md` names it alongside `python3` and `git`.
+- **Alternatives considered:**
+  - *`uv` or `pipx` for the bootstrap.* Rejected: both are absent on the
+    measured machine, so either would add an install step in front of the one
+    documented setup command — and `venv` plus `pip`, which are present,
+    already do the job.
+  - *A `scripts/setup.sh` so setup works without `just`.* Rejected: it lands
+    a shell script, whose check family would have to arrive with it (rule 2,
+    never ahead of need), to avoid a prerequisite the harness needs anyway —
+    `just check` is unusable without `just` whatever setup does.
+  - *Pinning `rust-just` into the venv so the whole toolchain is pinned.*
+    Rejected: it puts a second `just` on the machine and makes which one runs
+    depend on `PATH`, for a runner whose interface is stable.
+  - *Installing `pre-commit` system-wide.* Rejected: unpinned, machine-global,
+    and invisible to a fresh clone.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — the harness's shape and names)
+
+## D-007 — Which check families land at `step-000`, and no repairing hook yet
+
+- **Date:** 2026-08-17
+- **Step:** `step-000` — The harness skeleton, local only
+- **Context:** Rule 2 says a check family arrives with the first file of its
+  class, in the step that lands it. `step-000` names JSON well-formedness
+  explicitly and permits markdown structural lint "where it needs no tuning",
+  while assigning the prose lint over the governance documents to `step-001`.
+  Markdown files — 2,700 lines of read-only specification among them — exist
+  in quantity today, so the never-ahead rule alone does not settle whether a
+  markdown family belongs here.
+- **Decision:** `step-000` lands exactly three families, all
+  **well-formedness, none repairing**: `check-json` (the class exists —
+  `.claude/settings.json`, which is the enforcement mechanism itself),
+  `check-yaml` (the class arrives with `.pre-commit-config.yaml`), and
+  `just --fmt --check` over the justfile (the class arrives with the
+  justfile; `just` is the only tool that parses it, and `--fmt --check`
+  reports both a syntax error and a formatting drift without rewriting the
+  file). Markdown and prose lint are left whole to `step-001`, and **no hook
+  that rewrites a file is adopted at this step**.
+- **Alternatives considered:**
+  - *Land a markdown structural lint here too.* Rejected on measurement, not
+    taste: the documents it would lint are the read-only specifications, so
+    the lint must bend to them, and "needs no tuning" is a claim that can only
+    be made after tuning has been attempted. That attempt is what `step-001`
+    is for, and it must not hold a green harness hostage — which is the split's
+    stated reason.
+  - *Add the general hygiene hooks (`trailing-whitespace`,
+    `end-of-file-fixer`).* Rejected here: both **rewrite** files, including
+    specifications that are read-only under rule 1, which turns a failing
+    `check` into a mutation. `step-001` already owns the question and requires
+    a `.claude/docs/` note for any repairing hook adopted; deciding it there,
+    once, beats deciding it twice.
+  - *Add `check-merge-conflict`, `check-added-large-files` and relatives.*
+    Rejected: they guard repository hygiene rather than an artifact class, and
+    rule 11 asks for the smallest thing that satisfies the rule. The large-file
+    guard in particular has nothing to guard yet — `.gitignore` keeps game
+    content out, and no build downloads anything at this step.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — the harness's shape and names; `step-000`'s own text leaves
+  the markdown family optional)

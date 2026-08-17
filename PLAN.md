@@ -76,7 +76,7 @@ hands over through the rituals `step-003` and `step-004` provide.
 Closing this milestone triggers the whole-state review and then the
 memory-compaction pass (`CLAUDE.md`, rule 3).
 
-### step-000 — The harness skeleton, local only — `in progress`
+### step-000 — The harness skeleton, local only — `awaiting test`
 
 - **Objective.** A repository that can check itself, locally, from a fresh
   clone: pinned dependencies behind one setup command, and the
@@ -172,7 +172,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   yet. Then, in the working tree, create a file with a deliberate JSON error
   and **do not `git add` it** — `just check` must fail on it; delete it.
   Cleanup: remove the clone directory.
-- **Status.** `in progress`
+- **Status.** `awaiting test`
 
 ### step-001 — The governance and prose lint — `pending`
 
