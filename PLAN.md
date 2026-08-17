@@ -96,7 +96,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   `a49f8ed` (the last pre-step commit — `step-000` is the first step tag) and
   tag `step-000`.
 
-### step-001 — The governance and prose lint — `pending`
+### step-001 — The governance and prose lint — `in progress`
 
 - **Objective.** The documents this repository runs on are linted, because
   **in this repository documents are load-bearing**.
@@ -119,7 +119,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   prose fault in a plan and see it flagged; revert. Read the logged
   decisions for every rule excluded from a document, and confirm no
   specification file was rewritten by the run (`git status` clean).
-- **Status.** `pending`
+- **Status.** `in progress`
 
 ### step-002 — The permission and hook baseline — `pending`
 

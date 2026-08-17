@@ -249,8 +249,8 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** none in progress; `step-000` is closed and tagged.
-- **Next step:** `step-001` — The governance and prose lint (root track).
+- **Current step:** `step-001` — The governance and prose lint (root track).
+- **Next step:** `step-002` — The permission and hook baseline (root track).
 - **Live world-state:** no image built, none published, no CI, no `step-*`
   tag. Work is on **`main`**, the default branch of
   `git@github.com:yannlugrin/docker-game-servers.git` (public), and pushed.
