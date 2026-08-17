@@ -42,7 +42,8 @@ does not duplicate them.
 | `requirements.txt` | The pinned toolchain `just setup` installs into `./.venv`. |
 | `.gitignore`, `.gitattributes` | What git ignores, and the repository's line-ending policy — LF everywhere, because these images ship shell entrypoints. |
 | `LICENSE` | MIT. |
-| `.claude/` | Implementation-side working material: the AI's own memory, tooling and reference inputs. Nothing here is a requirement source, and a human reader can ignore it entirely. |
+| `scripts/` | Small checks the harness runs that no off-the-shelf linter covers. |
+| `.claude/` | Implementation-side working material: the AI's own memory, tooling and reference inputs — including `hooks/`, which holds the guard that gates what the AI may run. Nothing here is a requirement source, and a human reader can ignore it entirely. |
 
 Work is organised in **tracks**, one per directory: the root track owns what
 lives at the repository root or in a shared directory, and each shipped image
@@ -86,9 +87,11 @@ the rule yields, and each such case is a logged decision.
 never edits, which is what keeps a read-only specification safe from its own
 harness.
 
-`just test` currently reports that there is no behaviour of this repository's
-own to test yet, which is the accurate answer rather than a gap: check
-families and tests arrive with the artifacts they cover, never ahead of them.
+`just test` runs the behaviour this repository itself ships. Today that is the
+Bash guard under `.claude/hooks/`, whose registry decides which commands the
+implementing AI may run unattended and which need the repository owner's
+approval: the test runs every case and then checks that no rule goes untested.
+Tests arrive with the artifacts they cover, never ahead of them.
 
 ## Authority order
 

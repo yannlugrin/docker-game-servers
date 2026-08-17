@@ -492,3 +492,79 @@ renumbering sweep still leaves the reference decodable.
   latitude — editing a read-only specification, even only its line breaks —
   went to the operator, who authorised it on the condition that no word
   change.
+
+## D-010 — The permission and hook baseline
+
+- **Date:** 2026-08-17
+- **Step:** `step-002` — The permission and hook baseline
+- **Context:** Rule 9 states an action boundary in prose. `step-002` exists to
+  make it mechanical, and says plainly that the baseline is **outside the
+  implementer's latitude**: it is proposed to the operator as one reviewable
+  whole. The measurements behind every claim below are in
+  `.claude/docs/permissions.md`, with the version they were taken on and a
+  recipe to re-take them.
+- **Decision (proposed — see the approval line):** two halves that only work
+  as a pair.
+  1. **The guard**, `.claude/hooks/bash_guard.py`, instantiated from the
+     handoff template with **only its `REGISTRY` edited**, as the template
+     requires. `git` and `docker` keep the template's rules unchanged — the
+     docker set already maps onto rule 9 exactly. Two tools are added: `gh`,
+     expressed as **grants** because rule 9 rules GitHub API *reads* free and
+     gates every write, so the reads are the finite side to enumerate; and
+     `steamcmd`, as a **vocabulary** grant, so an anonymous download or
+     metadata query is silent while a credential is not. `just` and
+     `pre-commit` get **no entry**: an entry with no rules, grants or handoff
+     is silence, which an unregistered tool already gets, and the guard cannot
+     see inside a recipe anyway. What keeps them safe is rule 2's invariant —
+     no justfile recipe ever performs an act rule 9 gates — which lives
+     outside the guard and must be honoured whenever a recipe changes.
+  2. **The settings**, per the template's pairing: a broad allow for each
+     registry tool so the guard can claw back; **no `ask` rule for anything
+     the guard gates**, since a matching `ask` prompts even where a hook
+     allows and would cancel every carve-out; no prefix rule restating a guard
+     decision; and one deliberate duplication — an eight-entry `deny` backstop
+     covering only permanent history loss, because a hook fails open and a
+     broad allow plus a dead hook is a wider surface than a narrow allow list
+     ever was. `permissions.defaultMode` is **`acceptEdits`**.
+- **Ruled out by measurement, not preference.** `auto` is **ignored** in a
+  project settings file; `dontAsk` **auto-denies** instead of prompting, which
+  would remove the operator's ability to approve in-exchange — what rule 9's
+  boundary and rule 6's push-at-close both rest on; `bypassPermissions`
+  removes the gate; `plan` is a working mode. That leaves `default`, which
+  prompts on every file edit and is how an operator ends up reaching for a
+  looser mode — the failure this design exists to avoid.
+- **Two findings that changed the design:**
+  - **No working-directory sandbox was observed.** `touch ../escaped.txt` from
+    the project root succeeded. The template's docstring describes a sandbox
+    that blocks exactly this; under the measured mode it did not. So nothing
+    here leans on one — which is why `rm` and `mv` get **no** broad allow and
+    will prompt. If that proves noisy the answer is a guard entry with
+    path-scoped grants, built when it bites.
+  - **The implementer cannot install this file.** Writing
+    `.claude/settings.json` was refused by the auto-mode classifier. That is
+    correct behaviour, and it happens to enforce this step's own rule: the
+    operator applies the baseline.
+- **The widest entry, named rather than buried:** `Bash(python3:*)`. The guard
+  does not read `python3 -c` program text, so this allow can reach anything the
+  guard would otherwise gate. It is proposed because the harness, the guard and
+  the checks are all Python and the development loop runs it constantly; the
+  alternative is a prompt on every Python invocation. **A judgement for the
+  operator.**
+- **Alternatives considered:**
+  - *Rules rather than grants for `gh`.* Rejected: it would mean enumerating
+    every mutating subcommand and prompting on none of the ones forgotten. The
+    reads are the bounded side. A write-verb rule is kept **beside** the
+    grants for the one case grants cannot catch — `gh repo delete list`, where
+    the read verb is the name of the thing being destroyed.
+  - *A registry entry for `just` and `pre-commit`.* Rejected as literally
+    inert; the invariant is the real mechanism.
+  - *Restating `git push` as a `deny`.* Rejected: rule 9 requires that a push
+    **asks and is never denied**, because a denied pattern cannot be approved
+    in the very exchange the rule relies on.
+  - *`ruff-format` alongside `ruff check`.* Rejected twice over: it rewrites,
+    which nothing in this harness does, and it would reflow the vendored guard
+    against its docstring's explicit request.
+- **Approved by:** **awaiting the operator.** This entry is the proposal
+  `step-002` exists to put to them; the guard half is installed and
+  demonstrable, the settings half is in `.claude/docs/permissions.md` §3 for
+  them to apply.

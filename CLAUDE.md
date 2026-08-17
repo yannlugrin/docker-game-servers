@@ -207,6 +207,9 @@ operator-supplied reference material (rule 3).
 - **`.claude/docs/environment.md`** — this machine, as measured. Read it
   **before assuming a tool is installed**, and **before a step whose test
   needs disk, bandwidth or the container runtime**.
+- **`.claude/docs/permissions.md`** — the permission baseline, as measured.
+  Read it **before changing `.claude/settings.json` or the guard's registry**,
+  and **before relying on a permission mechanism to stop something**.
 - **`.claude/refs/image-contract.md`** — the image contract of a hosting
   platform that will consume these images. Read it **before designing a game
   image's runtime interface** (uid handling, state paths, stop behaviour,
@@ -239,7 +242,7 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 - **Not yet adopted:** `code-reviewer`, `test-reviewer` — their triggers
   (implementation code, a test suite) do not exist yet; a ritual may cite them
   as documented fallback names.
-- **Adopted at `step-002`:** `bash_guard.py`. **`step-003`:** `step-reviewer`,
+- **Adopted:** `bash_guard.py` (`step-002`). **`step-003`:** `step-reviewer`,
   `state-reviewer`, `optimize-memory`. **`step-004`:** `orient`,
   `resume-step`, `handover-step`, `approve-step`.
 
@@ -249,8 +252,8 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** none in progress; `step-001` is closed and tagged.
-- **Next step:** `step-002` — The permission and hook baseline (root track).
+- **Current step:** `step-002` — The permission and hook baseline (root track).
+- **Next step:** `step-003` — The reviewer agents (root track).
 - **Live world-state:** no image built, none published, no CI. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work
   is on **`main`**, the default branch of
@@ -259,6 +262,5 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
   (rule 1).
 - **Open obligations:** `PLAN.md`'s external prerequisites — the GHCR package
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
-- **`.claude/docs/` pointers:** `workflow.md` and `environment.md` (both
-  above). `step-002` adds the permission and hook measurements,
-  `step-pz-001` `pz-facts.md`.
+- **`.claude/docs/` pointers:** `workflow.md`, `environment.md` and
+  `permissions.md` (all above). `step-pz-001` adds `pz-facts.md`.

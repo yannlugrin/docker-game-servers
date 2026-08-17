@@ -115,7 +115,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   no word changed, retiring a fourth bend. Detail in git history between tags
   `step-000` and `step-001`.
 
-### step-002 — The permission and hook baseline — `pending`
+### step-002 — The permission and hook baseline — `awaiting test`
 
 - **Objective.** Rule 9's boundary enforced mechanically, proposed to the
   operator as one reviewable whole, with every mechanism measured rather

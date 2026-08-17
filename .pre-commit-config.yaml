@@ -128,8 +128,45 @@ repos:
       - id: codespell
         args: [--ignore-words-list=unparseable]
 
+  # --- Python, arriving with the repository's first Python files ---
+  # `.claude/hooks/bash_guard.py` and `scripts/`. Lint only: `ruff-format` is
+  # deliberately absent on two grounds — it rewrites, which nothing here does,
+  # and the guard is a vendored file whose docstring asks not to be reflowed,
+  # so formatting it would make every template refresh a diff against our
+  # reformatting rather than against the template. Measured: the guard passes
+  # `ruff check` untouched, and ruff's default line length is 88, which is the
+  # width that file documents — so the exemption its docstring anticipates is
+  # not needed here, and no `force-exclude` with it.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.3
+    hooks:
+      - id: ruff-check
+
   - repo: local
     hooks:
+      # Is the guard alive? Structure and contract, no behaviour cases — the
+      # behaviour lives in `just test`. This runs on every commit rather than
+      # only when the guard changes, because the deaths it exists to catch
+      # include a **rename**: keyed on the file's own path, the check would be
+      # skipped by the very commit that broke it. Measured at 0.03 s.
+      - id: bash-guard-liveness
+        name: the Bash guard is alive
+        entry: .claude/hooks/bash_guard.py --liveness
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Does every declared hook command name a file that is actually there?
+      # Valid JSON, a settings file that loads and a green lint all survive a
+      # path that resolves to nothing — and the guard never runs. Always-run
+      # for the same reason as above. Measured at 0.01 s.
+      - id: settings-hooks-resolve
+        name: declared hook commands resolve
+        entry: scripts/check_settings_hooks.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
       # The justfile is the harness's own entry point, and `just` is the
       # only tool that can parse it. `--fmt --check` reports both a syntax
       # error and a formatting drift without rewriting the file.

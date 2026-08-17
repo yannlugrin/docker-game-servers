@@ -49,9 +49,13 @@ check scope=".":
 
 # Is the implementation right? Behaviour this repository itself ships.
 test:
-    @echo "test: this repository ships no behaviour of its own yet, so there is"
-    @echo "      nothing to test. The artifacts that do exist are covered by"
-    @echo "      'just check'."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # The Bash guard's own registry is the first behaviour this repository
+    # ships. --selftest runs liveness, then every case, then coverage: a rule
+    # or grant that no case reaches fails it, which is what keeps the intent
+    # executable rather than remembered.
+    .claude/hooks/bash_guard.py --selftest
 
 # Both gates, in order.
 verify: check test
