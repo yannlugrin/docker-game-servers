@@ -243,6 +243,11 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     multi-track session routine is the known instance).
   - `CLAUDE.md`'s pointer for a resumed session updated from rule 3's
     fallback routine to `/resume-step`, in the same commit (rule 6).
+  - **The `agent-frontmatter` check family extended to
+    `.claude/skills/*/SKILL.md`** — this step lands the first files of that
+    class, and rule 2's never-ahead rule makes the extension due here. A
+    malformed skill fails the same way a malformed agent does: it never
+    loads, and the ritual naming it silently skips a step.
   - Each adoption logged.
 - **How I test it.** Free and local. **Restart the session before testing —
   a new skill may only be picked up at session start.** Then **invoke each

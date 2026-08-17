@@ -53,27 +53,30 @@ def frontmatter_of(path: Path) -> tuple[dict | None, str | None]:
 
 def main() -> int:
     root = project_root()
-    problems: list[str] = []
+    problems: list[tuple[Path, str]] = []
     agents = sorted((root / ".claude" / "agents").glob("*.md"))
 
     for path in agents:
         where = path.relative_to(root)
         parsed, error = frontmatter_of(path)
         if error is not None:
-            problems.append(f"{where}: {error}")
+            problems.append((path, f"{where}: {error}"))
             continue
         for key in ("name", "description"):
             if not str(parsed.get(key, "")).strip():
-                problems.append(f"{where}: no {key}, so nothing can select this agent")
+                problems.append((path, f"{where}: no {key}, so nothing can select this agent"))
         name = parsed.get("name")
         if name and name != path.stem:
             problems.append(
-                f"{where}: name {name!r} does not match the filename {path.stem!r}"
+                (path, f"{where}: name {name!r} does not match the filename {path.stem!r}")
             )
 
-    for problem in problems:
+    for _, problem in problems:
         print(f"MALFORMED  {problem}")
-    print(f"{len(agents) - len(problems)}/{len(agents)} agent definitions well-formed")
+    # Count offending *files*, not problems: one agent can fail several ways,
+    # and subtracting problem count from file count prints a negative.
+    bad = len({path for path, _ in problems})
+    print(f"{len(agents) - bad}/{len(agents)} agent definitions well-formed")
     return 1 if problems else 0
 
 

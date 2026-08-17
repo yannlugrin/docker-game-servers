@@ -174,10 +174,20 @@ repos:
       # deletion or a rename is one of the failures, and a path-keyed hook
       # would not see it. There is no standard tool for this shape, which is
       # what sanctions the few lines of custom check.
+      #
+      # `language: python` with the parser pinned here, rather than
+      # `language: system`: this check is the repository's first third-party
+      # import, and under `system` its shebang would resolve `python3` from
+      # the ambient PATH. It passed locally only because this machine happens
+      # to carry PyYAML — a fresh clone or a CI runner would fail on an import
+      # nothing declares. Pinned here rather than in `requirements.txt`
+      # because that file's own rule is that linters are pinned where
+      # pre-commit installs them.
       - id: agent-frontmatter
         name: agent definitions are well-formed
         entry: scripts/check_agent_frontmatter.py
-        language: system
+        language: python
+        additional_dependencies: ["pyyaml==6.0.3"]
         pass_filenames: false
         always_run: true
 

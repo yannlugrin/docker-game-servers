@@ -146,14 +146,10 @@ templates not yet adopted) survives although no template remains
 un-instantiated, delete it and flag the leftover assets directory for
 removal — an expired exception is stale memory like any other.
 
-**This project's budget is D-002's: the file must stay under 280 lines, and
-compaction targets ~250, not the cap.** That entry supersedes the generic
-220/180 this pass was written around — 220 was measured unreachable here
-without moving rule text out of the always-loaded file, which is the failure
-the eviction order exists to prevent. The headroom is the point: the next
-session that must add a pointer should add it instead of reflowing the file
-first, and a compaction that leaves the file at 279 has restored nothing. The
-budget yields to exactly one thing: the action-boundary enumeration is carried
+**This project's budget is D-002's: under 280 lines, targeting ~250, not the
+cap** — read that entry for why 220 is unreachable here. The headroom is the
+point, so a compaction that leaves the file at 279 has restored nothing. The
+budget yields to one thing only: the action-boundary enumeration is carried
 whole, and if the two collide, the enumeration stays and the trimming happens
 elsewhere. Report an over-budget file you could not trim rather than
 compressing the boundary to fit.

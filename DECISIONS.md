@@ -617,10 +617,28 @@ renumbering sweep still leaves the reference decodable.
     reports exactly that. The first real invocation is therefore the probe,
     and a failure announces itself instead of producing a confidently
     unbounded review.
-- **Pre-committed response, unchanged:** if that report ever comes back, each
-  agent body carries the gated set **inlined**, logged with its
-  single-source-of-truth cost — never a citation to a rule the agent cannot
-  read.
+- **Both probes were then run, and are recorded in `.claude/docs/agents.md`**
+  with the version, the method and a re-measure recipe. The design above is
+  not a substitute for them and was not accepted as one: a self-check reports
+  during a real review that an invocation lacked rule 9, while the probe
+  answers now — and "now" is what the pre-committed response needs, since
+  inlining the gated set into three bodies is work to do **before** the first
+  milestone close depends on those agents. Results: `CLAUDE.md` **does** reach
+  a subagent, delivered as project instructions before its first tool call and
+  never fetched with a tool, so **the inlining branch does not fire**; and
+  `tools:` **binds by omission**, an unlisted tool being absent rather than
+  refused. The self-check stays regardless, because it is what makes a later
+  regression announce itself.
+- **The limit that measurement exposed, recorded because it is easy to
+  misread:** `tools:` restricts which tools exist, not what they can do.
+  `step-reviewer` holds `Bash`, and `Bash` writes — so its read-only
+  discipline rests on its prose, not its tool list. Anything that must be
+  mechanically unable to write needs `tools: Read` alone and another way to
+  obtain a diff.
+- **Pre-committed response, unchanged and now dormant:** if that report ever
+  does come back, each agent body carries the gated set **inlined**, logged
+  with its single-source-of-truth cost — never a citation to a rule the agent
+  cannot read.
 - **Alternatives considered:**
   - *Adopt all five now.* Rejected: two have no trigger, and an agent nobody
     invokes is deleted under rule 3 — adopting them would create work to undo.

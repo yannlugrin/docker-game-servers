@@ -210,6 +210,9 @@ operator-supplied reference material (rule 3).
 - **`.claude/docs/permissions.md`** — the permission baseline, as measured.
   Read it **before changing `.claude/settings.json` or the guard's registry**,
   and **before relying on a permission mechanism to stop something**.
+- **`.claude/docs/agents.md`** — what a subagent definition actually buys, as
+  measured. Read it **before writing or editing an agent**, and **before
+  relying on its `tools:` list to prevent something**.
 - **`.claude/refs/image-contract.md`** — the image contract of a hosting
   platform that will consume these images. Read it **before designing a game
   image's runtime interface** (uid handling, state paths, stop behaviour,
@@ -264,5 +267,6 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
   Plus the permission hardening of `.claude/docs/permissions.md` §7, proposed
   and deliberately not applied.
-- **`.claude/docs/` pointers:** `workflow.md`, `environment.md` and
-  `permissions.md` (all above). `step-pz-001` adds `pz-facts.md`.
+- **`.claude/docs/` pointers:** `workflow.md`, `environment.md`,
+  `permissions.md` and `agents.md` (all above). `step-pz-001` adds
+  `pz-facts.md`.
