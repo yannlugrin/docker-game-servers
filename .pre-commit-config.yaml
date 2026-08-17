@@ -1,0 +1,37 @@
+# The single declaration of what "well-formed" means in this repository.
+#
+# `just check` runs these hooks over an explicit file list, and the git
+# commit hook runs the same ones over what is staged, so the two runners
+# cannot drift apart into different ideas of green.
+#
+# Check families arrive with the first file of their class, never ahead of
+# it (CLAUDE.md rule 2). Today that is JSON, YAML and the justfile; a green
+# run therefore says nothing about artifact classes this repository does not
+# yet contain.
+
+# Two standing path exclusions, keyed on the path and not on tracked status:
+# `.claude/spec-work/` is no session's reading material, and `.claude/refs/`
+# is operator-supplied material owned elsewhere — not this repository's
+# product to lint.
+exclude: ^\.claude/(spec-work|refs)/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # `.claude/settings.json` is the permission enforcement mechanism
+      # itself: malformed, it fails as quietly as a hook that never runs.
+      - id: check-json
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      # The justfile is the harness's own entry point, and `just` is the
+      # only tool that can parse it. `--fmt --check` reports both a syntax
+      # error and a formatting drift without rewriting the file.
+      - id: just-fmt-check
+        name: justfile parses and is canonically formatted
+        entry: just --fmt --check
+        language: system
+        files: ^justfile$
+        pass_filenames: false

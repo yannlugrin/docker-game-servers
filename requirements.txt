@@ -1,0 +1,7 @@
+# The pinned toolchain, installed into ./.venv by `just setup`.
+#
+# Only pre-commit is listed: every linter this repository runs is declared in
+# .pre-commit-config.yaml and pinned there by revision, which pre-commit
+# installs into its own isolated environments. Adding a linter here as well
+# would give it two pinned versions that can disagree.
+pre-commit==4.6.2

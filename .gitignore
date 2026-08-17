@@ -1,1 +1,36 @@
+# Nothing here is a requirement source; it keeps local working material and
+# anything carrying a credential out of the repository (CLAUDE.md rule 5).
+
+# --- The local toolchain, installed by `just setup` ---
+/.venv/
+
+# --- Local scratch: test state roots, volume mounts, and game content ---
+# One ignored root, so a local test never has to invent a new ignore rule.
+# Game content downloaded outside an image build lives here too: it is
+# multi-gigabyte and belongs in a registry, never in git history.
+/.local/
+
+# --- Environment files ---
+# Runtime configuration and test credentials. Committed examples carry
+# obvious placeholders and end in `.example`.
+.env
+.env.*
+!.env.example
+
+# --- Tool caches ---
+__pycache__/
+*.py[cod]
+.cache/
+.ruff_cache/
+.pytest_cache/
+
+# --- Implementation-side working material ---
+# Reviewer agents write their reports here and assume the directory is
+# ignored: an untracked report otherwise fails every clean-tree precondition
+# the handover and approval rituals check.
+.claude/reviews/
+# Agent worktrees are checkouts of this repository inside itself. Tracking
+# them would swallow an agent's working copy into an unrelated commit.
 .claude/worktrees/
+# Operator-local instructions, deliberately not shared.
+CLAUDE.local.md
