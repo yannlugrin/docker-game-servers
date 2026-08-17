@@ -43,7 +43,7 @@ renumbering sweep still leaves the reference decodable.
 
 ### Entry format
 
-```
+```text
 ## D-NNN — <short title>
 
 - **Date:** YYYY-MM-DD
@@ -404,3 +404,81 @@ renumbering sweep still leaves the reference decodable.
     baseline is only meaningful once something in it was judged.
 - **Approved by:** operator (who selected secret scanning from a proposal
   after the gap was reported)
+
+## D-009 — The document lint: `pymarkdown` and `codespell`, bent to fit
+
+- **Date:** 2026-08-17
+- **Step:** `step-001` — The governance and prose lint
+- **Context:** In this repository documents are load-bearing — the
+  specifications are the sole source of requirements, the plans are the
+  current-state record — so they are linted like code. `step-001` fixes the
+  direction of fit in advance: the specifications are read-only under rule 1,
+  so **the lint bends to them and never the reverse**, and every bend is a
+  logged decision rather than a quiet config line. This entry is that log.
+- **Decision:** Adopt **`pymarkdown` v0.9.39** for markdown structure and
+  **`codespell` v2.4.3** for spelling, both pinned by revision in
+  `.pre-commit-config.yaml`, both **report-only** — `pymarkdown` runs `scan`,
+  not `fix`, and `codespell` runs without `-w`.
+  **Four bends, and no more.** Measured over the thirteen governance and
+  human-facing documents: with these four in place, **every other rule of
+  both tools produces zero findings**, so nothing else was tuned, excluded
+  or invented.
+  1. **Enable the `markdown-tables` extension.** pymarkdown is a CommonMark
+     linter and CommonMark has no tables, so without it every table row is
+     parsed as ordinary paragraph text and bend 2 below is unreachable. This
+     was measured, not assumed: `tables: false` had no effect whatsoever
+     until the extension was on.
+  2. **`md013.tables: false`.** A table row cannot be wrapped — the row is
+     the record and a line break ends it — so a wide table is not a style
+     anyone can correct. 106 of the 108 over-long lines were table rows, 17
+     of them inside read-only specifications.
+  3. **`md013.line_length: 88`, not 80.** For exactly one line:
+     `SPECIFICATIONS.md` line 799 is 87 characters of ordinary prose in a
+     document that otherwise wraps at ~76. It is read-only, so the rule
+     yields. 88 is not invented for the purpose — it is the width this
+     repository already owes `.claude/hooks/bash_guard.py` at `step-002`.
+     **Reported to the operator**, because rewrapping that one line would
+     let this bend disappear entirely.
+  4. **`codespell --ignore-words-list=unparseable`.** A standard variant
+     spelling that codespell prefers to write `unparsable`, used by root
+     §3.4. The specification cannot be edited to satisfy a linter, and the
+     plans quoting its wording stay consistent with it.
+  **Five documents were changed rather than exempted**, none of them a
+  specification: three unlabelled code fences gained a `text` language
+  (`DECISIONS.md`, and the `sc` and `pz` decision logs, whose entry-format
+  template is the same block in each), and one over-long comment in
+  `README.md`'s command listing was shortened. The plan's bend-to-the-document
+  rule is grounded in the specifications being **read-only**; a plan or a log
+  is not, so a one-word fix there beats weakening a rule for everyone.
+- **`.claude/docs/` note: not written, deliberately.** `step-001` owes one
+  **for any repairing hook adopted**. None was: every hook in this
+  repository reports and none rewrites, which is now true of the whole
+  harness rather than of this step alone. The condition did not fire, so the
+  note would document a hazard that does not exist.
+- **Alternatives considered:**
+  - *`markdownlint` / `markdownlint-cli2`.* The more widely used tool, and it
+    supports the table exemption natively rather than through an extension
+    still at 0.1.0. Rejected on runtime cost against a measured benefit of
+    zero: `environment.md` records node as absent, so it would add a node
+    toolchain — downloaded here and cached again in CI at `step-005` — for a
+    result this repository's documents already achieve. Reopen if the tables
+    extension misbehaves on upgrade, which is the named risk below.
+  - *`vale` for prose style.* Rejected: it needs a style package chosen and
+    tuned, and every mainstream one would fight 2,700 lines of deliberate,
+    carefully written specification prose. That is the "high-iteration task"
+    `step-001` was split off to contain, and containing it means declining
+    the tool, not budgeting for the fight. `codespell` catches what is
+    objectively wrong — a misspelling — and asserts nothing about style.
+  - *Disable `md040` (fenced-code-language) instead of labelling three
+    fences.* Rejected: it is a real rule that will matter for the human
+    documentation of §9, and three one-word edits cost less than losing it.
+  - *Raise `line_length` far enough to cover tables too, and drop bend 1.*
+    Rejected: it would set the limit above 450 and stop catching anything.
+- **The one risk, named:** the `markdown-tables` extension is version 0.1.0 —
+  the only part of this harness running on something upstream still calls
+  experimental. Measured at adoption, enabling it produced **no findings of
+  its own** and correctly exempted 106 rows. That is the property to
+  re-measure on upgrade; `.pymarkdown.yaml` carries the instruction.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — the harness's shape and names). Bend 3 carries a question to
+  the operator rather than a request for approval.

@@ -38,6 +38,7 @@ does not duplicate them.
 | `CLAUDE.md` | Standing instructions for the AI implementing this repository. Not a description of the project — see the note below. |
 | `justfile` | The check harness's entry points: `setup`, `check`, `test`, `verify`. See "Working on this repository" below. |
 | `.pre-commit-config.yaml` | What "well-formed" means here — the single declaration both `just check` and the git commit hook run, so the two cannot disagree. |
+| `.pymarkdown.yaml` | Markdown lint settings, tuned to these documents as they already are. Each departure from the defaults says why, and is logged in `DECISIONS.md`. |
 | `requirements.txt` | The pinned toolchain `just setup` installs into `./.venv`. |
 | `.gitignore`, `.gitattributes` | What git ignores, and the repository's line-ending policy — LF everywhere, because these images ship shell entrypoints. |
 | `LICENSE` | MIT. |
@@ -60,7 +61,7 @@ what runs it: [`just`](https://github.com/casey/just), `python3` with the
 `venv` module, and `git`.
 
 ```sh
-just setup           # install the pinned toolchain into ./.venv, wire the commit hooks
+just setup           # install the pinned toolchain, wire the commit hooks
 just check           # is what is committed here well-formed? (whole tree)
 just check <path>    # the same checks, narrowed to a pathspec
 just test            # is the implementation right?
@@ -73,7 +74,17 @@ this repository does not own. The same checks run automatically on `git
 commit` over what is staged. Alongside the well-formedness checks it runs a
 secret scan and a set of guards against mistakes a later commit cannot undo:
 an oversized file, a missing shebang or executable bit, a conflict marker, a
-stray submodule. Nothing it runs rewrites a file.
+stray submodule.
+
+The documents are linted too — structure and spelling — because in this
+repository documents are load-bearing. The lint is configured to the
+documents as they already are rather than the other way round: the
+specifications are read-only, so where a rule and a specification disagree,
+the rule yields, and each such case is a logged decision.
+
+**Nothing `just check` runs rewrites a file.** A failing check reports; it
+never edits, which is what keeps a read-only specification safe from its own
+harness.
 
 `just test` currently reports that there is no behaviour of this repository's
 own to test yet, which is the accurate answer rather than a gap: check

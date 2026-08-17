@@ -48,7 +48,7 @@ renumbering sweep still leaves the reference decodable.
 
 ### Entry format
 
-```
+```text
 ## D-NNN — <short title>
 
 - **Date:** YYYY-MM-DD

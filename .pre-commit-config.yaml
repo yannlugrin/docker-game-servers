@@ -96,6 +96,38 @@ repos:
       # than maintaining a file of hashes in anticipation (rule 11).
       - id: detect-secrets
 
+  # --- The documents themselves ---
+  # In this repository documents are load-bearing: the specifications are
+  # the sole source of requirements, the plans are the current-state record,
+  # and `CLAUDE.md` is the standing instruction set. They are linted like
+  # code. Both hooks below report; neither rewrites.
+
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.39
+    hooks:
+      # `--config` is explicit because pymarkdown 0.9.39 does not
+      # auto-discover `.pymarkdown.yaml` — measured, and a config silently
+      # not read is the same failure as a linter that never runs.
+      # `--strict-config` turns a mistyped key in that file into an error
+      # rather than a setting that quietly does nothing. `scan` restores the
+      # hook's own default argument, which naming `args` replaces.
+      - id: pymarkdown
+        args: [--strict-config, --config, .pymarkdown.yaml, scan]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      # Spelling over every text file, not only the markdown ones, so a typo
+      # in a comment is caught alongside one in a document.
+      #
+      # One allowed word, and it is the read-only rule at work: `unparseable`
+      # is a standard variant spelling that codespell prefers to write
+      # `unparsable`, and root §3.4 uses it. The specification cannot be
+      # edited to satisfy a linter, so the linter yields — and the plans that
+      # quote the specification's wording stay consistent with it. D-009.
+      - id: codespell
+        args: [--ignore-words-list=unparseable]
+
   - repo: local
     hooks:
       # The justfile is the harness's own entry point, and `just` is the

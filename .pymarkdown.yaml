@@ -1,0 +1,52 @@
+# Markdown lint configuration, tuned to the documents as they already are.
+#
+# In this repository documents are load-bearing, so they are linted like
+# code. The specifications are read-only under rule 1, which fixes the
+# direction of fit: where a rule and a specification disagree, the rule
+# bends. Every bend below is a logged decision (DECISIONS.md D-009), never a
+# quiet config line, and there are exactly three.
+#
+# Everything else runs at pymarkdown's defaults. Measured at adoption over
+# the thirteen governance and human-facing documents: no other rule produces
+# a single finding, so nothing else was tuned or invented.
+#
+# Passed explicitly with `--config` rather than left to discovery: measured
+# at adoption, pymarkdown 0.9.39 does not auto-discover a `.pymarkdown.yaml`
+# in the working directory, and a config file that is silently not read is
+# the same failure as a linter that never runs.
+
+extensions:
+  # Bend 1. pymarkdown is a CommonMark linter, and CommonMark has no tables.
+  # Without this extension it parses every table row as ordinary paragraph
+  # text, which makes the table exemption below unreachable — measured, not
+  # assumed: the setting had no effect at all until this was enabled.
+  #
+  # The extension is version 0.1.0, so it is the one piece of this harness
+  # running on something the upstream project still calls experimental.
+  # Re-check on upgrade: enabling it changed nothing except correctly
+  # exempting 106 table rows — it produced no new findings of its own, which
+  # is the property to re-measure if these documents ever start reporting
+  # something strange.
+  markdown-tables:
+    enabled: true
+
+plugins:
+  md013:
+    # Prose in this repository wraps at roughly 76 columns by hand, and this
+    # rule holds it there.
+    #
+    # Bend 2. A markdown table row cannot be wrapped — the row is the record
+    # and a line break ends it — so a wide table is not a style anyone can
+    # correct. 106 of the 108 over-long lines measured at adoption were
+    # table rows, 17 of them inside read-only specifications.
+    tables: false
+    # Bend 3. 88 rather than 80, for one line: `SPECIFICATIONS.md` line 799
+    # is 87 characters of ordinary prose in a document that otherwise wraps
+    # at 76. It is read-only, so it cannot be rewrapped, and the rule bends
+    # instead. 88 is not invented for the purpose — it is the width this
+    # repository already owes `.claude/hooks/bash_guard.py`, whose own
+    # docstring names that exemption.
+    #
+    # If that line is ever rewrapped, this drops back to 80 and the whole
+    # bend disappears.
+    line_length: 88
