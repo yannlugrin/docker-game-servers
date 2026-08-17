@@ -143,72 +143,32 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   `.claude/docs/permissions.md` §7. Detail in git history between tags
   `step-001` and `step-002`.
 
-### step-003 — The reviewer agents — `awaiting test`
+### step-003 — The reviewer agents — `done`
 
-- **Objective.** The subagents later steps and every milestone close depend
-  on, plus the probes that decide whether their boundary text can be a
-  citation or must be inlined.
-- **Spec sections implemented.** None — workflow tooling.
-- **Depends on.** `step-002` (the agents cite the boundary it enforces).
-- **Deliverables.**
-  - Instantiated from `.claude/spec-work/handoff/assets/` per rule 3:
-    `step-reviewer`, plus the two agents whose trigger is a **certainty of
-    this plan** — `state-reviewer` and `optimize-memory`, which a milestone
-    close needs to *exist* before it arrives rather than improvised at the
-    boundary. A recovery ritual created during the crisis it is needed for is
-    too late. **This anticipates need deliberately, and rule 3 settles it:
-    what waits is decided by the certainty of the trigger, not by whether the
-    trigger has fired yet** — the first milestone close is this milestone's
-    own, at `step-005`.
-  - The conditionally triggered rest (`code-reviewer`, `test-reviewer`) is
-    **proposed only when its trigger exists** — this repository has neither
-    implementation code nor a test suite yet. They stay on `CLAUDE.md`'s
-    not-yet-adopted list until then.
-  - The **governance frontmatter parse** check family arrives with these,
-    the first files of their class (rule 2, never-ahead): the frontmatter must
-    parse, because a malformed agent does not fail — it silently never loads.
-    The parse has no standard ecosystem tool, so a few-line custom check is
-    sanctioned here. Checking further is a *should*, worth doing only where
-    it is exact (an agent name against `.claude/agents/`, a path against the
-    tree) and worth refusing where it is not: scanning prose for backticked
-    tokens and asserting each resolves is a false-positive machine that grows
-    worse as the repository does.
-  - **A template arrives with placeholders on purpose:** a leftover one is
-    visible, while a plausible wrong filename is not — so a placeholder is
-    filled with a verified real path or left as a placeholder, never guessed
-    at. A placeholder whose referent does not exist yet — the state
-    reviewer's architecture vocabulary and inspection commands, in a
-    repository where nothing is built — is seeded from the specification's
-    own vocabulary and kept current under rule 6 as the system materialises.
-  - **No instantiated file may name a skill or agent that was not adopted**:
-    trim the reference or adopt it, because a dangling name is a ritual that
-    silently skips a step. One carve-out: a name on `CLAUDE.md`'s
-    not-yet-adopted list is not dangling — it is the documented fallback the
-    milestone ritual relies on.
-  - Each adoption logged (rule 3, rule 4).
-  - **Probes, run at this step because these are this step's mechanisms —
-    and the probes are independent, so one passing says nothing about
-    another** (pinning them all to the first step would mean probing
-    mechanisms that do not exist yet, which reports a pass for nothing).
-    Whether an **agent's `tools:` frontmatter** restricts anything at all;
-    and **whether `CLAUDE.md` reaches a subagent's context at all** — one
-    exchange with the first agent this step spawns ("quote rule 9's opening
-    line"). Every reviewer agent's boundary rests on that answer.
-    **Pre-committed unfavourable branch:** if `CLAUDE.md` does not reach a
-    subagent's context, each agent's body carries the gated set **inlined** —
-    a logged decision naming the single-source-of-truth cost — never a
-    citation to a rule the agent cannot read. Results land in the
-    `.claude/docs/` measurements file with version, method and re-measure
-    recipe. `.claude/rules/` is probed only if a step ever adopts a rules
-    file; none does today.
-- **How I test it.** Free and local. **A new agent may only be picked up at
-  session start, so restart the session (or `/clear`) before testing.** Then
-  spawn `step-reviewer` over this step's own diff and see it apply
-  `README.md`'s review frame and report without modifying anything; read the
-  probe results in `.claude/docs/`, including the answer to whether
-  `CLAUDE.md` reached the agent. `just check` covers the new frontmatter
-  family.
-- **Status.** `awaiting test`
+- **Outcome (approved 2026-08-17, tag `step-003`):** three agents exist at
+  `.claude/agents/` — `step-reviewer`, `state-reviewer`, `optimize-memory` —
+  so the milestone close at `step-005` finds its passes already built rather
+  than improvising them (D-011). `code-reviewer` and `test-reviewer` stay
+  unadopted, their triggers being genuinely absent, and remain on
+  `CLAUDE.md`'s not-yet-adopted list so a ritual citing them does not dangle.
+  Four template departures are logged: governance placeholders resolve at
+  invocation through a track table, with the track **named at spawn** for the
+  two close passes; `optimize-memory`'s budget follows D-002's 280/~250, a
+  template enumeration narrower than its rule losing to the rule; the
+  architecture vocabulary is seeded from the specification and says so; and
+  `tools:` was left as set after checking this build's inventory.
+  **Both probes were run, not argued** — `.claude/docs/agents.md` carries them
+  with version, method and re-measure recipe: `CLAUDE.md` **does** reach a
+  subagent, arriving as project instructions before its first tool call and
+  never fetched with a tool, so **the pre-committed inlining branch does not
+  fire**; and `tools:` **binds by omission**. Recorded with the limit that
+  outlives the result — `tools:` restricts which tools exist, not what they
+  do, and `Bash` writes, so a reviewer's read-only discipline rests on its
+  prose. Also measured: a new agent loads only at session start, so no step
+  can test an agent it creates. The governance **frontmatter parse** family
+  arrived with the first files of its class, deliberately narrow, and
+  `pymarkdown` gained the `front-matter` extension. Detail in git history
+  between tags `step-002` and `step-003`.
 
 ### step-004 — The session rituals — `pending`
 
