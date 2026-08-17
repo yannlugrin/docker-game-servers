@@ -115,129 +115,33 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   no word changed, retiring a fourth bend. Detail in git history between tags
   `step-000` and `step-001`.
 
-### step-002 — The permission and hook baseline — `awaiting test`
+### step-002 — The permission and hook baseline — `done`
 
-- **Objective.** Rule 9's boundary enforced mechanically, proposed to the
-  operator as one reviewable whole, with every mechanism measured rather
-  than assumed.
-- **Spec sections implemented.** None — workflow enforcement.
-- **Depends on.** `step-000` (the guard's `--liveness` is wired into the
-  commit hooks and its `--selftest` into `test`).
-- **Deliverables.** The guard decides the shape of the settings, not the
-  other way round; the guard lands and is demonstrable before the settings
-  half is proposed, so the operator's single review has something working to
-  read.
-  - **The guard first.** Instantiate
-    `.claude/spec-work/handoff/assets/bash_guard.py` as
-    `.claude/hooks/bash_guard.py` (executable), read its module docstring in
-    full, and edit **only** its `REGISTRY`. That docstring is the doctrine
-    for this deliverable: how to choose between *rules* and *grants* per
-    tool, what must land in `.claude/settings.json`, what the guard cannot
-    see, and the rule that its `GIT` ground rules are the same in every
-    project and are **added to, never weakened**.
-  - An inventory of what this project actually runs, each tool given the
-    acts rule 9 gates *for this project*: the harness (`just`,
-    `pre-commit`), `docker` and its relatives, `steamcmd` invocations, `gh`.
-  - The guard cannot see inside a `just` recipe — it sees `just release`,
-    never the `docker push` inside it. That is why rule 2 carries the
-    **no-gated-act justfile invariant**; record it here as a rule of the
-    baseline, and keep the justfile honest to it whenever a recipe changes.
-  - Every rule **and every grant** added gets a `CASES` entry: `--selftest`
-    fails on **a rule or a grant** no case reaches, which is what keeps the
-    intent executable rather than remembered — and grants are the carve-out
-    half of the registry, the half that widens the surface.
-  - **Then the settings**, per the docstring's pairing: one broad allow per
-    registry tool; **no `ask` rule for anything the guard gates** (a
-    matching `ask` prompts even where the guard says allow, so it cancels
-    every carve-out); no prefix rule restating a guard decision (a prefix is
-    strictly weaker and gives two sources of truth); and, as the **one
-    deliberate exception**, a short `deny` backstop for the acts that cannot
-    be undone — a hook fails open, and a prefix rule that binds without it
-    is worth more than the duplication costs. Keep it short enough that the
-    exception stays visible as one. `ask` stays for tools the guard has no
-    registry entry for (`curl`, whatever else this project reaches for).
-    **`git push` is not one of them**: it is gated in the guard's ground
-    rules, and restating it as a prefix rule is the two-sources-of-truth
-    case, the weaker of which misses `git -C dir push`. What holds for a
-    push wherever it is expressed is the *tier*: **it asks and is never
-    denied** — a denied pattern cannot be approved in the very exchange rule
-    9 relies on. `deny` stays reserved for what has no authorised use at
-    all, each named in the proposal.
-  - Auto memory is already off (`.claude/settings.json`) — keep it off.
-  - **Gated twice, two different questions.** `bash_guard.py --liveness` in
-    the pre-commit lint: the file is executable, the registry builds, every
-    rule and grant is well-formed, a payload still comes back as a verdict —
-    no behaviour cases, so a lint stays a lint, and the silent deaths (a
-    syntax error from an edit, a lost `+x`, a rename) fail the commit.
-    `bash_guard.py --selftest` in the *test* entry point: liveness, then
-    every case, then coverage — **a rule or grant no case reaches fails
-    it**. Both are prescribed; the proposal records what `--liveness` costs
-    in the commit path, so the split stays a measured choice. **A guard that
-    stops working must fail a gate, not fail quietly** — which binds any
-    further way the guard might die, not only these two.
-  - The proposal says plainly **what a dead guard would leave open** — a
-    broad allow plus a dead hook is a wider surface than a narrow allow list
-    ever was, which is exactly where the `deny` backstop earns its place.
-  - The **governance well-formedness** family gains its first behavioural
-    member here: the hook path in `.claude/settings.json` **resolves** — a
-    path naming a file that is not there leaves valid JSON, a settings file
-    that loads, a green lint, and a guard that never runs.
-  - The **Python check family** arrives with this file (rule 2's never-ahead
-    rule): the guard is the repository's first Python, and it ships whatever
-    the entrypoint language turns out to be. It carries the **width
-    exemption its own docstring names for that one path** (88 columns) —
-    with `pre-commit`, the exemption also needs `force-exclude`, since
-    filenames are passed explicitly.
-  - **Then measure, and write down what was measured.** Rule 2's probes for
-    this step's mechanisms run here, and the results land in a
-    `.claude/docs/` file — **never in `CLAUDE.md`**, which has no staleness
-    discipline: a version-stamped fact restated in standing instructions
-    outlives its version in silence. Every claim carries the version it was
-    taken on, the method, and a short re-measure recipe to re-run after a
-    Claude Code update. Probe at least: whether the settings keys set here
-    are honoured (`autoMemoryEnabled: false` included); which spelling of a
-    path rule the file tools actually match; whether the hook is **reached**
-    at all; and the three-command liveness check the session rituals of
-    `step-004` can run — one command that must run silently, one the guard
-    *grants*, and one it must **refuse, naming the rule that read it**. That
-    third probe is the only one that says the hook is reached: if it merely
-    prompts, the hook is not wired and the `deny` backstop is all that is
-    left, while `--selftest` and `--liveness` would still pass — they answer
-    whether the file is correct, not whether anything calls it. **Assume
-    nothing here, including from this plan:** a mechanism that turns out to
-    enforce nothing is a guard on paper, and the failure announces nothing.
-    **Whatever the probe finds, what binds is what you keep** — measurement
-    beats documented belief, including this plan's.
-  - **The permission mode**, named in the proposal and set as a committed
-    setting (`permissions.defaultMode`), not left to a per-session choice —
-    it decides how much the rest has to carry. This plan names no modes and
-    asserts no mode behaviour deliberately: the mode set, and what each mode
-    does to an unmatched command, are properties of the installed version —
-    **modes exist that prompt, that auto-approve, and that judge by
-    classifier and can deny outright: three different answers to what backs
-    the guard's silence**. Take the list from the running version and
-    **probe the mode proposed**: what an unmatched command does under it, and
-    **whether a hook `ask` still prompts** — the close ritual attempts its
-    push in reliance on that, and a gate that has stopped gating says nothing
-    about it. Set the mode rather than working around it (a mode that
-    auto-accepts file edits is what removes the need for a blanket
-    `Edit(/**)` allowance), and let it decide whether the mode-disabling keys
-    belong in the baseline at all.
-  - The step summary reports **what each mechanism actually did, including
-    the ones that turned out to enforce nothing**.
-  - **Premises to settle by probe before the settings design rests on
-    them** (the specification states none of these): that
-    `permissions.defaultMode` exists as a key; that a matching `ask` prompts
-    even where a hook returns allow; that a denied pattern cannot be
-    approved in-exchange; that a hook fails open. Probe first, design second.
-- **How I test it.** Free and local. Read the proposal (the registry, the
-  settings baseline, the named `deny` list, the proposed permission mode)
-  and the `.claude/docs/` measurements file; run `.claude/hooks/bash_guard.py
-  --selftest` and see it green; run the three liveness commands from the
-  measurements file and observe silence, a grant, and a refusal **naming its
-  rule**. The permission baseline is explicitly outside the "should"
-  latitude — this step exists to put it to the operator.
-- **Status.** `pending`
+- **Outcome (approved 2026-08-17, tag `step-002`):** rule 9's boundary is
+  enforced mechanically and every mechanism was measured rather than assumed.
+  `.claude/hooks/bash_guard.py` is instantiated from the template with **only
+  its `REGISTRY` edited**: `git` and `docker` keep the template's rules, `gh`
+  is expressed as grants because rule 9 rules API reads free and gates writes,
+  `steamcmd` as a vocabulary grant; `just` and `pre-commit` get no entry,
+  because what keeps them safe is rule 2's no-gated-act invariant, which lives
+  outside the guard. Gated twice: `--liveness` in the commit path on every
+  commit (`always_run`, since a rename would skip a path-keyed hook), and
+  `--selftest` as `just test` — 133 registry cases, 174 engine cases, 57/57
+  rules and grants covered. The operator applied the settings baseline (D-010):
+  broad allow per registry tool, no `ask` for anything the guard gates, an
+  eight-entry `deny` backstop, `defaultMode: acceptEdits`. Python arrived as a
+  check family (`ruff check` only — `ruff-format` rewrites and would reflow the
+  vendored guard), and governance well-formedness gained
+  `scripts/check_settings_hooks.py`.
+  **Measured, and three findings changed what is believed:** a hook **fails
+  open** — with the guard non-executable a refused command ran unprompted;
+  installing settings does **not** activate a hook in the session that wrote
+  them; and both mode-dependent behaviours differ between `auto` and
+  `acceptEdits`, including that **the implementer can edit its own permission
+  boundary** under what ships. This baseline stops mistakes, not a determined
+  agent. Open and deliberately not applied: the hardening in
+  `.claude/docs/permissions.md` §7. Detail in git history between tags
+  `step-001` and `step-002`.
 
 ### step-003 — The reviewer agents — `pending`
 

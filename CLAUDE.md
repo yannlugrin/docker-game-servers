@@ -252,7 +252,7 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** `step-002` — The permission and hook baseline (root track).
+- **Current step:** none in progress; `step-002` is closed and tagged.
 - **Next step:** `step-003` — The reviewer agents (root track).
 - **Live world-state:** no image built, none published, no CI. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work
@@ -262,5 +262,7 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
   (rule 1).
 - **Open obligations:** `PLAN.md`'s external prerequisites — the GHCR package
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
+  Plus the permission hardening of `.claude/docs/permissions.md` §7, proposed
+  and deliberately not applied.
 - **`.claude/docs/` pointers:** `workflow.md`, `environment.md` and
   `permissions.md` (all above). `step-pz-001` adds `pz-facts.md`.
