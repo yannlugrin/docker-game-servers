@@ -39,6 +39,7 @@ does not duplicate them.
 | `justfile` | The check harness's entry points: `setup`, `check`, `test`, `verify`. See "Working on this repository" below. |
 | `.pre-commit-config.yaml` | What "well-formed" means here — the single declaration both `just check` and the git commit hook run, so the two cannot disagree. |
 | `requirements.txt` | The pinned toolchain `just setup` installs into `./.venv`. |
+| `.gitignore`, `.gitattributes` | What git ignores, and the repository's line-ending policy — LF everywhere, because these images ship shell entrypoints. |
 | `LICENSE` | MIT. |
 | `.claude/` | Implementation-side working material: the AI's own memory, tooling and reference inputs. Nothing here is a requirement source, and a human reader can ignore it entirely. |
 
@@ -69,7 +70,10 @@ just verify          # both, in order
 `just check` looks at tracked *and* untracked files, skipping anything
 `.gitignore` covers, plus `.claude/spec-work/` and `.claude/refs/` — material
 this repository does not own. The same checks run automatically on `git
-commit` over what is staged.
+commit` over what is staged. Alongside the well-formedness checks it runs a
+secret scan and a set of guards against mistakes a later commit cannot undo:
+an oversized file, a missing shebang or executable bit, a conflict marker, a
+stray submodule. Nothing it runs rewrites a file.
 
 `just test` currently reports that there is no behaviour of this repository's
 own to test yet, which is the accurate answer rather than a gap: check

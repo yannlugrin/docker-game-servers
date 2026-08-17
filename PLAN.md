@@ -158,6 +158,13 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
     lint, workflow validation, Python lint and the skill/agent frontmatter
     parse arrive with their first artifact, in the step that lands it — so
     this step's green gate says nothing about files that are not there.
+  - **Guards that are keyed to no artifact class**, and so fall outside the
+    never-ahead rule rather than being permitted by it: repository hygiene
+    (oversized files, the shebang/executable pair, conflict markers, case
+    collisions, submodules, mixed line endings, and the `.gitattributes` LF
+    policy) and **secret detection**, which no step in any plan had scheduled
+    although rule 5 and §5.4 both require it. Admitted on blast radius: each
+    catches a mistake that survives the commit that makes it. D-007, D-008.
   - Documented commands, runnable by the operator too, listed in
     `README.md`.
   - **The CI workflow is deliberately not in this step** but in `step-005`:

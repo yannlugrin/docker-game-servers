@@ -4,10 +4,12 @@
 # commit hook runs the same ones over what is staged, so the two runners
 # cannot drift apart into different ideas of green.
 #
-# Check families arrive with the first file of their class, never ahead of
-# it (CLAUDE.md rule 2). Today that is JSON, YAML and the justfile; a green
-# run therefore says nothing about artifact classes this repository does not
-# yet contain.
+# Nothing here rewrites a file. A failing check must report, never mutate —
+# the specifications are read-only under rule 1, and a check that edits them
+# is a rule violation performed by the harness itself. The two repairing
+# hooks worth having (trailing whitespace, final newline) are `step-001`'s
+# decision, because that step owes a `.claude/docs/` note for any hook that
+# rewrites.
 
 # Two standing path exclusions, keyed on the path and not on tracked status:
 # `.claude/spec-work/` is no session's reading material, and `.claude/refs/`
@@ -19,10 +21,80 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # --- Well-formedness, one family per artifact class present today ---
+      # Check families arrive with the first file of their class, never
+      # ahead of it (rule 2). A green run therefore says nothing about
+      # artifact classes this repository does not yet contain.
+
       # `.claude/settings.json` is the permission enforcement mechanism
       # itself: malformed, it fails as quietly as a hook that never runs.
       - id: check-json
       - id: check-yaml
+
+      # --- Repository hygiene: guards whose value is retroactive ---
+      # These are not artifact-class families. They earn their place on
+      # blast radius instead: each one guards a mistake that cannot be
+      # undone once committed, so the guard has to predate the risk.
+
+      # The `pz` track downloads multi-gigabyte game content. A blob in git
+      # history is unrecoverable without rewriting history — which rule 9
+      # protects — so this must be in place before the first download, not
+      # alongside it. `--enforce-all` checks every file it is handed rather
+      # than only the newly added ones, which is what makes it see the
+      # untracked files `just check` deliberately passes in.
+      - id: check-added-large-files
+        args: [--enforce-all]
+
+      # `step-002`'s guard names a lost `+x` as one of its silent deaths,
+      # and every game entrypoint after it has the same failure mode: a
+      # script that is executable without a shebang, or carries a shebang
+      # without being executable, fails at runtime and nowhere earlier.
+      #
+      # Measured, because the two differ: the first reads the filesystem
+      # mode and so sees untracked files, while the second reads the *git
+      # index* filemode (deliberately, so it also works on Windows) and
+      # therefore only ever fires on tracked files — at commit time, which
+      # is when it matters.
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+      # A conflict marker committed into an entrypoint is a runtime break.
+      - id: check-merge-conflict
+      # This repository is developed on WSL2 and consumed on case-sensitive
+      # filesystems; a case collision is invisible on one and fatal on the
+      # other.
+      - id: check-case-conflict
+      # Nothing here vendors another repository, and a submodule added by
+      # accident breaks every clone that does not know to recurse.
+      - id: forbid-submodules
+      # Measured: this hook flags a file carrying *more than one* ending
+      # style — a half-converted file — and passes a uniformly-CRLF one.
+      # Enforcing LF everywhere is `.gitattributes`' job, and that file
+      # explains why the pair is needed. `--fix=no` keeps this a report
+      # rather than a rewrite.
+      - id: mixed-line-ending
+        args: [--fix=no]
+
+      # --- Secrets: rule 5, mechanically ---
+      # Rule 5 says a secret never enters the repository — not in files, not
+      # in examples with real values, not in commit messages — and it is the
+      # one rule whose violation cannot be undone by a later commit.
+      - id: detect-private-key
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      # Chosen over gitleaks for a design reason, not a quality one: this
+      # hook takes filenames, so it sees the untracked files `just check`
+      # passes it. gitleaks' hook scans the staged git diff instead, which
+      # would fit the commit hook and silently skip a secret sitting
+      # uncommitted in the working tree — the case that matters most.
+      #
+      # Deliberately run with no `.secrets.baseline`: a baseline is an
+      # allowlist for known false positives, and there are none yet.
+      # Introduce one at the moment a real false positive appears, rather
+      # than maintaining a file of hashes in anticipation (rule 11).
+      - id: detect-secrets
 
   - repo: local
     hooks:

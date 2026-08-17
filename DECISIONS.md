@@ -304,44 +304,103 @@ renumbering sweep still leaves the reference decodable.
 - **Approved by:** implementer, within latitude (workflow choices left to the
   implementer — the harness's shape and names)
 
-## D-007 — Which check families land at `step-000`, and no repairing hook yet
+## D-007 — What `just check` covers at `step-000`
 
 - **Date:** 2026-08-17
 - **Step:** `step-000` — The harness skeleton, local only
-- **Context:** Rule 2 says a check family arrives with the first file of its
-  class, in the step that lands it. `step-000` names JSON well-formedness
-  explicitly and permits markdown structural lint "where it needs no tuning",
-  while assigning the prose lint over the governance documents to `step-001`.
-  Markdown files — 2,700 lines of read-only specification among them — exist
-  in quantity today, so the never-ahead rule alone does not settle whether a
-  markdown family belongs here.
-- **Decision:** `step-000` lands exactly three families, all
-  **well-formedness, none repairing**: `check-json` (the class exists —
-  `.claude/settings.json`, which is the enforcement mechanism itself),
-  `check-yaml` (the class arrives with `.pre-commit-config.yaml`), and
-  `just --fmt --check` over the justfile (the class arrives with the
-  justfile; `just` is the only tool that parses it, and `--fmt --check`
-  reports both a syntax error and a formatting drift without rewriting the
-  file). Markdown and prose lint are left whole to `step-001`, and **no hook
-  that rewrites a file is adopted at this step**.
+- **Context:** Rule 2's never-ahead rule governs check families keyed to an
+  **artifact class**. It says nothing about guards keyed to no class at all —
+  repository hygiene and secret detection — and a grep of all three plans
+  found that **no step anywhere had scheduled either**. My first pass
+  therefore landed three well-formedness families and rejected the hygiene
+  hooks on rule 11, which applies the smallest-thing test to guards whose
+  cost is not size but *timing*: several of them protect against mistakes
+  that cannot be undone once committed. The operator raised this by asking
+  what was planned for hygiene, security and whitespace.
+- **Decision:** `just check` carries two groups at this step, **none of which
+  rewrites a file**.
+  1. **Well-formedness, one family per artifact class present today:**
+     `check-json` (`.claude/settings.json`, which is the permission
+     enforcement mechanism itself), `check-yaml` (the class arrives with
+     `.pre-commit-config.yaml`), and `just --fmt --check` over the justfile
+     (`just` is the only tool that parses it, and `--fmt --check` reports a
+     syntax error and a formatting drift without rewriting).
+  2. **Hygiene guards, admitted on blast radius rather than on class:**
+     `check-added-large-files --enforce-all`, `check-executables-have-shebangs`,
+     `check-shebang-scripts-are-executable`, `check-merge-conflict`,
+     `check-case-conflict`, `forbid-submodules`, and
+     `mixed-line-ending --fix=no`, plus a `.gitattributes` declaring
+     `* text=auto eol=lf`. The test each passes is not "is it small" but
+     "does the mistake it catches survive the commit that makes it": a
+     multi-gigabyte blob or a secret in git history is unrecoverable without
+     rewriting history, which rule 9 protects.
+  **Deferred to `step-001`, deliberately:** markdown and prose lint, and
+  **every repairing hook** — `trailing-whitespace` and `end-of-file-fixer`
+  have no check-only mode, so adopting one lets a failing `check` mutate the
+  read-only specifications. `step-001` already owes a `.claude/docs/` note
+  for exactly that, so the decision belongs where its documentation lives.
+- **Measured, and recorded so a later session need not re-derive it:**
+  - `check-added-large-files` without `--enforce-all` inspects only files
+    added to the index, so the flag is what makes it see the untracked files
+    `just check` deliberately passes in.
+  - `check-shebang-scripts-are-executable` reads the **git index** filemode
+    (by design, so it also works on Windows) and therefore fires only on
+    **tracked** files. Its sibling `check-executables-have-shebangs` reads
+    the filesystem mode and does see untracked ones.
+  - `mixed-line-ending` flags a file carrying **more than one** ending style;
+    a uniformly-CRLF file passes it. That is why the LF rule lives in
+    `.gitattributes` and the hook is its complement, not its substitute.
 - **Alternatives considered:**
-  - *Land a markdown structural lint here too.* Rejected on measurement, not
-    taste: the documents it would lint are the read-only specifications, so
-    the lint must bend to them, and "needs no tuning" is a claim that can only
-    be made after tuning has been attempted. That attempt is what `step-001`
-    is for, and it must not hold a green harness hostage — which is the split's
-    stated reason.
-  - *Add the general hygiene hooks (`trailing-whitespace`,
-    `end-of-file-fixer`).* Rejected here: both **rewrite** files, including
-    specifications that are read-only under rule 1, which turns a failing
-    `check` into a mutation. `step-001` already owns the question and requires
-    a `.claude/docs/` note for any repairing hook adopted; deciding it there,
-    once, beats deciding it twice.
-  - *Add `check-merge-conflict`, `check-added-large-files` and relatives.*
-    Rejected: they guard repository hygiene rather than an artifact class, and
-    rule 11 asks for the smallest thing that satisfies the rule. The large-file
-    guard in particular has nothing to guard yet — `.gitignore` keeps game
-    content out, and no build downloads anything at this step.
-- **Approved by:** implementer, within latitude (workflow choices left to the
-  implementer — the harness's shape and names; `step-000`'s own text leaves
-  the markdown family optional)
+  - *Land a markdown structural lint here too.* Rejected: the documents it
+    would lint are the read-only specifications, so the lint must bend to
+    them, and "needs no tuning" is a claim only an attempted tuning can
+    support. That attempt is `step-001`, which must not hold a green harness
+    hostage — the split's own stated reason.
+  - *Rely on `core.autocrlf` instead of `.gitattributes`.* Rejected on
+    measurement: this machine does set `core.autocrlf=input` globally, but
+    that is machine-local configuration that reaches neither a CI runner nor
+    anyone else's clone.
+  - *Keep rule 11's original reading and add nothing.* Rejected: rule 11 asks
+    for the smallest thing that satisfies **the rule**, and the rule these
+    guards serve is not "lint the artifact classes" but rule 5 and the
+    protection of git history.
+- **Approved by:** operator (who asked which hooks were planned, identified
+  that the answer left gaps, and chose the scope from a proposal)
+
+## D-008 — Rule 5 gets a mechanical guard: `detect-secrets` over the file list
+
+- **Date:** 2026-08-17
+- **Step:** `step-000` — The harness skeleton, local only
+- **Context:** Rule 5 says a secret never enters the repository — not in
+  files, not in examples with real values, not in commit messages — and root
+  §5.4 forbids a secret in any image layer, ever. A grep of `PLAN.md`,
+  `steamcmd/PLAN.md` and `project-zomboid/PLAN.md` found **no step that adds
+  any secret-detection mechanism**: the `pz` plan handles credentials
+  thoroughly at the level of *runtime behaviour* (redaction, fatal on a
+  missing mandatory secret, an ephemeral RCON password) and not at all at the
+  level of *what reaches git*. Until now rule 5 rested on implementer
+  discipline plus `.gitignore`. It is also the one rule whose violation a
+  later commit cannot undo.
+- **Decision:** Adopt **`detect-secrets`** (Yelp, pinned by revision at
+  `v1.5.0` in `.pre-commit-config.yaml`) together with `detect-private-key`
+  from the already-pinned hook set. Run it **without a `.secrets.baseline`**:
+  a baseline is an allowlist for known false positives, the tree currently
+  produces none, and a file of hashes maintained in anticipation is exactly
+  what rule 11 rejects. Introduce one at the moment a real false positive
+  appears.
+- **Alternatives considered:**
+  - *`gitleaks`.* The more standard scanner and it needs no baseline, but its
+    pre-commit hook scans the **staged git diff** rather than a file list.
+    That fits the commit hook and silently skips untracked files — and
+    `just check` is built specifically to see untracked files, because a
+    secret sitting uncommitted in the working tree is the case that matters
+    most. Rejected on design fit, not on quality; revisit if
+    `detect-secrets`' false-positive rate makes the baseline burden real.
+  - *`detect-private-key` alone.* Rejected as insufficient: it catches a
+    pasted key block and nothing else, while the credentials this repository
+    will actually handle are passwords and tokens.
+  - *Generate a `.secrets.baseline` now.* Rejected: it would record the
+    current tree as "reviewed" without anything having been reviewed, and a
+    baseline is only meaningful once something in it was judged.
+- **Approved by:** operator (who selected secret scanning from a proposal
+  after the gap was reported)
