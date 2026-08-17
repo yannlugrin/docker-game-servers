@@ -76,110 +76,25 @@ hands over through the rituals `step-003` and `step-004` provide.
 Closing this milestone triggers the whole-state review and then the
 memory-compaction pass (`CLAUDE.md`, rule 3).
 
-### step-000 — The harness skeleton, local only — `awaiting test`
+### step-000 — The harness skeleton, local only — `done`
 
-- **Objective.** A repository that can check itself, locally, from a fresh
-  clone: pinned dependencies behind one setup command, and the
-  check/test/verify entry points of rule 2 — carrying only the check
-  families whose artifacts already exist.
-- **Spec sections implemented.** None directly — this step is rule 2's
-  harness, not specification content.
-- **Depends on.** Nothing.
-- **Deliverables.**
-  - `.gitignore`, rewritten with rule 5 in mind: local test-state roots and
-    volume directories; env files carrying test credentials; tool caches;
-    game content downloaded outside an image build; `CLAUDE.local.md`;
-    `.claude/reviews/` (the reviewer agents write reports there and assume it
-    is ignored — an untracked report otherwise blocks every clean-tree
-    precondition downstream); and `.claude/worktrees/`, which the current
-    `.gitignore` already carries and **must survive the rewrite** — a commit
-    made while an agent worktree exists otherwise swallows its checkout.
-  - Pinned base dependencies, installable through **one documented setup
-    command**. The measured toolchain state of this machine goes in
-    `.claude/docs/environment.md` — the first `.claude/docs/` file, with each
-    figure's date and a re-measure recipe — not into this plan or
-    `CLAUDE.md`, neither of which has staleness discipline. What matters to
-    the design: `pre-commit` and every linter are absent and the setup
-    command must install them, while `pip` and the `venv` module are
-    available. Which bootstrap it uses is a logged workflow decision
-    (rule 4).
-  - The rule-2 harness, **configured rather than written**: the
-    **`pre-commit` framework** (<https://pre-commit.com>) as the hook
-    runner — **the tool of that name, not merely git hooks** — and **`just`**
-    (<https://github.com/casey/just>) as the task runner, because **this
-    stack brings no runner of its own**; each ecosystem's standard linter
-    pinned in one place, no house preference.
-    - `check` — "is what is committed here well-formed?" — syntax, lint and
-      formatting over the working tree, **untracked files included and
-      gitignored paths excluded**, with two standing exclusions **settled
-      here and not re-litigable**, keyed on the path and not on tracked
-      status: everything under `.claude/spec-work/` (rule 1 makes that
-      directory no session's reading material) and everything under
-      `.claude/refs/` (operator-supplied reference material, read-only under
-      rule 3 and owned elsewhere — **not this repository's product to
-      lint**).
-    - `check` takes a **scope**, **in both of rule 2's forms from the
-      start — since every step after this one uses it**: the whole-tree gate
-      as the default, and the narrowed what-changed form the development loop
-      runs between gates — **one entry point taking a scope, never a second
-      recipe**, because two recipes hold two lists of checks and will
-      eventually differ in *what* they look for, not only in how much. A fast
-      narrowed pass is legitimate mid-step; **the commit that receives a step
-      tag runs the full one — that commit is the state every later session
-      treats as known-good.**
-    - The file list is passed to `pre-commit` **explicitly** —
-      `git ls-files --cached --others --exclude-standard` — because runners
-      that enumerate from git (`pre-commit run --all-files` among them) see
-      only what git already knows about. **Never**
-      `git add --intent-to-add`: it writes to the index as a side effect of
-      a *check*, turning `?? file` into ` A file` in `git status
-      --porcelain` — the output the handover and approve rituals read for
-      their clean-tree preconditions — and lets the next `git commit -a`
-      sweep that file into an unrelated commit. The glue is one command
-      substitution, not a bespoke runner.
-    - `test` — "is the implementation right?" — fixtures and expectations
-      proving the behaviour **this repository itself ships**, the cases that
-      must fail included. Three limits: a third-party tool is never
-      retested; a must-warn case is required only where the implementation
-      already defines a warning tier; and where the repository ships no
-      behaviour of its own yet, **a `test` command that says so is the
-      correct state**, not a gap to fill — which is exactly its state at this
-      step.
-    - `verify` — runs both.
-    - The same harness wired into the **commit hooks**, so the local runners
-      cannot diverge.
-  - Check families **only for artifact classes that exist at this step**
-    (rule 2's never-ahead rule): JSON well-formedness for
-    `.claude/settings.json` — **which is the enforcement mechanism itself, so
-    malforming it after `step-002`'s one-time probe fails exactly as quietly
-    as a malformed skill that silently never loads**. Markdown structural
-    lint may land here where it needs no tuning; the prose lint over the
-    governance documents is `step-001`. Dockerfile lint, entrypoint-language
-    lint, workflow validation, Python lint and the skill/agent frontmatter
-    parse arrive with their first artifact, in the step that lands it — so
-    this step's green gate says nothing about files that are not there.
-  - **Guards that are keyed to no artifact class**, and so fall outside the
-    never-ahead rule rather than being permitted by it: repository hygiene
-    (oversized files, the shebang/executable pair, conflict markers, case
-    collisions, submodules, mixed line endings, and the `.gitattributes` LF
-    policy) and **secret detection**, which no step in any plan had scheduled
-    although rule 5 and §5.4 both require it. Admitted on blast radius: each
-    catches a mistake that survives the commit that makes it. D-007, D-008.
-  - Documented commands, runnable by the operator too, listed in
-    `README.md`.
-  - **The CI workflow is deliberately not in this step** but in `step-005`:
-    nothing local can exercise a workflow, and **a tagged step must not carry
-    an artifact its own gate never ran**. Adding anything under
-    `.github/workflows/` here is out of scope, however convenient the moment
-    looks.
-- **How I test it.** All free and local. From a fresh clone of this branch
-  (`git clone . /tmp/gs-clone`): run the documented setup command; run
-  `just check`; make a trivial commit and watch the hook run; run `just
-  test` and see it state that the repository ships no behaviour of its own
-  yet. Then, in the working tree, create a file with a deliberate JSON error
-  and **do not `git add` it** — `just check` must fail on it; delete it.
-  Cleanup: remove the clone directory.
-- **Status.** `awaiting test`
+- **Outcome (approved 2026-08-17, tag `step-000`):** the repository checks
+  itself from a fresh clone. `just setup` installs a pinned toolchain into
+  `./.venv` and wires the commit hooks; `just check [scope]` is one entry
+  point taking a scope, passing its file list explicitly so untracked files
+  are seen without ever writing to the index; `just test` states that no
+  behaviour of this repository's own exists yet; `just verify` runs both.
+  `.pre-commit-config.yaml` is the single declaration both `just check` and
+  the commit hook run, with `.claude/spec-work/` and `.claude/refs/` excluded
+  by path. Nothing it runs rewrites a file. D-006 settles the venv bootstrap
+  and why `just` is a prerequisite rather than a pinned dependency; D-007 what
+  `check` covers — three well-formedness families plus hygiene guards admitted
+  on blast radius, with three hook behaviours measured rather than assumed;
+  D-008 adopts `detect-secrets`, closing the absence of any mechanical guard
+  for rule 5 that a grep of all three plans had exposed. First
+  `.claude/docs/` file: `environment.md`. Detail in git history between
+  `a49f8ed` (the last pre-step commit — `step-000` is the first step tag) and
+  tag `step-000`.
 
 ### step-001 — The governance and prose lint — `pending`
 
