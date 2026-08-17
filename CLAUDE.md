@@ -119,13 +119,14 @@ placeholders.
 One coherent change per commit, subject prefixed with the **track-qualified**
 step id — `step-NNN:` (root), `step-sc-NNN:` (`sc`), `step-pz-NNN:` (`pz`),
 three digits, zero-padded, numbered independently per track — or `meta:` for
-maintenance belonging to no step. **Exactly one step is in progress repository-wide**, so
-history stays linear and the last `step-*` tag is the single last-approved
-state. Each plan orders only its own track; cross-track sequencing comes from
-steps naming dependencies. On approval the closing commit gets an **annotated
-tag** named by the step id; a step's number **freezes when it enters `in
-progress`**, while `pending` steps may be renumbered, with a sweep (both
-shapes: `.claude/docs/workflow.md` §5). The `step-*` namespace is this
+maintenance belonging to no step. **Exactly one step is in progress
+repository-wide**, so history stays linear and the last `step-*` tag is the
+single last-approved state. Each plan orders only its own track; cross-track
+sequencing comes from steps naming dependencies. On approval the closing commit
+gets an **annotated tag** named by the step id; a step's number **freezes when
+it enters `in progress`**, while `pending` steps may be renumbered, with a
+sweep (both shapes: `.claude/docs/workflow.md` §5). The `step-*` namespace is
+this
 workflow's — the operator creates other tags, so anything reasoning about
 steps matches `step-*` explicitly. **Everything a change makes stale updates
 in the same commit, on your own initiative:** plan status, decision entries,
@@ -250,8 +251,8 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
   beginning only when the operator approves the plans.
 - **Live world-state:** nothing built, nothing published, no CI, no `step-*`
   tag. `origin` is `git@github.com:yannlugrin/docker-game-servers.git`
-  (public); **this branch is the project and is treated as `main`**, force-pushed
-  there once the foundation is validated.
+  (public); **this branch is the project and is treated as `main`**,
+  force-pushed there once the foundation is validated.
 - **Open obligations:** `PLAN.md`'s external prerequisites — the GHCR package
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
 - **`.claude/docs/` pointers:** `workflow.md` (above). `step-000` adds

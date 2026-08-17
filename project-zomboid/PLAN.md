@@ -67,9 +67,12 @@ explicitly at spawn, never on the already-advanced `Current state` pointer.
   state root pinned via the game's cache-dir option, independent of `$HOME`),
   §2 (the install facts), root §3.1, root §3.2, root §3.4 (world-readable
   shipped content, no default user), root §2.7.
-- **Depends on.** `step-sc-001` done (the builder image exists locally). The
-  builder reference is a **locally built tag** here; it becomes a published
-  digest at `step-pz-013`.
+- **Depends on.** `step-sc-001` done (the builder image exists locally), and
+  through it **`step-005` — the whole foundation, CI green**. The foundation
+  edge is inherited but restated here deliberately: an inherited edge is
+  invisible in this file and is exactly what a later renumbering or track move
+  drops without any check noticing. The builder reference is a **locally built
+  tag** here; it becomes a published digest at `step-pz-013`.
 - **Deliverables.**
   - The multi-stage Dockerfile: builder stage installs the app id from the
     branch §2 declares, with validation; runtime stage from the base §3.1
@@ -609,7 +612,7 @@ is chosen at `step-pz-007` and its lint family arrives with its first file
 
 | This track | needs | for |
 |---|---|---|
-| `step-pz-001` | `step-sc-001` done | the builder image to build against |
+| `step-pz-001` | `step-sc-001` done, and through it `step-005` (the foundation) | a builder image to build against, and the foundation no component-track step starts before |
 | `step-pz-013` | `step-006` done | a published builder digest to pin |
 | **The root track needs from here** | | |
 | `step-007` | `step-pz-011`, `step-pz-012` done | stop mediation and health, before the smoke gate can assert them |

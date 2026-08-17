@@ -184,6 +184,23 @@ reference in that track's plan and in the decision logs, and decision entries
 cite not-yet-started steps by number **plus title**, so a missed sweep stays
 decodable.
 
+**Moving a step to another track: restate what its position guaranteed.**
+Measured once, at the bootstrap. When the builder image moved from a
+root-track step sitting after the foundation into its own track, it kept its
+content and its explicit dependency — and silently lost the sequencing it had
+been getting from *position*, which was that the whole foundation came first.
+Three verification passes (references resolve, coverage intact, cross-track
+edges symmetric) all came back clean, because each asked *is this internally
+consistent?* and none asked *did something that used to be guaranteed stop
+being guaranteed?* Nothing reports this class of regression.
+
+So, before moving a step across tracks or plans: list what its old position
+implied — what ran before it, what it could assume existed — and restate each
+as an explicit dependency edge in both plans' cross-track tables. Prefer
+restating an **inherited** edge at both ends over relying on the chain: an
+inherited edge is invisible in the file that depends on it, and is the first
+thing a later move drops.
+
 ## 6. The reasons behind the rules
 
 `CLAUDE.md` states these rules without their justifications, to stay inside

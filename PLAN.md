@@ -67,6 +67,12 @@ rewrites every agent body. The permission baseline (`step-002`) is
 deliberately **not** split: the prompt requires it proposed for review *as a
 whole*, and its gate is one judgement.
 
+**No component-track step starts before this milestone closes.** The `sc` and
+`pz` tracks both gate on `step-005`, stated in their dependency lines and in
+every cross-track table: `step-sc-001` builds images and runs steamcmd
+downloads, which is the surface `step-002`'s guard exists to gate, and it
+hands over through the rituals `step-003` and `step-004` provide.
+
 Closing this milestone triggers the whole-state review and then the
 memory-compaction pass (`CLAUDE.md`, rule 3).
 
@@ -729,7 +735,8 @@ every edge are visible from either side.
 | `step-012` | `step-pz-014` done | a per-image README that links to the repository README |
 | `step-013` | the whole `pz` track | a path actually walked, before the guide describes it |
 | **Other tracks need from here** | | |
-| `step-sc-001` (`sc`) | `step-000` done | the harness the Dockerfile lint family joins — closing `step-000` unblocks another track |
+| `step-sc-001` (`sc`) | **`step-005` done** — the whole foundation, CI green | no component-track step starts before the foundation is complete; `step-000` within it is what the Dockerfile lint family joins. **Closing `step-005` is what unblocks every component track.** |
+| `step-pz-001` (`pz`) | `step-sc-001` done, and through it `step-005` | the same foundation edge, restated at both ends rather than inherited silently |
 | `step-pz-013` (`pz`) | `step-006` done | a published builder digest to pin |
 
 ## External prerequisites

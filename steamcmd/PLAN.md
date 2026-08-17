@@ -45,8 +45,16 @@ shape, the status vocabulary and the compaction-on-approval rule live in
   usable on its own as a generic "install a Steam app" builder.
 - **Spec sections implemented.** root §4.1–§4.4, root §3.1 (the shared base),
   root §2.1, root §2.2, root §5.8 in part (the builder's own annotations).
-- **Depends on.** `step-000` done (the harness exists; the Dockerfile lint
-  family arrives with this step's first Dockerfile).
+- **Depends on.** **`step-005` done — the whole foundation, CI green.** No
+  component-track step starts before the foundation is complete: `step-002`'s
+  guard is what gates the image builds and steamcmd downloads this step
+  performs, and `step-003`/`step-004` provide the review and handover rituals
+  every handover from here uses. `step-000` is named separately as the reason
+  the **Dockerfile lint family** can arrive with this step's first Dockerfile,
+  but it is not sufficient on its own. (This edge used to come from position,
+  when the builder was a root-track step sitting after the foundation; moving
+  it here removed the guarantee without removing the requirement, so it is now
+  stated.)
 - **Deliverables.**
   - The **Dockerfile** on the base root §3.1 names, with a working steamcmd
     **already run once at build time** so its self-update is baked into the
@@ -109,7 +117,7 @@ shape, the status vocabulary and the compaction-on-approval rule live in
 
 | This track | needs | for |
 |---|---|---|
-| `step-sc-001` | `step-000` done | the harness the Dockerfile lint family joins |
+| `step-sc-001` | **`step-005` done** (the whole foundation, CI green) | no component-track step starts before the foundation; `step-000` within it is what the Dockerfile lint family joins |
 | **Other tracks need from here** | | |
 | `step-006` (root) | `step-sc-001`, `step-sc-002` done | an image and its README before CI publishes them |
 | `step-pz-001` (`pz`) | `step-sc-001` done | a builder image to build the game against |
