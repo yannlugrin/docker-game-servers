@@ -247,8 +247,8 @@ obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
 - **Current step:** none in progress; the governance files are committed.
-- **Next step:** `step-000` — The harness skeleton, local only (root track),
-  beginning only when the operator approves the plans.
+- **Next step:** `step-000` — The harness skeleton, local only (root track).
+  **The plans were approved on 2026-08-17**; begin on the operator's go.
 - **Live world-state:** nothing built, nothing published, no CI, no `step-*`
   tag. `origin` is `git@github.com:yannlugrin/docker-game-servers.git`
   (public); **this branch is the project and is treated as `main`**,

@@ -8,6 +8,8 @@ small enough to load every run.
 
 - **before amending a specification** — section 0;
 - **before opening, handing over or closing a step** — sections 1, 3 and 5;
+- **before moving a step to another track, or renumbering one** — section 5,
+  which carries what a move silently drops;
 - **before instantiating a tooling template** under `.claude/skills/` or
   `.claude/agents/` — section 2;
 - **when a rule's reason matters** — before applying one to an awkward case,
