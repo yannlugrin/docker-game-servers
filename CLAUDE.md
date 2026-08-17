@@ -249,10 +249,11 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
 - **Current step:** none in progress; the governance files are committed.
 - **Next step:** `step-000` — The harness skeleton, local only (root track).
   **The plans were approved on 2026-08-17**; begin on the operator's go.
-- **Live world-state:** nothing built, nothing published, no CI, no `step-*`
-  tag. `origin` is `git@github.com:yannlugrin/docker-game-servers.git`
-  (public); **this branch is the project and is treated as `main`**,
-  force-pushed there once the foundation is validated.
+- **Live world-state:** no image built, none published, no CI, no `step-*`
+  tag. Work is on **`main`**, the default branch of
+  `git@github.com:yannlugrin/docker-game-servers.git` (public), and pushed.
+  **`main` is the project**; the repository's other branches are never read
+  (rule 1).
 - **Open obligations:** `PLAN.md`'s external prerequisites — the GHCR package
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
 - **`.claude/docs/` pointers:** `workflow.md` (above). `step-000` adds

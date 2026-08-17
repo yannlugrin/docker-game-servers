@@ -746,7 +746,7 @@ it.
 
 | Prerequisite | First needed | State |
 |---|---|---|
-| **The working branch is treated as `main`.** It is force-pushed to `main` once the foundation is validated, and no `step-*` tag exists yet (the operator deleted the earlier ones), so `git describe --match 'step-*'` correctly reports none and the tag namespace is clear. Two GitHub properties still shape the CI steps: a `push`-triggered workflow runs from any branch, so `step-005`'s gate needs nothing special; but `schedule` fires **only** for workflows on the default branch, and a workflow generally has to exist there to be dispatchable — satisfied by the time `step-010` runs, since the force-push happens at the end of the foundation. | `step-005` (nothing to do), `step-010` (needs the force-push done) | **Resolved** — recorded because the `push`-versus-`schedule` distinction is what makes it a non-issue, and a later session would otherwise re-derive it |
+| **Branch topology for CI.** Scheduled workflows fire only from the **default branch**, and a workflow generally has to exist there to be dispatchable. Work is on `main`, which is the default branch, so `step-005`'s `push`-triggered gate and the `schedule` deliverables of `step-010` and `step-011` are all unblocked. Recorded because a later session would otherwise re-derive it. | `step-005`, `step-010` | **Satisfied** — work is on `main`, pushed |
 | Public GitHub repository and its remote | `step-005` | **Satisfied**: `git@github.com:yannlugrin/docker-game-servers.git`, public |
 | Authorisation of the first push | `step-000` close (rule 6 attempts a push at every close); mandatory at `step-005` | Open — asked at each close by the permission gate |
 | GHCR owner namespace (§7) | `step-006` | **Confirmed**: `ghcr.io/yannlugrin` |
@@ -818,7 +818,7 @@ resolution — is per-game and owned by the `pz` plan.
 ## Open questions for the operator
 
 Settled in the bootstrap exchange, recorded so they are not reopened: the
-working branch is the project and is treated as `main` (prerequisites table);
+work is on `main`, the default branch, and `main` is the project;
 other branches are **not** readable, so the earlier attempt's history is a dead
 end and nothing from it is used (`CLAUDE.md` rule 1 now says so); the GHCR
 namespace is `ghcr.io/yannlugrin`; base pulls stay anonymous with a Docker Hub
