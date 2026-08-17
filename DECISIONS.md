@@ -22,7 +22,7 @@ differently:
   names, `.gitignore` contents, which tooling templates are adopted. The
   approval line says "implementer, within latitude" and names which
   latitude. The permission baseline is **not** in this latitude: it is
-  proposed to the operator at `step-001`.
+  proposed to the operator at `step-002`.
 
 Ids are `D-NNN`, numbered in **file order** (which is chronological),
 **frozen once assigned and never reused**. Ids are **per log**: this file

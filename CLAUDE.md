@@ -25,7 +25,7 @@ environment constraints are stated as facts.
 
 **A session resumed after an interruption** — usage limit, crash, killed
 console — or told the work was interrupted, runs `/resume-step` before
-touching anything and never trusts the transcript. Until `step-002`
+touching anything and never trusts the transcript. Until `step-004`
 instantiates that skill, apply the routine above directly instead.
 
 ## The rules
@@ -71,8 +71,9 @@ warning tier already exists; where the repository ships no behaviour of its own
 yet, a `test` saying so is correct. A narrowed `check` is legitimate mid-step,
 but **the commit that receives a step tag runs the full scope** — that commit
 is the state every later session treats as known-good. **No justfile recipe
-ever performs an act rule 9 gates** — the guard sees `just release`, not the `docker push` inside
-it; gated acts live in CI or in a command the operator invokes. Prove each
+ever performs an act rule 9 gates** — the guard sees `just release`, not the
+`docker push` inside it; gated acts live in CI or in a command the operator
+invokes. Prove each
 enforcement mechanism at the step introducing it and record the measurement in
 `.claude/docs/` with version, method and re-measure recipe — **never here**,
 where a version-stamped fact outlives its version in silence.
@@ -122,7 +123,7 @@ step amending the **root** specification logs in the **root** log, same
 commit, `pz` step id in the subject. Three kinds: choices made with the
 operator; choices inside a "should" latitude, whose reason goes in the log;
 workflow choices left to you. **The permission baseline is not in that
-latitude** — `step-001` puts it to the operator. Format: `D-NNN` (file order,
+latitude** — `step-002` puts it to the operator. Format: `D-NNN` (file order,
 frozen, never reused), date, step, context, decision, alternatives, approved
 by.
 
@@ -192,7 +193,7 @@ GHCR or any registry, development tags included; anything that writes to
 GitHub (`gh` writes, workflow dispatch, package or repository settings);
 deleting registry content; and the unscoped destructive operations above** —
 happens only when the operator explicitly asks for or allows it in that
-exchange, never on your own initiative; the settings baseline of `step-001`
+exchange, never on your own initiative; the settings baseline of `step-002`
 also enforces this mechanically. When you cannot reproduce a failure inside
 that boundary, ask for the command output or logs rather than guessing.
 
@@ -267,14 +268,14 @@ and every pointer and exception naming it, in the same commit as the last
 adoption or drop (rule 3).* That directory holds starter templates proven by an
 earlier project and is **rule 1's one standing exception**: readable from any
 session while a template in it remains un-instantiated. How to instantiate them
-is `step-002`'s entry in `PLAN.md`.
+is `step-003`'s and `step-004`'s entries in `PLAN.md`.
 
 - **Not yet adopted:** `code-reviewer`, `test-reviewer` — their triggers
   (implementation code, a test suite) do not exist yet; a ritual may cite them
   as documented fallback names.
-- **Adopted at `step-001`:** `bash_guard.py`. **At `step-002`:** `orient`,
-  `resume-step`, `handover-step`, `approve-step`, `step-reviewer`,
-  `state-reviewer`, `optimize-memory`.
+- **Adopted at `step-002`:** `bash_guard.py`. **At `step-003`:**
+  `step-reviewer`, `state-reviewer`, `optimize-memory`. **At `step-004`:**
+  `orient`, `resume-step`, `handover-step`, `approve-step`.
 
 ## Current state
 
@@ -287,13 +288,14 @@ reasonable paragraph and this section becomes a changelog, measured once at 131
 lines.*
 
 - **Current step:** none in progress; the six governance files are committed.
-- **Next step:** `step-000` — The harness, local only (root track), beginning
-  only when the operator approves the plans.
+- **Next step:** `step-000` — The harness skeleton, local only (root track),
+  beginning only when the operator approves the plans.
 - **Live world-state:** nothing built, nothing published, no CI. `origin` is
   `git@github.com:yannlugrin/docker-game-servers.git` (public); this branch is
   `handoff-3`, an unrelated root commit.
 - **Open obligations:** the external prerequisites in `PLAN.md`, starting with
   the `step-*` tag-name collision the operator must rule on before the first
   step close.
-- **`.claude/docs/` pointers:** none yet; `step-001` writes the first (the
-  measured permission and hook behaviour).
+- **`.claude/docs/` pointers:** none yet. `step-000` writes
+  `environment.md` (the measured toolchain), `step-002` the permission and
+  hook measurements, `step-pz-001` `pz-facts.md`.
