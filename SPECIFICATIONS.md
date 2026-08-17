@@ -540,7 +540,16 @@ string in the tag cannot be compared against Steam's metadata reliably, and
 buildids change without version changes. Labels are what registries and
 scanners read when the tag is no longer at hand.
 
-## 6. Per-game specifications
+## 6. Per-image specifications
+
+**Every shipped image directory carries a `SPECIFICATIONS.md`**, so the layout
+is uniform and a missing file never has to be interpreted. It takes one of two
+forms. For a **game** image it is the per-game specification this section
+defines. For an image this document already specifies in full — today only the
+steamcmd builder (§4) — it is a **pointer** to the section that governs it,
+carrying no requirements of its own, because a requirement stated twice is a
+requirement that drifts. The `*/SPECIFICATIONS.md` glob therefore matches
+non-game directories too.
 
 Each game image carries its own specification: a `SPECIFICATIONS.md` in the
 game's directory (`*/SPECIFICATIONS.md` — `project-zomboid/SPECIFICATIONS.md`

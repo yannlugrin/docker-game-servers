@@ -166,3 +166,41 @@ renumbering sweep still leaves the reference decodable.
   - *Authenticate from the start.* Rejected: it spends a credential and a
     secret on a risk not yet observed.
 - **Approved by:** operator
+
+## D-004 — Every shipped image directory carries a specification document
+
+- **Date:** 2026-08-17
+- **Step:** bootstrap
+- **Context:** Root §6 named the per-document class **per-game**, and the
+  steamcmd builder is the one shipped image that is not a game, so it had no
+  document of its own. I used that absence as an argument for keeping the
+  builder on the root track. The operator identified it as a
+  specification-phase gap rather than a design signal: the doctrine behind this
+  workflow holds that in a multi-document specification, a component with
+  nothing of its own still gets a `SPECIFICATIONS.md` — a pointer to the
+  section that specifies it — so the layout stays uniform and a missing file
+  never has to be interpreted. The rule never fired here because §6 named the
+  class by *game* rather than by *component*.
+- **Decision:** Amend root §6 so the document class covers **every shipped
+  image directory**, in two forms: the per-game specification §6 already
+  defines, and — for an image the root document specifies in full, today only
+  the builder (§4) — a **pointer** document carrying no requirements of its
+  own, because a requirement stated twice is a requirement that drifts.
+  Retitle §6 "Per-image specifications"; its per-game content list is
+  unchanged and still defines that term, so every existing `§6` and "per-game
+  specification" citation stays true. **`*/SPECIFICATIONS.md` now matches a
+  non-game directory** (`steamcmd/`) — recorded because a later document lint,
+  or any tooling keyed on that glob, must expect a pointer document with no
+  requirements in it.
+- **Alternatives considered:**
+  - *State the builder's document rule under §4, with §6 restated as the
+    general rule.* Rejected: it puts one rule in two places, which is the
+    drift this amendment exists to prevent.
+  - *Leave §6 alone and let `steamcmd/` have no specification document.*
+    Rejected: that is the gap itself, and it forces every reader to interpret
+    a missing file.
+  - *Keep the "Per-game specifications" title.* Rejected: a section whose
+    opening paragraph governs every shipped image should not be titled for one
+    class of them, and cold reviewers read this document without context.
+- **Approved by:** operator (who identified the gap and ordered the amendment)
+- **Sequel:** the track and ownership consequences are D-005.
