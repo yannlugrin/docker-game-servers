@@ -211,25 +211,66 @@ file is correct, never whether anything calls it.
 |---|---|---|
 | `gh run list` | run silently | the `gh` read grant |
 | `git commit -m "$(date)"` | be **granted** — no prompt despite the substitution | the one `allow` rule |
-| `docker system prune` | be **refused, naming the rule** — "this sweep is host-global and reaches other projects on this machine" | the `docker` sweep rule |
+| `docker system prune --help` | be **refused, naming the rule** — "this sweep is host-global and reaches other projects on this machine" | the `docker` sweep rule |
 
-The third is the decisive one. If it merely prompts generically, **the hook is
-not wired**: the settings' deny backstop is then the only thing left, while
-`--liveness` and `--selftest` would both still pass.
+The third is the decisive one. If it merely prompts generically, or simply
+runs, **the hook is not wired**: the settings' deny backstop is then the only
+thing left, while `--liveness` and `--selftest` would both still pass.
 
-## 5. Not yet proven — do not read silence here as coverage
+**`--help` is not decoration on that third command.** The rule matches on the
+subcommand path, so `docker system prune --help` reads the same rule as the
+bare form — but if the hook turns out *not* to be reached, `Bash(docker:*)`
+allows whatever was typed and it runs. The bare form would then prune this
+host, and `environment.md` §3 records that this daemon holds another project's
+running container and 7.5 GB of build cache. A probe whose failure mode is
+destroying someone else's work is the wrong probe; this one costs a usage
+message.
 
-These need the settings of section 3 to be installed, and are the operator's
-to observe, since the implementer cannot see a permission prompt:
+The second command is safe for a similar reason worth stating: with nothing
+staged, `git commit` creates nothing whatever the guard decides. Run it on a
+clean index, never as a way to make a commit.
 
-1. **Whether the hook is reached at all** — section 4's third command.
+## 5. Installing the settings does not make the guard live
+
+Measured 2026-08-17, immediately after the operator applied section 3, in the
+session that had proposed it:
+
+- `scripts/check_settings_hooks.py` reports **1/1 declared hook commands
+  resolve** — the pointer is good.
+- `gh run list` ran silently, and `git commit -m "$(date)"` was **not**
+  prompted despite carrying a substitution.
+- **`docker system prune --help` ran.** It was not refused. Fed the same
+  command directly, the guard answers
+  `ask — this sweep is host-global and reaches other projects on this machine
+  [rule docker system prune]`.
+
+So the guard is correct and **was not called**. The cause is in the installed
+version's own words: the settings watcher *"only watches directories that had
+a settings file when this session started"*, and a newly added hook needs
+**`/hooks` opened once (which reloads config), or a session restart**. A hook
+added mid-session does not take effect in that session — which is sound, since
+the alternative is an agent granting itself a hook by editing a file.
+
+**This is the exact failure this whole file exists to catch.** Both gates were
+green throughout: `--liveness` passes, `--selftest` passes 133 + 174 cases at
+57/57 coverage, and the pointer check passes — because all three answer whether
+the guard is *correct*, never whether anything *calls* it. Until the probe in
+section 4 comes back refused, the honest description of this repository is: the
+deny backstop is the only mechanism actually enforcing anything.
+
+### Still unproven, and to be settled in a session started after the install
+
+1. **Whether the hook is reached** — section 4's third command must come back
+   refused, naming its rule.
 2. **Whether `acceptEdits` does what section 3 assumes** to an unmatched Bash
-   command, on this version.
-3. **Whether a hook genuinely fails open** — break the guard deliberately
-   (remove `+x`) and confirm a gated command proceeds to the permission rules
+   command. The session measured above began before the mode was set, so it was
+   still running under `auto`; a mode in a settings file binds the *next*
+   session, not the one that wrote it.
+3. **Whether a hook genuinely fails open** — remove the guard's `+x`
+   deliberately and confirm a gated command proceeds to the permission rules
    rather than being blocked. Restore afterwards.
-4. **Whether the sandbox behaves differently under `acceptEdits`** than the
-   `auto` mode measured in section 1.
+4. **Whether a working-directory sandbox exists under `acceptEdits`**, given
+   section 1 measured none under `auto`.
 
 ## 6. Re-measure recipe
 
