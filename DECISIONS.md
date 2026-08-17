@@ -419,10 +419,10 @@ renumbering sweep still leaves the reference decodable.
   **`codespell` v2.4.3** for spelling, both pinned by revision in
   `.pre-commit-config.yaml`, both **report-only** — `pymarkdown` runs `scan`,
   not `fix`, and `codespell` runs without `-w`.
-  **Four bends, and no more.** Measured over the thirteen governance and
-  human-facing documents: with these four in place, **every other rule of
+  **Three bends, and no more.** Measured over the thirteen governance and
+  human-facing documents: with these three in place, **every other rule of
   both tools produces zero findings**, so nothing else was tuned, excluded
-  or invented.
+  or invented. The line-length limit stays at the default 80.
   1. **Enable the `markdown-tables` extension.** pymarkdown is a CommonMark
      linter and CommonMark has no tables, so without it every table row is
      parsed as ordinary paragraph text and bend 2 below is unreachable. This
@@ -432,24 +432,28 @@ renumbering sweep still leaves the reference decodable.
      the record and a line break ends it — so a wide table is not a style
      anyone can correct. 106 of the 108 over-long lines were table rows, 17
      of them inside read-only specifications.
-  3. **`md013.line_length: 88`, not 80.** For exactly one line:
-     `SPECIFICATIONS.md` line 799 is 87 characters of ordinary prose in a
-     document that otherwise wraps at ~76. It is read-only, so the rule
-     yields. 88 is not invented for the purpose — it is the width this
-     repository already owes `.claude/hooks/bash_guard.py` at `step-002`.
-     **Reported to the operator**, because rewrapping that one line would
-     let this bend disappear entirely.
-  4. **`codespell --ignore-words-list=unparseable`.** A standard variant
+  3. **`codespell --ignore-words-list=unparseable`.** A standard variant
      spelling that codespell prefers to write `unparsable`, used by root
      §3.4. The specification cannot be edited to satisfy a linter, and the
      plans quoting its wording stay consistent with it.
-  **Five documents were changed rather than exempted**, none of them a
-  specification: three unlabelled code fences gained a `text` language
-  (`DECISIONS.md`, and the `sc` and `pz` decision logs, whose entry-format
-  template is the same block in each), and one over-long comment in
-  `README.md`'s command listing was shortened. The plan's bend-to-the-document
-  rule is grounded in the specifications being **read-only**; a plan or a log
-  is not, so a one-word fix there beats weakening a rule for everyone.
+  **Documents were changed rather than exempted wherever that was open**,
+  which is everywhere except a specification's wording: three unlabelled
+  code fences gained a `text` language (`DECISIONS.md`, and the `sc` and `pz`
+  decision logs, whose entry-format template is the same block in each), and
+  one over-long comment in `README.md`'s command listing was shortened. The
+  bend-to-the-document rule is grounded in the specifications being
+  **read-only**; a plan or a log is not, so a one-word fix there beats
+  weakening a rule for everyone.
+  **A fourth bend existed briefly and was retired.** `SPECIFICATIONS.md` line
+  799 was 87 characters of ordinary prose in a document that otherwise wraps
+  at ~76, and the limit was first widened to 88 to accommodate it. On the
+  operator's authorisation the line was **rewrapped instead** — line breaks
+  only, **not one word changed**, verified by comparing the whole document's
+  word sequence before and after (7,934 words, identical). No decision entry
+  governs that edit and none is owed: rule 1's amendment channel exists for
+  changes to what a specification *says*, and nothing it says changed. The
+  limit returned to the default 80, which is why this entry lists three bends
+  and not four.
 - **`.claude/docs/` note: not written, deliberately.** `step-001` owes one
   **for any repairing hook adopted**. None was: every hook in this
   repository reports and none rewrites, which is now true of the whole
@@ -474,11 +478,17 @@ renumbering sweep still leaves the reference decodable.
     documentation of §9, and three one-word edits cost less than losing it.
   - *Raise `line_length` far enough to cover tables too, and drop bend 1.*
     Rejected: it would set the limit above 450 and stop catching anything.
+  - *Keep the limit at 88 rather than rewrap one specification line.*
+    Rejected once rewrapping became available: widening a rule for thirteen
+    documents to spare one line is the trade this configuration exists to
+    avoid making silently.
 - **The one risk, named:** the `markdown-tables` extension is version 0.1.0 —
   the only part of this harness running on something upstream still calls
   experimental. Measured at adoption, enabling it produced **no findings of
   its own** and correctly exempted 106 rows. That is the property to
   re-measure on upgrade; `.pymarkdown.yaml` carries the instruction.
 - **Approved by:** implementer, within latitude (workflow choices left to the
-  implementer — the harness's shape and names). Bend 3 carries a question to
-  the operator rather than a request for approval.
+  implementer — the harness's shape and names). The one point that left that
+  latitude — editing a read-only specification, even only its line breaks —
+  went to the operator, who authorised it on the condition that no word
+  change.

@@ -4,7 +4,7 @@
 # code. The specifications are read-only under rule 1, which fixes the
 # direction of fit: where a rule and a specification disagree, the rule
 # bends. Every bend below is a logged decision (DECISIONS.md D-009), never a
-# quiet config line, and there are exactly three.
+# quiet config line, and there are exactly two.
 #
 # Everything else runs at pymarkdown's defaults. Measured at adoption over
 # the thirteen governance and human-facing documents: no other rule produces
@@ -40,13 +40,9 @@ plugins:
     # correct. 106 of the 108 over-long lines measured at adoption were
     # table rows, 17 of them inside read-only specifications.
     tables: false
-    # Bend 3. 88 rather than 80, for one line: `SPECIFICATIONS.md` line 799
-    # is 87 characters of ordinary prose in a document that otherwise wraps
-    # at 76. It is read-only, so it cannot be rewrapped, and the rule bends
-    # instead. 88 is not invented for the purpose — it is the width this
-    # repository already owes `.claude/hooks/bash_guard.py`, whose own
-    # docstring names that exemption.
-    #
-    # If that line is ever rewrapped, this drops back to 80 and the whole
-    # bend disappears.
-    line_length: 88
+    # The limit itself stays at pymarkdown's default 80 and is deliberately
+    # not written here. A third bend briefly existed — 88, to accommodate a
+    # single 87-character prose line in a read-only specification — and was
+    # retired when the operator authorised rewrapping that line instead.
+    # Widening a rule for every document to spare one line is the trade this
+    # file exists to avoid making silently.

@@ -796,8 +796,9 @@ Not built now; nothing in the present design may preclude them.
   §7's buildid-derived tag fallback already shows the shape), and the
   healthcheck's protocol (§5.5 names the Steam query because every current
   game is a Steam game; the requirement is the game-protocol probe,
-  whatever that protocol is). Deferring is safe: a non-Steam game arrives as a new game
-  directory with its own builder stage, touching nothing existing.
+  whatever that protocol is). Deferring is safe: a non-Steam game
+  arrives as a new game directory with its own builder stage, touching
+  nothing existing.
 - **10.7 External refresh watchdog.** The in-repo staleness check of §8
   carries a stated blind spot (an idle repository whose schedule GitHub
   disabled, notification unread). An external dead-man's-switch monitor —
