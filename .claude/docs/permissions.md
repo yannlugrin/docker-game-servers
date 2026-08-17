@@ -272,12 +272,19 @@ throughout it:** `--liveness` passed, `--selftest` passed 133 + 174 cases at
 | `gh run list` | **silent** |
 | `git commit -m "$(date)"` | **granted** — no prompt despite the substitution, so the one `allow` rule works |
 | `docker system prune --help` | **refused, naming its rule** |
+| `git push origin main step-002` (the close ritual's own push) | **prompted**, confirmed by the operator |
 
 The third came back as `Hook PreToolUse:Bash requires confirmation for this
 command: this sweep is host-global and reaches other projects on this machine
 [rule docker system prune]`. That the prompt is attributed to the hook, carries
 the guard's own reason, and appears **despite `Bash(docker:*)` being allowed**,
 is what proves the hook is reached and outranks the broad allow.
+
+The push row matters separately: rule 6 attempts a push at every step close
+**in reliance on the permission gate putting the publish question to the
+operator**. That reliance is now measured rather than assumed — the guard's
+`ask` on `git push` fired at the `step-002` close and the operator confirmed
+the prompt.
 
 **Run each probe as a bare command.** Measured the hard way: a compound line
 (`cd … ; git status ; gh run list`) prompted on `cd`, which was missing from the

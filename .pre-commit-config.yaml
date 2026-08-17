@@ -167,6 +167,20 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Governance frontmatter, arriving with the first files of its class
+      # (`.claude/agents/`). A malformed agent does not error — it silently
+      # never loads, and the ritual that names it then skips a step and
+      # reports success. Always-run for the same reason as the two above: a
+      # deletion or a rename is one of the failures, and a path-keyed hook
+      # would not see it. There is no standard tool for this shape, which is
+      # what sanctions the few lines of custom check.
+      - id: agent-frontmatter
+        name: agent definitions are well-formed
+        entry: scripts/check_agent_frontmatter.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
       # The justfile is the harness's own entry point, and `just` is the
       # only tool that can parse it. `--fmt --check` reports both a syntax
       # error and a formatting drift without rewriting the file.

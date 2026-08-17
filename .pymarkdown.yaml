@@ -16,6 +16,13 @@
 # the same failure as a linter that never runs.
 
 extensions:
+  # Bend 0, added with the first files that carry YAML frontmatter
+  # (`.claude/agents/`). Without it the opening `---` is read as a setext
+  # heading underline, and every agent then reports MD003 heading-style
+  # violations against a "setext" style it never used. Measured: enabling it
+  # takes those files from failing to clean and changes nothing elsewhere.
+  front-matter:
+    enabled: true
   # Bend 1. pymarkdown is a CommonMark linter, and CommonMark has no tables.
   # Without this extension it parses every table row as ordinary paragraph
   # text, which makes the table exemption below unreachable — measured, not

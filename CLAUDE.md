@@ -242,9 +242,9 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 - **Not yet adopted:** `code-reviewer`, `test-reviewer` — their triggers
   (implementation code, a test suite) do not exist yet; a ritual may cite them
   as documented fallback names.
-- **Adopted:** `bash_guard.py` (`step-002`). **`step-003`:** `step-reviewer`,
-  `state-reviewer`, `optimize-memory`. **`step-004`:** `orient`,
-  `resume-step`, `handover-step`, `approve-step`.
+- **Adopted:** `bash_guard.py` (`step-002`); `step-reviewer`,
+  `state-reviewer`, `optimize-memory` (`step-003`, D-011). **`step-004`:**
+  `orient`, `resume-step`, `handover-step`, `approve-step`.
 
 ## Current state
 
@@ -252,8 +252,8 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** none in progress; `step-002` is closed and tagged.
-- **Next step:** `step-003` — The reviewer agents (root track).
+- **Current step:** `step-003` — The reviewer agents (root track).
+- **Next step:** `step-004` — The session rituals (root track).
 - **Live world-state:** no image built, none published, no CI. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work
   is on **`main`**, the default branch of

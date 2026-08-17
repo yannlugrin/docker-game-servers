@@ -574,3 +574,62 @@ renumbering sweep still leaves the reference decodable.
   `Bash(cd:*)` addition and the fail-open probe. The hardening of
   `.claude/docs/permissions.md` §7 is **not** covered by this approval and
   remains open.
+
+## D-011 — Adopt three reviewer agents, and defer two
+
+- **Date:** 2026-08-17
+- **Step:** `step-003` — The reviewer agents
+- **Context:** Rule 3 says tooling is created when it earns its place, and
+  rule 11 says to build at the moment of need. Five agent templates were
+  handed over; adopting all five would anticipate needs that do not exist,
+  and adopting none would leave the first milestone close to improvise its
+  own review — a recovery ritual invented during the crisis it exists for.
+- **Decision:** Adopt **`step-reviewer`**, **`state-reviewer`** and
+  **`optimize-memory`** at `.claude/agents/`. What separates them from the
+  two deferred is **the certainty of the trigger, not whether it has
+  fired**: the first milestone close is this milestone's own, at `step-005`,
+  so the two passes it needs must exist before it arrives. `code-reviewer`
+  and `test-reviewer` stay unadopted because their triggers — implementation
+  code and a test suite — genuinely do not exist yet; they remain on
+  `CLAUDE.md`'s not-yet-adopted list, which is what keeps a ritual citing
+  them from dangling.
+- **How the templates were changed, and why each change:**
+  - **The governance placeholders resolve at invocation, not literally.**
+    Each agent carries a track table instead of one fixed path, and the two
+    milestone passes state that the track is **named at spawn** when they run
+    as part of closing a step — the close ritual has already advanced
+    `CLAUDE.md`'s pointer, so resolving from it would aim both passes at the
+    wrong track and a state reviewer reading the wrong plan reports nothing
+    wrong.
+  - **`optimize-memory`'s budget was rewritten from 220/~180 to D-002's
+    280/~250.** A template's enumeration that is narrower than the rule it
+    claims to execute loses to the rule; left alone, this pass would have
+    compacted toward a cap this project measured as unreachable.
+  - **The architecture vocabulary was seeded from the specification**, since
+    nothing is built yet, and says so — it is kept current under rule 6 as
+    the system materialises, and a component not listed is still in scope.
+  - **`tools:` was left as the templates set it**, after checking the running
+    version's tool inventory: this build has no separate search tool, so
+    adding one would have been a name silently dropped.
+  - **The "CLAUDE.md is in your context, probed" claim was not copied.** It
+    was not probed here, and asserting it would be false. Each agent instead
+    **verifies its own premise**: if it cannot see rule 9, it stops and
+    reports exactly that. The first real invocation is therefore the probe,
+    and a failure announces itself instead of producing a confidently
+    unbounded review.
+- **Pre-committed response, unchanged:** if that report ever comes back, each
+  agent body carries the gated set **inlined**, logged with its
+  single-source-of-truth cost — never a citation to a rule the agent cannot
+  read.
+- **Alternatives considered:**
+  - *Adopt all five now.* Rejected: two have no trigger, and an agent nobody
+    invokes is deleted under rule 3 — adopting them would create work to undo.
+  - *Adopt only `step-reviewer` and improvise the milestone passes.*
+    Rejected: the close is certain and near, and a ritual written during the
+    close is written by the party it is meant to check.
+  - *Pin a `model:` in the two milestone passes.* Rejected on the templates'
+    own reasoning, which holds: the requirement is a **relation** — not the
+    model that wrote the work — and no fixed id states a relation, since a
+    pinned value becomes same-model the day implementation moves to it.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — which tooling templates are adopted, rule 3)

@@ -143,7 +143,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   `.claude/docs/permissions.md` §7. Detail in git history between tags
   `step-001` and `step-002`.
 
-### step-003 — The reviewer agents — `pending`
+### step-003 — The reviewer agents — `awaiting test`
 
 - **Objective.** The subagents later steps and every milestone close depend
   on, plus the probes that decide whether their boundary text can be a
@@ -208,7 +208,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   probe results in `.claude/docs/`, including the answer to whether
   `CLAUDE.md` reached the agent. `just check` covers the new frontmatter
   family.
-- **Status.** `pending`
+- **Status.** `awaiting test`
 
 ### step-004 — The session rituals — `pending`
 
