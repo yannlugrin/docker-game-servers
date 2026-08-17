@@ -533,17 +533,22 @@ renumbering sweep still leaves the reference decodable.
   removes the gate; `plan` is a working mode. That leaves `default`, which
   prompts on every file edit and is how an operator ends up reaching for a
   looser mode — the failure this design exists to avoid.
-- **Two findings that changed the design:**
-  - **No working-directory sandbox was observed.** `touch ../escaped.txt` from
-    the project root succeeded. The template's docstring describes a sandbox
-    that blocks exactly this; under the measured mode it did not. So nothing
-    here leans on one — which is why `rm` and `mv` get **no** broad allow and
-    will prompt. If that proves noisy the answer is a guard entry with
-    path-scoped grants, built when it bites.
-  - **The implementer cannot install this file.** Writing
-    `.claude/settings.json` was refused by the auto-mode classifier. That is
-    correct behaviour, and it happens to enforce this step's own rule: the
-    operator applies the baseline.
+- **Measured after installation, and two beliefs did not survive it:**
+  - **A hook fails open — proven, not assumed.** With the guard made
+    non-executable, a command it had just refused ran with no prompt at all,
+    carried by the broad allow. That is the entire justification for the
+    `deny` backstop, and it is now evidence rather than doctrine.
+  - **Both mode-dependent behaviours flipped between `auto` and
+    `acceptEdits`.** A write outside the project succeeded silently under
+    `auto` and prompts under `acceptEdits`; and writing `.claude/settings.json`
+    was refused under `auto` but **succeeds** under the committed mode. So the
+    claim that the implementer cannot install its own baseline was true only of
+    the session that made it. Under what ships, **the implementer can edit its
+    own permission boundary and can disable the guard with `chmod -x`** —
+    neither prompting. This baseline therefore stops mistakes, not a determined
+    agent; what bounds the latter is the operator reading the diff.
+    `.claude/docs/permissions.md` §7 proposes the hardening and does not apply
+    it.
 - **The widest entry, named rather than buried:** `Bash(python3:*)`. The guard
   does not read `python3 -c` program text, so this allow can reach anything the
   guard would otherwise gate. It is proposed because the harness, the guard and
@@ -564,7 +569,8 @@ renumbering sweep still leaves the reference decodable.
   - *`ruff-format` alongside `ruff check`.* Rejected twice over: it rewrites,
     which nothing in this harness does, and it would reflow the vendored guard
     against its docstring's explicit request.
-- **Approved by:** **awaiting the operator.** This entry is the proposal
-  `step-002` exists to put to them; the guard half is installed and
-  demonstrable, the settings half is in `.claude/docs/permissions.md` §3 for
-  them to apply.
+- **Approved by:** operator, who reviewed the proposal, applied the settings
+  on 2026-08-17, observed the three-command probe, and authorised both the
+  `Bash(cd:*)` addition and the fail-open probe. The hardening of
+  `.claude/docs/permissions.md` §7 is **not** covered by this approval and
+  remains open.

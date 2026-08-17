@@ -32,24 +32,31 @@ Measured on **Claude Code 2.1.234**, 2026-08-17, at `step-002`.
 | An `ask` rule forces a prompt | **Confirmed** | binary: `Set when a user-configured ask RULE (permissions.ask) forced this prompt` |
 | `autoMemoryEnabled` is a real key | **Yes** — `isAutoMemoryEnabled` is evaluated | binary strings |
 
-**The session this was measured in ran in `auto` mode**, which was not assumed
-but proven the hard way: writing `.claude/settings.json` came back
-`Permission for this action was denied by the Claude Code auto mode
-classifier`. Two consequences, both load-bearing:
+**Two behaviours turned out to depend on the mode**, so both were measured
+twice — first under `auto` (the session that wrote the proposal) and again
+under `acceptEdits` (the committed baseline, in a restarted session). Where
+they disagree, **`acceptEdits` is what binds**, because that is what ships.
 
-- **The implementer cannot install its own permission baseline.** That is the
-  correct behaviour — an agent editing the file that bounds it is exactly what
-  a classifier should stop — and it matches `CLAUDE.md`'s ruling that this
-  baseline is outside the implementer's latitude. Section 3 is therefore a
-  proposal for the operator to apply, not a description of what is installed.
-- **No working-directory sandbox was observed.** `touch ../escaped-probe.txt`
-  from the project root **succeeded** and created the file outside the
-  repository (removed immediately). The guard's docstring describes a sandbox
-  that blocks exactly this when a command is merely permitted by a rule; under
-  `auto` mode on this version, it did not. **So nothing in section 3 leans on
-  a sandbox**, which is why no broad allow is proposed for `rm` or `mv`.
-  Re-measure under the proposed mode once it is applied — the result may
-  differ, and the conservative allow list stands either way.
+| Behaviour | Under `auto` | Under `acceptEdits` |
+|---|---|---|
+| `touch ../escaped-probe.txt` from the project root, with `Bash(touch:*)` allowed | **succeeded silently** — no working-directory boundary | **prompted** — the boundary holds and outranks a matching allow rule |
+| the implementer editing `.claude/settings.json` | **refused** by the auto-mode classifier | **succeeded** |
+
+The second row is the uncomfortable one and is stated plainly rather than
+buried:
+
+**Under the committed baseline, the implementer can edit its own permission
+boundary.** It edited `.claude/settings.json` to add one entry, and — during
+the fail-open probe below — disabled the guard entirely with `chmod -x`, a
+command the allow list permits. Neither action prompted. The `deny` list is no
+better protected: it lives in the same editable file.
+
+So the honest statement of what this baseline is for: **it stops mistakes, not
+a determined agent.** It makes an outward write announce itself, it puts an
+irreversible act in front of the operator, and it fails loudly when the guard
+dies. What actually bounds a determined implementer is the operator reading
+the diff — which is why every change here lands in a reviewed commit. Section
+7 proposes the hardening that would close the casual half of this.
 
 ## 2. The guard
 
@@ -92,10 +99,12 @@ path-keyed hook would be skipped by the very commit that broke it.
 engine cases, then coverage — **57/57 rules and grants reached by a case**, and
 a rule no case reaches fails the run.
 
-## 3. The proposed settings — for the operator to apply
+## 3. The settings, as installed
 
-The implementer cannot write this file (section 1). Proposed content for
-`.claude/settings.json`:
+Proposed by the implementer, reviewed and **applied by the operator** on
+2026-08-17, with `Bash(cd:*)` added afterwards (section 5 says why). The file
+itself is the authority; this listing is here so the reasoning below has
+something to point at.
 
 ```json
 {
@@ -105,7 +114,7 @@ The implementer cannot write this file (section 1). Proposed content for
     "allow": [
       "Bash(git:*)", "Bash(docker:*)", "Bash(gh:*)", "Bash(steamcmd:*)",
       "Bash(just:*)", "Bash(pre-commit:*)", "Bash(python3:*)",
-      "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)",
+      "Bash(cd:*)", "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)",
       "Bash(grep:*)", "Bash(rg:*)", "Bash(find:*)", "Bash(wc:*)",
       "Bash(sort:*)", "Bash(uniq:*)", "Bash(cut:*)", "Bash(tr:*)",
       "Bash(sed:*)", "Bash(awk:*)", "Bash(diff:*)", "Bash(file:*)",
@@ -166,11 +175,16 @@ Why each part is shaped that way:
   this list are a package. It is kept to eight entries, all of them permanent
   history loss, so the exception stays visible as one.
 - **`rm` and `mv` are deliberately not allowed**, and will prompt. Rule 9 does
-  rule removing *this project's own* artifacts free, but that boundary is a
-  path condition, and section 1 measured that no sandbox enforces one here. A
-  broad `Bash(rm:*)` would be unbounded. If the prompting proves noisy, the
-  answer is a guard entry with path-scoped grants, not a wider allow — built
-  when it bites, not in anticipation.
+  rule removing *this project's own* artifacts free, but that is a **path**
+  condition and an allow rule cannot express one. They were first excluded
+  because no working-directory boundary had been observed; that premise
+  changed when the boundary turned out to hold under `acceptEdits` (section 1),
+  which would in principle bound a broad `Bash(rm:*)` to the project. They stay
+  out anyway, on one observation from a prompt the operator declined — enough
+  to know a boundary exists, not enough to know whether it blocks or merely
+  asks. Revisit with a real measurement if the prompting proves noisy; the
+  alternative answer is a guard entry with path-scoped grants, built when it
+  bites rather than in anticipation.
 
 **The mode, and why not the others.** `acceptEdits` auto-accepts file edits
 while leaving Bash to the rules and the guard, which is what removes any need
@@ -230,47 +244,86 @@ The second command is safe for a similar reason worth stating: with nothing
 staged, `git commit` creates nothing whatever the guard decides. Run it on a
 clean index, never as a way to make a commit.
 
-## 5. Installing the settings does not make the guard live
+## 5. The probe results, and what activation costs
 
-Measured 2026-08-17, immediately after the operator applied section 3, in the
-session that had proposed it:
+**Installing the settings does not make the guard live.** Measured
+2026-08-17, immediately after the operator applied section 3, in the session
+that had proposed it: `scripts/check_settings_hooks.py` reported 1/1 resolved,
+`gh run list` ran silently — and **`docker system prune --help` ran** instead
+of being refused. Fed the same command directly, the guard answered `ask`,
+naming its rule. The guard was correct and was not called.
 
-- `scripts/check_settings_hooks.py` reports **1/1 declared hook commands
-  resolve** — the pointer is good.
-- `gh run list` ran silently, and `git commit -m "$(date)"` was **not**
-  prompted despite carrying a substitution.
-- **`docker system prune --help` ran.** It was not refused. Fed the same
-  command directly, the guard answers
-  `ask — this sweep is host-global and reaches other projects on this machine
-  [rule docker system prune]`.
+The cause is in the installed version's own words: the settings watcher *"only
+watches directories that had a settings file when this session started"*, and a
+newly added hook needs **`/hooks` opened once, or a session restart**. Sound
+behaviour — the alternative is an agent granting itself a hook by editing a
+file. **A mode set in settings binds the next session too, not the one that
+wrote it.**
 
-So the guard is correct and **was not called**. The cause is in the installed
-version's own words: the settings watcher *"only watches directories that had
-a settings file when this session started"*, and a newly added hook needs
-**`/hooks` opened once (which reloads config), or a session restart**. A hook
-added mid-session does not take effect in that session — which is sound, since
-the alternative is an agent granting itself a hook by editing a file.
+**This is the exact failure this file exists to catch, and every gate was green
+throughout it:** `--liveness` passed, `--selftest` passed 133 + 174 cases at
+57/57 coverage, the pointer check passed. All three answer whether the guard is
+*correct*, never whether anything *calls* it.
 
-**This is the exact failure this whole file exists to catch.** Both gates were
-green throughout: `--liveness` passes, `--selftest` passes 133 + 174 cases at
-57/57 coverage, and the pointer check passes — because all three answer whether
-the guard is *correct*, never whether anything *calls* it. Until the probe in
-section 4 comes back refused, the honest description of this repository is: the
-deny backstop is the only mechanism actually enforcing anything.
+### After the restart — all three probes pass
 
-### Still unproven, and to be settled in a session started after the install
+| Probe | Result |
+|---|---|
+| `gh run list` | **silent** |
+| `git commit -m "$(date)"` | **granted** — no prompt despite the substitution, so the one `allow` rule works |
+| `docker system prune --help` | **refused, naming its rule** |
 
-1. **Whether the hook is reached** — section 4's third command must come back
-   refused, naming its rule.
-2. **Whether `acceptEdits` does what section 3 assumes** to an unmatched Bash
-   command. The session measured above began before the mode was set, so it was
-   still running under `auto`; a mode in a settings file binds the *next*
-   session, not the one that wrote it.
-3. **Whether a hook genuinely fails open** — remove the guard's `+x`
-   deliberately and confirm a gated command proceeds to the permission rules
-   rather than being blocked. Restore afterwards.
-4. **Whether a working-directory sandbox exists under `acceptEdits`**, given
-   section 1 measured none under `auto`.
+The third came back as `Hook PreToolUse:Bash requires confirmation for this
+command: this sweep is host-global and reaches other projects on this machine
+[rule docker system prune]`. That the prompt is attributed to the hook, carries
+the guard's own reason, and appears **despite `Bash(docker:*)` being allowed**,
+is what proves the hook is reached and outranks the broad allow.
+
+**Run each probe as a bare command.** Measured the hard way: a compound line
+(`cd … ; git status ; gh run list`) prompted on `cd`, which was missing from the
+allow list — a result that says nothing about the probe. Permission rules are
+matched per command in the line. `cd` has since been added.
+
+### A hook fails open — proven, not assumed
+
+The premise the whole `deny` backstop rests on, measured directly:
+
+1. `docker system prune --help` — **refused**, naming its rule.
+2. `chmod -x .claude/hooks/bash_guard.py`, then the same command — **it ran, no
+   prompt at all.** The broad `Bash(docker:*)` allow carried it straight
+   through.
+3. `chmod +x` restored, same command — **refused** again.
+
+So a guard that dies takes its opinion with it and everything falls back to the
+permission rules, silently. That is why `--liveness` sits in the commit path,
+and why the `deny` list is worth its duplication. It is also why `chmod` being
+in the allow list is a loose end (section 7).
+
+### Still unproven
+
+- **Which spelling of a path rule the file tools match** (`Edit(.claude/x)` vs
+  `Edit(./.claude/x)` vs an absolute form). Not yet probed, and section 7's
+  proposal depends on the answer. The cheap method is a `deny` rule, whose
+  effect the implementer can observe directly without an operator prompt.
+
+## 7. Proposed hardening — not applied, for the operator
+
+Section 1 measured that the implementer can edit `.claude/settings.json` and
+can `chmod -x` the guard, neither with a prompt. Two changes would close the
+casual half of that, and both are the operator's call:
+
+1. **An `ask` rule on the boundary's own files** — the settings file and
+   `.claude/hooks/**`. `ask` rather than `deny`, so the operator can still
+   approve a legitimate registry change in-exchange; a `deny` cannot be lifted
+   in the exchange that needs it. This also makes mechanical what the guard's
+   docstring already requires in prose: *every rule change is the operator's
+   call*. Needs the path-spelling probe above first.
+2. **Drop `Bash(chmod:*)` from the allow list.** It is rarely needed, and it is
+   the one allowed command that can disable the guard outright. Prompting on it
+   costs almost nothing.
+
+Neither is applied. Both are recorded here so the gap is visible rather than
+discovered.
 
 ## 6. Re-measure recipe
 
