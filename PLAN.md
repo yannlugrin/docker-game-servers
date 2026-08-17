@@ -96,30 +96,24 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   `a49f8ed` (the last pre-step commit — `step-000` is the first step tag) and
   tag `step-000`.
 
-### step-001 — The governance and prose lint — `awaiting test`
+### step-001 — The governance and prose lint — `done`
 
-- **Objective.** The documents this repository runs on are linted, because
-  **in this repository documents are load-bearing**.
-- **Spec sections implemented.** None — harness.
-- **Depends on.** `step-000`.
-- **Deliverables.**
-  - Prose and markdown lint over **the governance documents themselves —
-    the specifications, the plans, the rest** — and the human-facing
-    documents, joining `step-000`'s `check` families.
-  - **Configured to the documents as they already are.** The specifications
-    are read-only under rule 1, so **the lint bends to them and never the
-    reverse**; excluding a document from a rule is a **logged decision**
-    (rule 4), not a quiet config line.
-  - A note in `.claude/docs/` for any repairing hook adopted: a hook that
-    rewrites rather than reports means a failing `check` can modify files,
-    read-only specifications included — which must be documented rather than
-    discovered.
-- **How I test it.** Free and local. `just check` passes over the tree as it
-  stands — the specifications included, unmodified. Then introduce a real
-  prose fault in a plan and see it flagged; revert. Read the logged
-  decisions for every rule excluded from a document, and confirm no
-  specification file was rewritten by the run (`git status` clean).
-- **Status.** `awaiting test`
+- **Outcome (approved 2026-08-17, tag `step-001`):** the documents are linted
+  like the code they effectively are — `pymarkdown` v0.9.39 for structure,
+  `codespell` v2.4.3 for spelling, both pinned by revision and both
+  report-only, which now holds for the whole harness: no hook rewrites
+  anything, so a failing `check` cannot edit a read-only specification.
+  Configured to the documents as they already are, in three bends (D-009);
+  with those, every other rule of both tools reports zero across the thirteen
+  governance and human-facing documents. Two bends were measured rather than
+  reasoned — `md013`'s table exemption is inert until the `markdown-tables`
+  extension is enabled, since CommonMark has no tables, and `--config` must be
+  explicit because 0.9.39 does not auto-discover `.pymarkdown.yaml`. The
+  `.claude/docs/` note this step owed **for any repairing hook** is
+  deliberately absent: none was adopted, so the condition never fired. One
+  read-only specification line was rewrapped on the operator's authorisation,
+  no word changed, retiring a fourth bend. Detail in git history between tags
+  `step-000` and `step-001`.
 
 ### step-002 — The permission and hook baseline — `pending`
 
