@@ -101,10 +101,10 @@ clean context, on a model that did not write the work
 
 **4. Decisions get logged, in the log of the track whose files they govern.**
 Repository-wide goes in the root `DECISIONS.md`; ids are **per log**, each
-starting at `D-001`, so a citation crossing logs names the file. A `pz`-track
-step amending the **root** specification logs in the **root** log, same
-commit, `pz` step id in the subject. Three kinds: choices made with the
-operator; choices inside a "should" latitude, whose reason goes in the log;
+starting at `D-001`, so a citation crossing logs names the file. A component
+track's step amending the **root** specification logs in the **root** log,
+same commit, that track's step id in the subject. Three kinds: choices made
+with the operator; choices inside a "should" latitude, whose reason is logged;
 workflow choices left to you. **The permission baseline is not in that
 latitude** — `step-002` puts it to the operator. Format: `D-NNN` (file order,
 frozen, never reused), date, step, context, decision, alternatives, approved
@@ -117,9 +117,9 @@ placeholders.
 
 **6. Commits are small and traceable, and documentation ships inside them.**
 One coherent change per commit, subject prefixed with the **track-qualified**
-step id — `step-NNN:` (root), `step-pz-NNN:` (`pz`), three digits,
-zero-padded, numbered independently per track — or `meta:` for maintenance
-belonging to no step. **Exactly one step is in progress repository-wide**, so
+step id — `step-NNN:` (root), `step-sc-NNN:` (`sc`), `step-pz-NNN:` (`pz`),
+three digits, zero-padded, numbered independently per track — or `meta:` for
+maintenance belonging to no step. **Exactly one step is in progress repository-wide**, so
 history stays linear and the last `step-*` tag is the single last-approved
 state. Each plan orders only its own track; cross-track sequencing comes from
 steps naming dependencies. On approval the closing commit gets an **annotated
@@ -214,10 +214,15 @@ operator-supplied reference material (rule 3).
 
 | Track | Directory | Step prefix | Plan | Log |
 |---|---|---|---|---|
-| root (repository-wide) | `.` | `step-NNN` | `PLAN.md` | `DECISIONS.md` |
+| root (root and shared dirs) | `.` | `step-NNN` | `PLAN.md` | `DECISIONS.md` |
+| `sc` (steamcmd builder) | `steamcmd/` | `step-sc-NNN` | `steamcmd/PLAN.md` | `steamcmd/DECISIONS.md` |
 | `pz` (Project Zomboid) | `project-zomboid/` | `step-pz-NNN` | `project-zomboid/PLAN.md` | `project-zomboid/DECISIONS.md` |
 
-Each new game adds a track and registers its prefix here.
+**Ownership follows artifacts, not blast radius** (D-005): the root track owns
+what lives at the root or in a shared directory — the harness, `docs/`, and CI
+in `.github/workflows/`, **including publication of another track's image** —
+and that enumeration is closed. Every shipped image directory is a track and
+carries a specification document (root §6). Each new image adds one here.
 
 ## Tooling templates not yet instantiated
 

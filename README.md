@@ -30,22 +30,30 @@ they are the current-state record, and this file does not duplicate them.
 |---|---|
 | `SPECIFICATIONS.md` | The repository-wide requirements: conventions every image obeys, the builder image, versioning and publication, build automation, documentation deliverables. |
 | `project-zomboid/SPECIFICATIONS.md` | The Project Zomboid image's own specification — a per-game specification under root §6, binding in addition to the root document. |
-| `PLAN.md`, `DECISIONS.md` | The root track's implementation plan and decision log: repository-wide work (harness, builder image, CI, repository-wide documentation). |
+| `steamcmd/SPECIFICATIONS.md` | The builder image's specification document. It is a **pointer**: the root document specifies the builder in full (root §4), and this file says where. Every shipped image directory carries one (root §6). |
+| `PLAN.md`, `DECISIONS.md` | The root track's implementation plan and decision log: what lives at the root or in a shared directory — the harness, CI and all publication, the repository-wide documentation. |
+| `steamcmd/PLAN.md`, `steamcmd/DECISIONS.md` | The same two documents for the builder image. |
 | `project-zomboid/PLAN.md`, `project-zomboid/DECISIONS.md` | The same two documents for the Project Zomboid image. |
 | `CLAUDE.md` | Standing instructions for the AI implementing this repository. Not a description of the project — see the note below. |
 | `LICENSE` | MIT. |
 | `.claude/` | Implementation-side working material: the AI's own memory, tooling and reference inputs. Nothing here is a requirement source, and a human reader can ignore it entirely. |
 
+Work is organised in **tracks**, one per directory: the root track owns what
+lives at the repository root or in a shared directory, and each shipped image
+directory is its own track with its own plan and log. Ownership follows where
+the files live, not how far a change's effects reach — so CI belongs to the
+root track even when it publishes an image another track owns.
+
 As the repository grows, this map grows with it: `justfile` and the check
-harness, `docs/` (human-facing guides), each game's `Dockerfile` and
-entrypoint, and `.github/workflows/`. Each arrives with the plan step that
-creates it.
+harness, `docs/` (human-facing guides), `steamcmd/Dockerfile`, each game's
+`Dockerfile` and entrypoint, and `.github/workflows/`. Each arrives with the
+plan step that creates it.
 
 ## Authority order
 
 When two documents disagree, the earlier one in this list wins:
 
-1. **The specifications** — `SPECIFICATIONS.md` and each game's
+1. **The specifications** — `SPECIFICATIONS.md` and each image's
    `*/SPECIFICATIONS.md`. They are the sole source of requirements.
 2. **The decision logs** — where a specification permits a choice, the log
    records which choice was made and why.
@@ -54,7 +62,9 @@ When two documents disagree, the earlier one in this list wins:
 
 A per-game specification adds to the root conventions and may deviate from a
 root *recommendation* with a recorded reason, but never weakens a root
-requirement.
+requirement. Where the root document specifies an image in full — the builder —
+its `SPECIFICATIONS.md` is a pointer to the governing sections and states no
+requirements of its own.
 
 `CLAUDE.md` sits outside this order: it holds the working rules of the AI
 implementing the repository, not statements about the product. It is

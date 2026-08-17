@@ -2,8 +2,10 @@
 
 The `pz` track owns the Project Zomboid Build 42 dedicated-server image: its
 Dockerfile, entrypoint, healthcheck, shipped tooling and README.
-Repository-wide work — the harness, the builder image, CI, the repository
-README and the contributor guide — is the root track's (`../PLAN.md`).
+Repository-wide work — the harness, CI and **all publication**, the
+repository README and the contributor guide — is the root track's
+(`../PLAN.md`); the steamcmd builder is the `sc` track's
+(`../steamcmd/PLAN.md`).
 
 `§N` references point to `SPECIFICATIONS.md` in this directory; `root §N` to
 the repository-root specification. **The root specification is never
@@ -22,6 +24,11 @@ compaction-on-approval rule live in `../.claude/docs/workflow.md` §1.
   specification, and cite the sections for the rest** — the session routine
   reads those sections anyway, and a copy of a read-only document can only
   go stale.
+- **Paths: a deliverable inside this track's directory (`project-zomboid/`)
+  needs no path; anything outside it names its path.** So "the Dockerfile"
+  means `project-zomboid/Dockerfile` and "the entrypoint" the entrypoint file
+  beside it, while the build recipe is written `justfile` and the recorded
+  facts `.claude/docs/pz-facts.md`.
 - **The first step pays a multi-gigabyte Steam download.** It is
   front-loaded because dependency forces it: almost every open fact this
   specification ordered settled at implementation can only be observed
@@ -60,7 +67,7 @@ explicitly at spawn, never on the already-advanced `Current state` pointer.
   state root pinned via the game's cache-dir option, independent of `$HOME`),
   §2 (the install facts), root §3.1, root §3.2, root §3.4 (world-readable
   shipped content, no default user), root §2.7.
-- **Depends on.** `step-006` done (the builder image exists locally). The
+- **Depends on.** `step-sc-001` done (the builder image exists locally). The
   builder reference is a **locally built tag** here; it becomes a published
   digest at `step-pz-013`.
 - **Deliverables.**
@@ -532,10 +539,10 @@ is chosen at `step-pz-007` and its lint family arrives with its first file
   label being the machine-readable side of §8's comparison), root §3.1 (the
   builder stage referenced by a pinned tag or digest, recorded in the
   labels), root §7.
-- **Depends on.** `step-pz-012`; **`step-008` done** (the builder is
+- **Depends on.** `step-pz-012`; **`step-006` done** (the builder is
   published, so a digest exists to pin). The decision for the pin switch is
   logged in **this track's** `DECISIONS.md` — it governs a `pz`-track file —
-  cross-cited from the root log where `step-008` records the publication.
+  cross-cited from the root log where `step-006` records the publication.
 - **Deliverables.** The label set computed at build time; the builder
   reference switched from `step-pz-001`'s local tag to the **published
   digest**; a local build proving the labels are right.
@@ -556,7 +563,7 @@ is chosen at `step-pz-007` and its lint family arrives with its first file
 - **Objective.** The image's per-image documentation, which is also its GHCR
   page: everything an operator needs, and every caveat the specification
   insists be visible. It ships **before** the first release tag
-  (`step-011`), because a pinnable public image whose GHCR page is empty
+  (`step-009`), because a pinnable public image whose GHCR page is empty
   withholds exactly the knowledge root §5.7 exists to deliver before a pull.
 - **Spec sections implemented.** root §9 (the per-image README's content
   requirements in full), §8 (the backup recipe), §1–§7 as resolved, root
@@ -602,14 +609,14 @@ is chosen at `step-pz-007` and its lint family arrives with its first file
 
 | This track | needs | for |
 |---|---|---|
-| `step-pz-001` | `step-006` done | the builder image to build against |
-| `step-pz-013` | `step-008` done | a published builder digest to pin |
+| `step-pz-001` | `step-sc-001` done | the builder image to build against |
+| `step-pz-013` | `step-006` done | a published builder digest to pin |
 | **The root track needs from here** | | |
-| `step-009` | `step-pz-011`, `step-pz-012` done | stop mediation and health, before the smoke gate can assert them |
-| `step-010` | `step-pz-013` done | labels and the digest pin, before CI builds and publishes |
-| `step-011` | `step-pz-014` done | the per-image README that is the GHCR page, before the first pinnable release |
-| `step-014` | `step-pz-014` done | a per-image README that links to the repository README |
-| `step-015` | this whole track | a path actually walked, before the guide describes it |
+| `step-007` | `step-pz-011`, `step-pz-012` done | stop mediation and health, before the smoke gate can assert them |
+| `step-008` | `step-pz-013` done | labels and the digest pin, before CI builds and publishes |
+| `step-009` | `step-pz-014` done | the per-image README that is the GHCR page, before the first pinnable release |
+| `step-012` | `step-pz-014` done | a per-image README that links to the repository README |
+| `step-013` | this whole track | a path actually walked, before the guide describes it |
 
 ## Coverage map — `project-zomboid/SPECIFICATIONS.md`
 

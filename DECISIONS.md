@@ -1,9 +1,11 @@
 # Decision log — root track
 
-Decisions governing repository-wide files: the harness, the builder image,
-CI, the repository-wide documentation of root §9, and the workflow itself.
-Decisions governing a game image's files live in that track's log
-(`project-zomboid/DECISIONS.md`).
+Decisions governing what lives at the repository root or in a shared
+directory: the harness, CI and all publication, the repository-wide
+documentation of root §9, and the workflow itself. Decisions governing an
+image's own files live in that image's track log —
+`steamcmd/DECISIONS.md` (`sc`) or `project-zomboid/DECISIONS.md` (`pz`). The
+criterion is D-005.
 
 ## How to read this log
 
@@ -25,14 +27,15 @@ differently:
   proposed to the operator at `step-002`.
 
 Ids are `D-NNN`, numbered in **file order** (which is chronological),
-**frozen once assigned and never reused**. Ids are **per log**: this file
-and `project-zomboid/DECISIONS.md` each start at `D-001`, so a citation
-crossing logs names the file (`project-zomboid/DECISIONS.md D-003`).
+**frozen once assigned and never reused**. Ids are **per log**: this file,
+`steamcmd/DECISIONS.md` and `project-zomboid/DECISIONS.md` each start at
+`D-001`, so a citation crossing logs names the file
+(`project-zomboid/DECISIONS.md D-NNN`).
 
-A `pz`-track step that amends the **root** specification logs its decision
-**here**, in the same commit as the amendment, with the `pz` step id in the
-commit subject — the log follows the document being amended, not the step
-doing the work. An amendment touching both specifications is two entries,
+A **component track's** step that amends the **root** specification logs its
+decision **here**, in the same commit as the amendment, with that track's step
+id in the commit subject — the log follows the document being amended, not the
+step doing the work. An amendment touching two specifications is two entries,
 one per log, cross-citing.
 
 Entries cite not-yet-started steps by **number plus title**, so a missed
@@ -146,7 +149,7 @@ renumbering sweep still leaves the reference decodable.
 ## D-003 — Base-image pulls stay anonymous until limits bite
 
 - **Date:** 2026-08-17
-- **Step:** bootstrap (executed at `step-008` — Builder publication on CI)
+- **Step:** bootstrap (executed at `step-006` — Builder publication on CI)
 - **Context:** Root §2.6 records that Docker Hub rate-limits anonymous pulls,
   which makes every CI pull of the Debian base from shared-IP hosted runners
   an intermittent-throttling risk, and asks the implementation to decide about
@@ -154,7 +157,7 @@ renumbering sweep still leaves the reference decodable.
 - **Decision:** CI pulls the base anonymously. The pre-committed response to
   throttling is **authenticated pulls with a Docker Hub credential the
   operator supplies**, wired as a CI secret at the moment limits are actually
-  observed. `step-008` therefore builds no mirror and adds no credential now,
+  observed. `step-006` therefore builds no mirror and adds no credential now,
   and its prerequisite row records the credential as conditional. This is a
   deliberate decision taken in advance, which is what §2.6 asks for; it is not
   "wait and see", because the response is fixed and the trigger is named.
@@ -204,3 +207,55 @@ renumbering sweep still leaves the reference decodable.
     class of them, and cold reviewers read this document without context.
 - **Approved by:** operator (who identified the gap and ordered the amendment)
 - **Sequel:** the track and ownership consequences are D-005.
+
+## D-005 — Track ownership follows artifacts, not blast radius
+
+- **Date:** 2026-08-17
+- **Step:** bootstrap
+- **Context:** The bootstrap prompt assigned the steamcmd builder to the root
+  track, and the first plan transcribed that without examining it. Asked to
+  argue the choice, I defended it and was overruled. The criterion needed
+  writing down, because the same question will arrive with every future
+  component — a second builder line (root §10.1), a non-Steam fetcher
+  (root §10.6) — and the answer must not be re-derived from a transcript
+  nobody can read.
+- **Decision:** Ownership follows **where the artifacts live**, not how far
+  their effects reach.
+  - The **root track** owns what lives at the repository root or in a shared
+    directory: the harness (`justfile`, `.pre-commit-config.yaml`), the
+    governance files, `docs/`, `README.md`, and **CI in
+    `.github/workflows/`**. That enumeration is **closed**; widening it is a
+    logged decision, not a judgement call made in the moment.
+  - **CI stays root-owned even when it publishes another track's image**, for
+    exactly that reason: the workflow file is in a root directory. So the
+    builder's publish workflow is `step-006` on the root track, as the game
+    image's publication is `step-008`/`step-009`.
+  - Every **shipped image directory** is a track, and carries a
+    specification document — the per-game form, or the pointer form where the
+    root document specifies it in full (D-004). Today: `sc` (`steamcmd/`,
+    prefix `step-sc-NNN`) and `pz` (`project-zomboid/`, prefix
+    `step-pz-NNN`). This supersedes D-001's statement that two tracks exist
+    at adoption and that a track is added per *game*.
+  - **Downstream ripple is what cross-track dependency edges are for.** That
+    a builder change rebuilds every game image is coupling, and coupling is
+    expressed by a dependency line, never by moving ownership.
+- **Alternatives considered** — the three grounds I argued for keeping the
+  builder on the root track, each rejected:
+  - *"A track is anchored to a specification document, and the builder has
+    none."* Rejected: true only because of the specification-phase gap D-004
+    closed. The builder now has a document, and the premise evaporates.
+  - *"Its work ripples repository-wide, which is the root track's
+    definition."* Rejected: it conflates coupling with ownership. Every game
+    image depends on the builder too, and by that reasoning the root track
+    would absorb anything with dependants. The test that survives is where
+    the files live — CI is root-owned because `.github/workflows/` is a root
+    directory, not because rebuilds ripple.
+  - *"Three steps do not earn the machinery."* Overruled deliberately: a
+    track costs two files and a table row, while its absence costs a future
+    builder maintainer a decision log they cannot find. It was also free at
+    this moment and would not be after the foundation is tagged, since step
+    numbers freeze when a step enters `in progress` (rule 6).
+  - One part of my argument **stands**: publication belongs to the root
+    track, and `step-006` stayed there.
+- **Approved by:** operator (who supplied the criterion and overruled the
+  proportion argument)

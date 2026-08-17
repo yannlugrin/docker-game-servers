@@ -1,10 +1,14 @@
 # Implementation plan — root track
 
-The root track owns repository-wide work: the foundation and harness, the
-steamcmd builder image (root §4), CI (root §8), and the repository-wide
-documentation of root §9 (this repository's README, the contributor guide).
-Per-game images live on their own tracks; the first is `pz`
-(`project-zomboid/PLAN.md`).
+The root track owns what lives at the repository root or in a shared
+directory: the foundation and harness, CI in `.github/workflows/` — **all
+publication, including of images another track owns** — and the
+repository-wide documentation of root §9 (this repository's README, the
+contributor guide). The criterion, and what it deliberately excludes, is
+`DECISIONS.md` D-005.
+
+Images live on their own tracks: `sc` (the steamcmd builder, `steamcmd/`) and
+`pz` (Project Zomboid, `project-zomboid/`).
 
 `§N` references point to the root `SPECIFICATIONS.md`; `PZ §N` to
 `project-zomboid/SPECIFICATIONS.md`. The step-entry shape, the status
@@ -23,6 +27,10 @@ vocabulary and the compaction-on-approval rule live in
   belongs to.
 - Costs are stated per test. A test that crosses the rule-9 action boundary
   says so, what it costs, and how to clean up.
+- **Paths: a deliverable inside the active track's directory needs no path;
+  anything outside it names its path.** This track's directory is the
+  repository root, so its deliverables name paths — `.github/workflows/`,
+  `docs/adding-a-game.md`, `justfile`.
 - **Deliverables state what a step decides or builds beyond the
   specification, and cite the sections for the rest** — the session routine
   reads those sections anyway, and a copy of a read-only document can only
@@ -470,72 +478,24 @@ this plan rather than defended.*
 
 ---
 
-## Milestone 2 — The steamcmd builder image
+## Milestone 2 — Publication and automation
 
-§3.1's build direction gives the spine: the builder precedes any game image.
+Everything root §7 and root §8 ask for, on both images: the builder's publish
+workflow, the smoke gate that stands in front of every game-image publish, the
+release stream and its never-reuse enforcement, update detection, and the
+refresh that is the only path by which security patches reach baked images.
 
-### step-006 — The builder image — `pending`
+CI lives in `.github/workflows/`, a root directory, so publication is
+root-track work even when what it publishes belongs to another track
+(`DECISIONS.md` D-005). The builder image and its README are the `sc` track's
+(`steamcmd/PLAN.md`); the game image is the `pz` track's.
 
-- **Objective.** A working, minimal steamcmd builder image, built locally,
-  usable on its own as a generic "install a Steam app" builder.
-- **Spec sections implemented.** §4.1–§4.4, §3.1 (the shared base), §2.1,
-  §2.2, §5.8 in part (the builder's own annotations).
-- **Depends on.** `step-000`.
-- **Deliverables.**
-  - A Dockerfile on the base §3.1 names, with a working steamcmd **already
-    run once at build time** so its self-update is baked into the layer
-    (§4.2), and nothing beyond steamcmd's needs (§4.4).
-  - The app-id / branch / validation interface of §4.3, including
-    password-protected beta branches, and a **credential channel that leaves
-    nothing in any layer or in the image's build history** — which rules out
-    a plain build argument or a baked environment variable (§4.3, §10.4).
-    The channel chosen is a logged decision.
-  - The **Dockerfile lint** family arrives with this, the first Dockerfile.
-  - **Measurements** §2.9 ordered taken at implementation, recorded in
-    `.claude/docs/`: the base image's own size and the builder's size on top
-    of it — the evidence for or against "Debian slim is the smallest workable
-    base". A result that moves the expectation moves the named consequence,
-    not the architecture; one implying a different base is a §3.1
-    **requirement** change and comes back to the operator first.
-  - A local build recipe in the justfile (no gated act — rule 2's
-    invariant).
-  - **Premises to verify here, not assume:** that the base tag §3.1 names
-    resolves as written (`docker buildx imagetools inspect`); and what a
-    steamcmd anonymous metadata query actually returns on a cold cache —
-    whether it needs an explicit info-update step to answer at all, and what
-    exit status a *failed* query gives. The last one matters because
-    `step-008`'s gate is built on it, and **a gate that passes on empty
-    output gates nothing**.
-- **How I test it.** Free and local, but not instant: building runs
-  steamcmd, which downloads its own runtime from Steam (free per rule 9 —
-  tens of megabytes here, not the gigabytes a game build pulls). Build it,
-  read the reported size, then run an anonymous metadata query inside it and
-  see it return a non-empty answer and exit zero; run a deliberately invalid
-  query and see a non-zero exit. Cleanup: `docker image rm` the local tag by
-  name (free — this project's own artifact).
-- **Status.** `pending`
+Ordered so nothing goes live before its day-two operations exist: the smoke
+gate is built and proven locally before any workflow can publish a game image,
+the gate is wired into the publish path before the first publish, and the
+consumer documentation exists before the first pinnable release tag.
 
-### step-007 — The builder image README — `pending`
-
-- **Objective.** The builder's per-image documentation, which is also its
-  GHCR page.
-- **Spec sections implemented.** §9 (per-image README), §4.1 (**it is not a
-  runtime image and its documentation must say so**), §7 (the builder's
-  date-stamped tag policy), §11 (the no-general-purpose-runtime-steamcmd
-  non-goal, stated where a reader would otherwise assume otherwise).
-- **Depends on.** `step-006`.
-- **Deliverables.** A README for the builder covering what it is and what it
-  is **not**; use as a build stage and standalone; the §4.3 interface and the
-  credential non-persistence rule; the tag scheme and that consumers pin a
-  date tag or digest; platform-neutral throughout (§9). §9's per-image
-  content list applies as far as it is meaningful for a non-runtime image — a
-  builder has no ports, no state root and no shutdown semantics, and says so
-  rather than shipping empty sections.
-- **How I test it.** Free and local. Read it; follow its standalone example
-  against the locally built image and see the documented result.
-- **Status.** `pending`
-
-### step-008 — Builder publication on CI — `pending`
+### step-006 — Builder publication on CI — `pending`
 
 - **Objective.** The builder published to GHCR by CI, gated, with §7's tag
   scheme.
@@ -546,7 +506,8 @@ this plan rather than defended.*
   §2.6 (GHCR; the per-package visibility flip; the Docker Hub anonymous-pull
   rate limit, **decided deliberately here** rather than after the first
   failed build), §5.8.
-- **Depends on.** `step-005`, `step-006`, `step-007`.
+- **Depends on.** `step-005`; `step-sc-001` and `step-sc-002` done (an image
+  and its README exist to publish).
 - **Deliverables.** The manually triggered publish workflow; the date-tag
   computation with the ordinal-suffix rule; the anonymous-metadata gate
   before the push; §7's never-reuse enforcement applied to date tags (a
@@ -563,18 +524,7 @@ this plan rather than defended.*
   published builder tags are retained deliberately (§7).
 - **Status.** `pending`
 
----
-
-## Milestone 3 — Game image automation
-
-Everything here needs a complete game image to build and to gate, so the
-milestone opens only when the `pz` track has delivered one. Ordered so
-nothing goes live before its day-two operations exist: the smoke gate is
-built and proven locally before any workflow can publish, the gate is wired
-into the publish path before the first publish, and the consumer
-documentation exists before the first pinnable release tag.
-
-### step-009 — The smoke-test gate, locally — `pending`
+### step-007 — The smoke-test gate, locally — `pending`
 
 - **Objective.** The §8 gate that stands between a built game image and any
   publish, built and proven where it is free to iterate.
@@ -604,7 +554,7 @@ documentation exists before the first pinnable release tag.
   containers and volumes by name; never a prune.
 - **Status.** `pending`
 
-### step-010 — The game build workflow in CI — `pending`
+### step-008 — The game build workflow in CI — `pending`
 
 - **Objective.** CI can build the Project Zomboid image, gate it, and
   publish it under a namespace carrying none of §7's promises.
@@ -616,9 +566,9 @@ documentation exists before the first pinnable release tag.
   builds never consume the release namespace — mutable, prunable, excluded
   from the never-reuse rule and the moving pointers, absent from consumer
   documentation).
-- **Depends on.** `step-008`, `step-009` (the gate it wires in),
+- **Depends on.** `step-006`, `step-007` (the gate it wires in),
   `step-pz-013` done (labels and the published builder digest pin).
-- **Deliverables.** The dispatchable build workflow; the `step-009` gate as
+- **Deliverables.** The dispatchable build workflow; the `step-007` gate as
   a job that **blocks the publish** when it fails; the development tag
   naming, visibly not a release tag; and the push/pull-request job that
   builds and smoke-tests **without publishing**, with the path filters that
@@ -633,14 +583,14 @@ documentation exists before the first pinnable release tag.
   package version is a gated act; ask.
 - **Status.** `pending`
 
-### step-011 — Release publication and tag policy — `pending`
+### step-009 — Release publication and tag policy — `pending`
 
 - **Objective.** The `-rN` release stream, its moving pointers, and the
   never-reuse enforcement that protects them.
 - **Spec sections implemented.** §7 in full for game images, §8 (the
   revision tag computed against what the registry already holds, never
   overwriting; first publish is not fully automatic), §5.8, §2.6.
-- **Depends on.** `step-010`; **`step-pz-014` done** — the first `-rN` is
+- **Depends on.** `step-008`; **`step-pz-014` done** — the first `-rN` is
   the first tag a consumer may pin and is retained forever, so it must not
   publish before the per-image README that is also its GHCR page: §5.7's
   version-upgrade warning and §9's mount-ownership step have to reach a
@@ -667,13 +617,13 @@ documentation exists before the first pinnable release tag.
   **retained deliberately and permanently**. Cleanup: none, by design.
 - **Status.** `pending`
 
-### step-012 — Scheduled update detection — `pending`
+### step-010 — Scheduled update detection — `pending`
 
 - **Objective.** A new Steam buildid becomes a published image without human
   action.
 - **Spec sections implemented.** §8 (scheduled update detection), §2.3,
   §5.8, §7.
-- **Depends on.** `step-011`; the schedule prerequisite in the table below.
+- **Depends on.** `step-009`; the schedule prerequisite in the table below.
 - **Deliverables.** A periodic job comparing each game's current Steam
   buildid against the buildid label of the newest published **release**
   image — never a development tag, whose newer buildid would otherwise
@@ -692,7 +642,7 @@ documentation exists before the first pinnable release tag.
   publish is a legitimate release and is retained.
 - **Status.** `pending`
 
-### step-013 — Scheduled refresh, builder pin advance, staleness check — `pending`
+### step-011 — Scheduled refresh, builder pin advance, staleness check — `pending`
 
 - **Objective.** The only path by which security patches reach baked game
   images, and the deactivation-resistance §2.8 demands of it.
@@ -700,7 +650,7 @@ documentation exists before the first pinnable release tag.
   in-repo staleness check; superseded game versions never re-patched), §3.1
   (the pin moves only by this deliberate, automated act), §2.8, §10.7 (named
   as deferred, blind spot stated rather than hidden).
-- **Depends on.** `step-012`; the schedule prerequisite in the table below.
+- **Depends on.** `step-010`; the schedule prerequisite in the table below.
 - **Deliverables.** One flow that publishes a fresh builder date tag,
   **advances the pinned builder reference**, and rebuilds every game image
   against the refreshed base and builder — the pin advance becoming final
@@ -722,12 +672,12 @@ documentation exists before the first pinnable release tag.
 
 ---
 
-## Milestone 4 — Repository-wide documentation
+## Milestone 3 — Repository-wide documentation
 
 Written after one game has been walked through, so the conventions are
 described as they were actually honoured rather than as they were planned.
 
-### step-014 — The repository README's content requirements — `pending`
+### step-012 — The repository README's content requirements — `pending`
 
 - **Objective.** `README.md` satisfies §9's repository-README requirements
   on top of the neutral entry point it already is.
@@ -744,14 +694,14 @@ described as they were actually honoured rather than as they were planned.
   restates the conventions.
 - **Status.** `pending`
 
-### step-015 — The contributor guide for adding a game — `pending`
+### step-013 — The contributor guide for adding a game — `pending`
 
 - **Objective.** The §5 checklist an implementer walks a new game image
   through.
 - **Spec sections implemented.** §9 (the contributor guide), §6 (the
   per-game specification to write **first**, and its minimum contents), §5,
   §10.5, §10.6, §3.3.
-- **Depends on.** `step-014`; the whole `pz` track (the guide describes a
+- **Depends on.** `step-012`; the whole `pz` track (the guide describes a
   path actually walked).
 - **Deliverables.** `docs/adding-a-game.md` (human-facing — never
   `.claude/docs/`): the per-game specification first, then the §5 checklist
@@ -765,6 +715,23 @@ described as they were actually honoured rather than as they were planned.
 
 ---
 
+## Cross-track dependencies
+
+Stated here as well as in each step's `Depends on` line, so both endpoints of
+every edge are visible from either side.
+
+| This track | needs | for |
+|---|---|---|
+| `step-006` | `step-sc-001`, `step-sc-002` done | an image and its README before CI publishes them |
+| `step-007` | `step-pz-011`, `step-pz-012` done | stop mediation and health, before the smoke gate can assert them |
+| `step-008` | `step-pz-013` done | labels and the digest pin, before CI builds and publishes |
+| `step-009` | `step-pz-014` done | the per-image README that is the GHCR page, before the first pinnable release |
+| `step-012` | `step-pz-014` done | a per-image README that links to the repository README |
+| `step-013` | the whole `pz` track | a path actually walked, before the guide describes it |
+| **Other tracks need from here** | | |
+| `step-sc-001` (`sc`) | `step-000` done | the harness the Dockerfile lint family joins — closing `step-000` unblocks another track |
+| `step-pz-013` (`pz`) | `step-006` done | a published builder digest to pin |
+
 ## External prerequisites
 
 Things only the operator can prepare, each with the step that first needs
@@ -772,12 +739,12 @@ it.
 
 | Prerequisite | First needed | State |
 |---|---|---|
-| **The working branch is treated as `main`.** It is force-pushed to `main` once the foundation is validated, and no `step-*` tag exists yet (the operator deleted the earlier ones), so `git describe --match 'step-*'` correctly reports none and the tag namespace is clear. Two GitHub properties still shape the CI steps: a `push`-triggered workflow runs from any branch, so `step-005`'s gate needs nothing special; but `schedule` fires **only** for workflows on the default branch, and a workflow generally has to exist there to be dispatchable — satisfied by the time `step-012` runs, since the force-push happens at the end of the foundation. | `step-005` (nothing to do), `step-012` (needs the force-push done) | **Resolved** — recorded because the `push`-versus-`schedule` distinction is what makes it a non-issue, and a later session would otherwise re-derive it |
+| **The working branch is treated as `main`.** It is force-pushed to `main` once the foundation is validated, and no `step-*` tag exists yet (the operator deleted the earlier ones), so `git describe --match 'step-*'` correctly reports none and the tag namespace is clear. Two GitHub properties still shape the CI steps: a `push`-triggered workflow runs from any branch, so `step-005`'s gate needs nothing special; but `schedule` fires **only** for workflows on the default branch, and a workflow generally has to exist there to be dispatchable — satisfied by the time `step-010` runs, since the force-push happens at the end of the foundation. | `step-005` (nothing to do), `step-010` (needs the force-push done) | **Resolved** — recorded because the `push`-versus-`schedule` distinction is what makes it a non-issue, and a later session would otherwise re-derive it |
 | Public GitHub repository and its remote | `step-005` | **Satisfied**: `git@github.com:yannlugrin/docker-game-servers.git`, public |
 | Authorisation of the first push | `step-000` close (rule 6 attempts a push at every close); mandatory at `step-005` | Open — asked at each close by the permission gate |
-| GHCR owner namespace (§7) | `step-008` | **Confirmed**: `ghcr.io/yannlugrin` |
-| One-time per-package visibility flip at first publish (§2.6, §8) | `step-008` (`steamcmd`), `step-011` (`project-zomboid`) | Open — only the owner can do it; without it CI goes green while no consumer can pull |
-| A **Docker Hub credential, conditionally** — pulls stay anonymous until throttling is actually observed, then the operator supplies one as a CI secret (D-003) | `step-008` onward, only if limits bite | Conditional, and the decision is already taken — D-003 |
+| GHCR owner namespace (§7) | `step-006` | **Confirmed**: `ghcr.io/yannlugrin` |
+| One-time per-package visibility flip at first publish (§2.6, §8) | `step-006` (`steamcmd`), `step-009` (`project-zomboid`) | Open — only the owner can do it; without it CI goes green while no consumer can pull |
+| A **Docker Hub credential, conditionally** — pulls stay anonymous until throttling is actually observed, then the operator supplies one as a CI secret (D-003) | `step-006` onward, only if limits bite | Conditional, and the decision is already taken — D-003 |
 | Bandwidth and disk for the multi-gigabyte Project Zomboid download | `step-pz-001` | Ample free space measured at bootstrap; recorded in `.claude/docs/environment.md` from `step-000` |
 
 ## Coverage map — root `SPECIFICATIONS.md`
@@ -788,34 +755,34 @@ excluded.
 
 | Section | Step(s) |
 |---|---|
-| §1 Goal | `step-014`; binds every image step |
-| §2.1 steamcmd is 32-bit glibc; amd64 only | `step-006` |
-| §2.2 steamcmd self-updates, no versions | `step-006`, `step-008` |
-| §2.3 app ids, branches, buildid | `step-006`, `step-012` |
+| §1 Goal | `step-012`; binds every image step |
+| §2.1 steamcmd is 32-bit glibc; amd64 only | `step-sc-001` |
+| §2.2 steamcmd self-updates, no versions | `step-sc-001` (pre-warmed layer), `step-006` (date tags) |
+| §2.3 app ids, branches, buildid | `step-sc-001`, `step-010` |
 | §2.4 PID 1 signal semantics | `step-pz-007`, `step-pz-011` |
 | §2.5 Steam query protocol | `step-pz-003`, `step-pz-012` |
-| §2.6 Registry; visibility flip; Docker Hub rate limit | `step-008`, `step-011` |
+| §2.6 Registry; visibility flip; Docker Hub rate limit | `step-006`, `step-009` |
 | §2.7 `steamclient.so` at runtime | `step-pz-001` |
-| §2.8 Idle scheduled workflows disabled | `step-005` (no schedule invented), `step-013` |
-| §2.9 The measurement items | `step-006` (base and builder sizes), `step-pz-001`, `step-pz-002`, `step-pz-003` |
-| §3.1 Two tiers, one base, pinned builder reference | `step-006`, `step-008`, `step-013`, `step-pz-001`, `step-pz-013` |
+| §2.8 Idle scheduled workflows disabled | `step-005` (no schedule invented), `step-011` |
+| §2.9 The measurement items | `step-sc-001` (base and builder sizes), `step-pz-001`, `step-pz-002`, `step-pz-003` |
+| §3.1 Two tiers, one base, pinned builder reference | `step-sc-001`, `step-006`, `step-011`, `step-pz-001`, `step-pz-013` |
 | §3.2 Baked at build time | `step-pz-001` |
-| §3.3 One repository, one set of conventions | `step-014`, `step-015` |
-| §3.4 uid-agnostic; no default user; uid-0 fatal; `ALLOW_UID0`; complete writable-path set | `step-pz-001`, `step-pz-005`, `step-pz-007`, `step-009` (exercised) |
+| §3.3 One repository, one set of conventions | `step-012`, `step-013` |
+| §3.4 uid-agnostic; no default user; uid-0 fatal; `ALLOW_UID0`; complete writable-path set | `step-pz-001`, `step-pz-005`, `step-pz-007`, `step-007` (exercised) |
 | §3.5 The entrypoint is the adapter | `step-pz-007` and the `pz` entrypoint steps |
-| §4.1–§4.4 The builder image | `step-006`, `step-007` |
-| §5.1 Filesystem and state | `step-pz-001`, `step-pz-005`, `step-009` |
+| §4.1–§4.4 The builder image | `step-sc-001`, `step-sc-002` (`sc` track) |
+| §5.1 Filesystem and state | `step-pz-001`, `step-pz-005`, `step-007` |
 | §5.2 Ports | `step-pz-003`, `step-pz-008`, `step-pz-011`, `step-pz-014` |
 | §5.3 Configuration | `step-pz-008`, `step-pz-009`, `step-pz-010`, `step-pz-012` |
 | §5.4 Secrets | `step-pz-008`, `step-pz-010` |
-| §5.5 Observability | `step-pz-005` (logs), `step-pz-012` (health, clients), `step-009` |
-| §5.6 Lifecycle and shutdown | `step-pz-007`, `step-pz-011`, `step-009` |
+| §5.5 Observability | `step-pz-005` (logs), `step-pz-012` (health, clients), `step-007` |
+| §5.6 Lifecycle and shutdown | `step-pz-007`, `step-pz-011`, `step-007` |
 | §5.7 Backup knowledge | `step-pz-006`, `step-pz-014` |
-| §5.8 Image metadata | `step-pz-013`, `step-006`/`step-008` (builder labels), `step-012` |
-| §6 Per-game specifications | The `pz` track exists because of it; `step-015` states the rule for future games |
-| §7 Versioning and publication | `step-008` (builder), `step-010` (development namespace), `step-011` (releases), `step-013` |
-| §8 Build automation | `step-005`, `step-008`, `step-009`, `step-010`, `step-011`, `step-012`, `step-013` |
-| §9 Documentation deliverables | `step-007`, `step-014`, `step-015`, `step-pz-014`; **LICENSE (MIT) already exists at the repository root — verified, no step needed** |
+| §5.8 Image metadata | `step-pz-013`, `step-sc-001`/`step-006` (builder labels), `step-010` |
+| §6 Per-image specifications | Satisfied at bootstrap by the documents themselves: `project-zomboid/SPECIFICATIONS.md` (per-game form) and `steamcmd/SPECIFICATIONS.md` (pointer form, D-004). `step-013` carries the per-game half into the contributor guide; the pointer form needs no step until a second non-game component exists (rule 11 — built at the moment of need), and root §6 plus D-004 already state the rule |
+| §7 Versioning and publication | `step-006` (builder), `step-008` (development namespace), `step-009` (releases), `step-011` |
+| §8 Build automation | `step-005`, `step-006`, `step-007`, `step-008`, `step-009`, `step-010`, `step-011` |
+| §9 Documentation deliverables | `step-sc-002`, `step-012`, `step-013`, `step-pz-014`; **LICENSE (MIT) already exists at the repository root — verified, no step needed** |
 
 **Deliberately not implemented in this pass:**
 
@@ -823,12 +790,12 @@ excluded.
   mod-baked variants, §10.4 non-anonymous games, §10.5 more games, §10.6
   non-Steam games, §10.7 external refresh watchdog) — the section's own
   instruction is "not built now; nothing in the present design may preclude
-  them". §10.7 is named in `step-013` as the deferred closure of a stated
+  them". §10.7 is named in `step-011` as the deferred closure of a stated
   blind spot, and §10.4's requirement on the builder (credentials that never
-  persist) *is* implemented, at `step-006`.
+  persist) *is* implemented, at `step-sc-001`.
 - **§11 Non-Goals** — conscious renunciations, nothing to build. Documented
-  where a reader would otherwise assume otherwise: `step-007` (no runtime
-  steamcmd image), `step-014` (the rest).
+  where a reader would otherwise assume otherwise: `step-sc-002` (no runtime
+  steamcmd image), `step-012` (the rest).
 
 ## Open facts owned by this track
 
@@ -838,8 +805,8 @@ resolution — is per-game and owned by the `pz` plan.
 | Open fact | Settled at | Pre-committed response |
 |---|---|---|
 | The ~megabytes cost of the §5.5 clients | `step-pz-002` (RCON), `step-pz-003` (Steam-query) | Autonomous if the size confirms the expectation; a client costing tens of megabytes is a §5.5 "should" deviation — logged, and back to the operator if it changes what the image documents |
-| Debian slim as the smallest workable base | `step-006` | A measurement that moves the expectation moves the named consequence, not the architecture (§2.9). A result implying a different base is a §3.1 **requirement** change — back to the operator |
-| steamcmd's undocumented behaviour may shift under Valve's control | `step-006`, re-observed at every `step-013` refresh | Already absorbed by design: the builder is date-stamped and pre-warmed rather than assumed stable |
+| Debian slim as the smallest workable base | `step-sc-001` | A measurement that moves the expectation moves the named consequence, not the architecture (§2.9). A result implying a different base is a §3.1 **requirement** change — back to the operator |
+| steamcmd's undocumented behaviour may shift under Valve's control | `step-sc-001`, re-observed at every `step-011` refresh | Already absorbed by design: the builder is date-stamped and pre-warmed rather than assumed stable |
 
 ## Open questions for the operator
 
@@ -851,22 +818,23 @@ namespace is `ghcr.io/yannlugrin`; base pulls stay anonymous with a Docker Hub
 credential held in reserve (D-003); `CLAUDE.md`'s budget is D-002's.
 
 Resolved without needing a ruling: **reading a published game image's buildid
-label** — `step-012`'s comparison — is attempted first through the GitHub
+label** — `step-010`'s comparison — is attempted first through the GitHub
 Packages API via `gh`, which rule 9 already rules free. Only if that cannot
 answer does the question of a bare registry manifest read arise, and I will
 ask then rather than in advance.
 
 Still open:
 
-1. **Milestone 3 depends heavily on the `pz` track.** Steps 009–013 cannot
-   start until the PZ image is complete, so there is a long stretch of
-   `pz`-track work with no root-track progress. That is what the dependencies
-   dictate — gating workflows against an image that cannot yet report healthy
-   or stop cleanly would be worse — but the sequencing is worth seeing rather
-   than discovering.
+1. **Most of the root track waits on the `pz` track.** `step-007` through
+   `step-013` cannot start until the PZ image is complete — the smoke gate
+   needs stop mediation and health, everything after it needs the gate — so
+   there is a long stretch of `pz`-track work with no root-track progress.
+   That is what the dependencies dictate; gating workflows against an image
+   that cannot yet report healthy or stop cleanly would be worse. Flagged so
+   the sequencing is seen rather than discovered.
 2. **Cadence numbers are unset on purpose.** §8 leaves the refresh cadence and
    the staleness threshold to the implementation; I will propose them at
-   `step-013` with reasons rather than fixing them here, where they would be a
+   `step-011` with reasons rather than fixing them here, where they would be a
    number nobody has thought about since.
 3. **Five fact-finding steps on the `pz` track cost five gates.** The question
    is stated where it belongs, in `project-zomboid/PLAN.md`'s open questions;
