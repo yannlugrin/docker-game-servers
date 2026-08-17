@@ -30,7 +30,7 @@ differently:
 Ids are `D-NNN`, numbered in **file order** (which is chronological),
 **frozen once assigned and never reused**. Ids are **per log**: this file
 and the root `DECISIONS.md` each start at `D-001`, so a citation crossing
-logs names the file (`DECISIONS.md D-004` for the root log).
+logs names the file — for the root log, `DECISIONS.md D-NNN`.
 
 **Where an amendment lands.** A step of this track that amends the **root**
 specification logs its decision in the **root** log, in the same commit as

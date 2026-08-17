@@ -7,8 +7,9 @@ Per-game images live on their own tracks; the first is `pz`
 (`project-zomboid/PLAN.md`).
 
 `§N` references point to the root `SPECIFICATIONS.md`; `PZ §N` to
-`project-zomboid/SPECIFICATIONS.md`. Step-entry shape, status vocabulary and
-the compaction-on-approval rule are defined in `CLAUDE.md`.
+`project-zomboid/SPECIFICATIONS.md`. The step-entry shape, the status
+vocabulary and the compaction-on-approval rule live in
+`.claude/docs/workflow.md` §1.
 
 ## How to read this plan
 
@@ -771,13 +772,12 @@ it.
 
 | Prerequisite | First needed | State |
 |---|---|---|
-| **Step-tag namespace collision.** Tags `step-000` and `step-001` already exist here, from an earlier attempt whose history lives on `main`; this branch (`handoff-3`) is an unrelated root commit, so they are unreachable from `HEAD` but the **names are taken** and `git tag step-000` will fail at the first close. `git describe --match 'step-*'` already behaves correctly (finds nothing, which rule 3 reads as "before the first step tag"); `git tag -l 'step-*'`, which the rituals also use, does not. | `step-000` close | **Open — operator decision needed before the first step close** |
-| **Branch topology for CI.** GitHub fires `schedule` only for workflows on the **default branch**, and a workflow generally has to exist there to be dispatchable at all. The default branch is `main`; the work is on `handoff-3`. So `step-005`'s gate, the dispatch gates of `step-008`/`step-010`/`step-011`, and above all the *scheduled* deliverables of `step-012` and `step-013` need this branch to **be** the default branch or to be merged into it. | `step-005`, hard-required at `step-012` | **Open — the same decision as the row above, and the reason it is urgent rather than cosmetic** |
-| Public GitHub repository and its remote | `step-005` | **Satisfied**: `git@github.com:yannlugrin/docker-game-servers.git`, public, default branch `main` |
-| Authorisation of the first push | `step-000` close (rule 6 attempts a push at every close); mandatory at `step-005` | Open |
-| GHCR owner namespace (§7) | `step-008` | Expected `ghcr.io/yannlugrin`; **operator to confirm** |
+| **The working branch is treated as `main`.** It is force-pushed to `main` once the foundation is validated, and no `step-*` tag exists yet (the operator deleted the earlier ones), so `git describe --match 'step-*'` correctly reports none and the tag namespace is clear. Two GitHub properties still shape the CI steps: a `push`-triggered workflow runs from any branch, so `step-005`'s gate needs nothing special; but `schedule` fires **only** for workflows on the default branch, and a workflow generally has to exist there to be dispatchable — satisfied by the time `step-012` runs, since the force-push happens at the end of the foundation. | `step-005` (nothing to do), `step-012` (needs the force-push done) | **Resolved** — recorded because the `push`-versus-`schedule` distinction is what makes it a non-issue, and a later session would otherwise re-derive it |
+| Public GitHub repository and its remote | `step-005` | **Satisfied**: `git@github.com:yannlugrin/docker-game-servers.git`, public |
+| Authorisation of the first push | `step-000` close (rule 6 attempts a push at every close); mandatory at `step-005` | Open — asked at each close by the permission gate |
+| GHCR owner namespace (§7) | `step-008` | **Confirmed**: `ghcr.io/yannlugrin` |
 | One-time per-package visibility flip at first publish (§2.6, §8) | `step-008` (`steamcmd`), `step-011` (`project-zomboid`) | Open — only the owner can do it; without it CI goes green while no consumer can pull |
-| A registry credential, **conditionally** — only if §2.6's Docker Hub anonymous-pull rate limit is resolved via authenticated pulls rather than a mirror | `step-008` (the first CI build that pulls the base) | Conditional; the decision itself is `step-008`'s |
+| A **Docker Hub credential, conditionally** — pulls stay anonymous until throttling is actually observed, then the operator supplies one as a CI secret (D-003) | `step-008` onward, only if limits bite | Conditional, and the decision is already taken — D-003 |
 | Bandwidth and disk for the multi-gigabyte Project Zomboid download | `step-pz-001` | Ample free space measured at bootstrap; recorded in `.claude/docs/environment.md` from `step-000` |
 
 ## Coverage map — root `SPECIFICATIONS.md`
@@ -843,60 +843,31 @@ resolution — is per-game and owned by the `pz` plan.
 
 ## Open questions for the operator
 
-1. **The step-tag collision, and what `handoff-3` is for.** The prerequisite
-   table states two mechanical consequences — a tag name that will fail at
-   the first close, and a branch on which scheduled workflows cannot run.
-   Behind both sits one question this plan cannot answer: is this branch
-   meant to replace `main` (whose history holds an earlier attempt at three
-   steps), to merge into it, or to live beside it? The answer changes what
-   the first close does, whether the old tags may be deleted, and when
-   `step-012` becomes testable at all. I have deliberately not read that
-   earlier attempt's implementation — but its tag messages were unavoidably
-   visible while inventorying the `step-*` namespace, so I have seen a
-   handful of its measurements. Say whether that history is input I may use
-   or a dead end to ignore; until you do I treat it as unverified hearsay
-   and measure everything myself.
-2. **Is reading a game image's manifest from GHCR inside rule 9's free
-   side?** `step-012`'s comparison reads the buildid **label** of a published
-   image. Rule 9 rules free "GitHub API reads" and "pulls of the pinned base
-   and builder images" — a registry manifest read for a *game* image is
-   arguably neither, though it transfers a few kilobytes and changes nothing.
-   I would like it explicitly free; say so, or I will ask each time.
-3. **Milestone 3 depends heavily on the `pz` track.** Steps 009–013 cannot
+Settled in the bootstrap exchange, recorded so they are not reopened: the
+working branch is the project and is treated as `main` (prerequisites table);
+other branches are **not** readable, so the earlier attempt's history is a dead
+end and nothing from it is used (`CLAUDE.md` rule 1 now says so); the GHCR
+namespace is `ghcr.io/yannlugrin`; base pulls stay anonymous with a Docker Hub
+credential held in reserve (D-003); `CLAUDE.md`'s budget is D-002's.
+
+Resolved without needing a ruling: **reading a published game image's buildid
+label** — `step-012`'s comparison — is attempted first through the GitHub
+Packages API via `gh`, which rule 9 already rules free. Only if that cannot
+answer does the question of a bare registry manifest read arise, and I will
+ask then rather than in advance.
+
+Still open:
+
+1. **Milestone 3 depends heavily on the `pz` track.** Steps 009–013 cannot
    start until the PZ image is complete, so there is a long stretch of
-   `pz`-track work with no root-track progress. That is what the
-   dependencies dictate — gating workflows against an image that cannot yet
-   report healthy or stop cleanly would be worse — but the sequencing is
-   worth seeing rather than discovering.
-4. **`step-006`'s Docker Hub decision is partly yours**: a GHCR mirror of
-   the base costs a little machinery and no credential; authenticated pulls
-   cost a credential you supply. I will propose the mirror unless you prefer
-   otherwise.
-5. **`CLAUDE.md` does not fit its 220-line budget, and rule 3 says to raise
-   that rather than pack the file.** It stands at **301 lines**: the eleven
-   rules take **188** — rule 9's boundary enumeration alone is **35** and
-   must be carried whole — and the sections the workflow requires by name
-   take **113**. Rule 3's eviction order is already applied: nothing
-   context-specific is left that a `.claude/docs/` trigger could reach, the
-   templates block is down to its three mandated items, and per-track detail
-   now lives in the plans and is cited rather than duplicated. Three
-   remedies, and the choice is yours:
-   - **A rationale-stripping pass** at fixed rule count and fixed section
-     count — deleting the "the reason is…" clauses and the explanatory
-     italics, whose home is `DECISIONS.md` D-001 anyway. Estimated recovery
-     **~30 lines, landing near 270**: it does not reach 220, which is
-     precisely why it is worth knowing before you rule. Its cost is real —
-     those clauses are what stop a later session re-litigating a rule.
-   - **A logged project-specific budget** — I suggest a 320-line cap with a
-     ~280 target, preserving real headroom. This is rule 3's own named
-     outcome, logged as a deviation with what makes it necessary.
-   - **A named scope cut** — tell me what may go. In the order I would
-     sacrifice them: the `Where things live` block (`README.md` carries the
-     map) and the `Plan conventions` section (if closes may be driven from
-     the plans' own headers instead).
-   Until you rule, `CLAUDE.md`'s rule 3 states the overshoot in the file
-   itself and points here, so no session mistakes it for compliance.
-6. **Cadence numbers are unset on purpose.** §8 leaves the refresh cadence
-   and the staleness threshold to the implementation; I will propose them at
-   `step-013` with reasons rather than fixing them here, where they would be
-   a number nobody has thought about since.
+   `pz`-track work with no root-track progress. That is what the dependencies
+   dictate — gating workflows against an image that cannot yet report healthy
+   or stop cleanly would be worse — but the sequencing is worth seeing rather
+   than discovering.
+2. **Cadence numbers are unset on purpose.** §8 leaves the refresh cadence and
+   the staleness threshold to the implementation; I will propose them at
+   `step-013` with reasons rather than fixing them here, where they would be a
+   number nobody has thought about since.
+3. **Five fact-finding steps on the `pz` track cost five gates.** The question
+   is stated where it belongs, in `project-zomboid/PLAN.md`'s open questions;
+   noted here because the gate count is yours to spend.

@@ -98,3 +98,71 @@ renumbering sweep still leaves the reference decodable.
     correction costs the lot.
 - **Approved by:** operator (the workflow is the operator's own; this entry
   records its adoption rather than proposing it)
+
+## D-002 — `CLAUDE.md`'s line budget, and the lazily-loaded mechanics file
+
+- **Date:** 2026-08-17
+- **Step:** bootstrap
+- **Context:** Rule 3 sets `CLAUDE.md` a 220-line budget with headroom around
+  180. Restating the eleven rules plus the six sections the workflow requires
+  by name produced 301 lines. Rule 3's own eviction order was applied first
+  and did not close the gap: nothing context-specific remained that a
+  `.claude/docs/` read-trigger could reach, the templates block was already
+  down to its three mandated items, and per-track detail had already moved to
+  the plans. Rule 9's action-boundary enumeration alone is 35 lines and is
+  carried whole by rule; the remaining ten rules are ~120 lines at
+  operative-only density. Rule 3 says an unfittable restatement is a finding
+  for the operator, never a file to pack, and names a project-specific budget
+  as a legitimate outcome.
+- **Decision:** Two parts.
+  1. **Extract mechanics and reasoning to `.claude/docs/workflow.md`**, a
+     lazily-loaded file with its own read triggers: the specification-amendment
+     ritual, the plan-step entry shape, the tooling-placeholder semantics, the
+     milestone-close passes, the harness contract and closing-tag shape, and
+     the reasons behind the rules. `CLAUDE.md` keeps what binds and points at
+     it. This took the file from 301 to 254 lines.
+  2. **Set this project's budget at 280 lines, with a ~250 target.** 200 is
+     not reachable: the only remaining route below ~250 is moving rule text
+     itself out of the always-loaded file, and a rule that is not loaded is a
+     rule that is not followed — the failure rule 3's eviction order exists to
+     prevent. Rule 3 now cites this entry instead of the generic 220.
+- **Alternatives considered:**
+  - *Strip the rules' rationale in place, keeping rule and section count.*
+    Partly done — the reasoning moved rather than being deleted, because
+    reasoning is what stops a later session re-litigating a rule. Deleting it
+    outright was estimated at ~30 lines recovered, which still misses 220.
+  - *Delete a required section (`Where things live`, `Plan conventions`).*
+    Rejected: `Plan conventions` became `workflow.md` §1 with a read trigger
+    rather than disappearing, which keeps it reachable for the closes that
+    precede `/approve-step`.
+  - *Compress rule 9's enumeration into a table.* Rejected: it is safety text
+    the workflow requires carried whole, and restructuring it risks dropping a
+    qualifier that bounds the free side of the boundary.
+  - *Keep 220 and accept a file over budget with no ruling.* Rejected: a
+    budget check that is ignored from the day it is written teaches the next
+    session to ignore it.
+- **Approved by:** operator
+
+## D-003 — Base-image pulls stay anonymous until limits bite
+
+- **Date:** 2026-08-17
+- **Step:** bootstrap (executed at `step-008` — Builder publication on CI)
+- **Context:** Root §2.6 records that Docker Hub rate-limits anonymous pulls,
+  which makes every CI pull of the Debian base from shared-IP hosted runners
+  an intermittent-throttling risk, and asks the implementation to decide about
+  it **deliberately rather than after the first failed build**.
+- **Decision:** CI pulls the base anonymously. The pre-committed response to
+  throttling is **authenticated pulls with a Docker Hub credential the
+  operator supplies**, wired as a CI secret at the moment limits are actually
+  observed. `step-008` therefore builds no mirror and adds no credential now,
+  and its prerequisite row records the credential as conditional. This is a
+  deliberate decision taken in advance, which is what §2.6 asks for; it is not
+  "wait and see", because the response is fixed and the trigger is named.
+- **Alternatives considered:**
+  - *Mirror the base into GHCR.* Rejected for now: it costs machinery to build
+    and keep fresh, and its benefit is unmeasured — a rebuild cadence this low
+    may never touch the limit. Reopen if throttling recurs after
+    authentication.
+  - *Authenticate from the start.* Rejected: it spends a credential and a
+    secret on a risk not yet observed.
+- **Approved by:** operator

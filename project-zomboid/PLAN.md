@@ -8,8 +8,8 @@ README and the contributor guide — is the root track's (`../PLAN.md`).
 `§N` references point to `SPECIFICATIONS.md` in this directory; `root §N` to
 the repository-root specification. **The root specification is never
 "another track's document"** (rule 3): root §3 and §5 are standing reading
-for every step here. Step-entry shape, status vocabulary and the
-compaction-on-approval rule live in `../CLAUDE.md`.
+for every step here. The step-entry shape, the status vocabulary and the
+compaction-on-approval rule live in `../.claude/docs/workflow.md` §1.
 
 ## How to read this plan
 
