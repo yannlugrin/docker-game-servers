@@ -170,7 +170,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   `pymarkdown` gained the `front-matter` extension. Detail in git history
   between tags `step-002` and `step-003`.
 
-### step-004 — The session rituals — `in progress`
+### step-004 — The session rituals — `awaiting test`
 
 - **Objective.** The four skills every later step runs, so that orientation,
   resumption, handover and close stop being improvised.
@@ -219,7 +219,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   it once the operator approves, which is also the first exercise of the
   compacted-entry and annotated-tag shape, and of the push attempt rule 6
   makes at a close.
-- **Status.** `in progress`
+- **Status.** `awaiting test`
 
 ### step-005 — The same harness on the forge — `pending`
 
