@@ -196,16 +196,9 @@ repos:
         always_run: true
 
       # Does every `<document>` §N pointer still name the section it points
-      # at? Added at `step-004`, after a pointer written from the numbering
-      # as it stood *before* a section was inserted ahead of it — in the same
-      # commit — shipped and was caught by the operator, not by the harness.
-      #
-      # Measured, and it is the reason the check reads titles rather than
-      # numbers: a first draft asserted only that §N existed, and passed the
-      # defect, because §5 did exist. A number alone carries no redundancy.
-      # Always-run and file-list-blind for a reason the others share and this
-      # one shows most clearly: renumbering a section breaks pointers in files
-      # the commit does not touch.
+      # at? Always-run and file-list-blind for a reason the others share and
+      # this one shows most clearly: renumbering a section breaks pointers in
+      # files the commit does not touch. Reasoning in DECISIONS.md D-013.
       - id: section-references
         name: section pointers name the section they point at
         entry: scripts/check_section_references.py

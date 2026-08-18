@@ -135,9 +135,9 @@ renumbering sweep still leaves the reference decodable.
     reasoning is what stops a later session re-litigating a rule. Deleting it
     outright was estimated at ~30 lines recovered, which still misses 220.
   - *Delete a required section (`Where things live`, `Plan conventions`).*
-    Rejected: `Plan conventions` became `workflow.md` §1 with a read trigger
-    rather than disappearing, which keeps it reachable for the closes that
-    precede `/approve-step`.
+    Rejected: `Plan conventions` became `.claude/docs/workflow.md` §1 with a
+    read trigger rather than disappearing, which keeps it reachable for the
+    closes that precede `/approve-step`.
   - *Compress rule 9's enumeration into a table.* Rejected: it is safety text
     the workflow requires carried whole, and restructuring it risks dropping a
     qualifier that bounds the free side of the boundary.
@@ -705,11 +705,19 @@ renumbering sweep still leaves the reference decodable.
     yet". The remote exists, is public and is recorded as satisfied in
     `PLAN.md`'s prerequisites. A branch that can never be taken is a branch
     nobody re-checks when it stops being true.
-  - **The frontmatter rationale is a one-line pointer, not a block repeated
-    four times.** The templates each carried a dozen lines explaining which
-    frontmatter keys are omitted and why; that reasoning is a measured fact
-    about the tooling, so it lives once in `.claude/docs/agents.md` §4 and
-    each skill cites it.
+  - **The frontmatter rationale is a two-line pointer at the foot of each
+    file, not a block repeated four times at the head.** The templates each
+    carried a dozen lines explaining which frontmatter keys are omitted and
+    why; that reasoning is a measured fact about the tooling, so it lives
+    once in `.claude/docs/agents.md` §4 "A skill's frontmatter" and each
+    skill cites it. The pre-handover review then found the citation itself
+    repeated four times *above* "When to use" — a note addressed to whoever
+    edits the file, sitting at the top of a file loaded to execute a ritual.
+    It is now two lines at the foot. **Deleting it outright was the
+    reviewer's recommendation and is not taken here:** `CLAUDE.md`'s pointer
+    already triggers the read, so nothing would be lost — but the pointer
+    form is what the operator adopted upstream in this exchange, and
+    unadopting it is theirs to decide, not mine to do quietly.
 - **The check family was extended, and proven red before being trusted.**
   `agent-frontmatter` now covers `.claude/skills/*/SKILL.md` alongside
   `.claude/agents/*.md` — this step lands the first files of that class, and
@@ -766,14 +774,26 @@ renumbering sweep still leaves the reference decodable.
   happens to exist looks right; a number and a title cannot both be wrong in
   the same direction by accident. The title is not decoration, it is the
   entire mechanism.
-- **Why the title is required in one class and optional elsewhere.** There are
-  25 such pointers in the repository and 6 of them are in the governance
-  class. That class is where a pointer is followed by a session that will not
-  re-read the target to check, and it is where the defect occurred. Requiring
+- **Why the title is required in one class and optional elsewhere, and what
+  that actually buys.** There are 29 such pointers in the repository and 8 of
+  them are in the governance class (`.claude/agents/` contributes none; the
+  rituals carry them all). That class is where a pointer is followed by a
+  session that will not re-read the target to check, and where the defect
+  occurred. Requiring
   titles in `CLAUDE.md`, the three plans and the logs would be prose churn in
   the files this check exists to protect rather than rewrite — and `CLAUDE.md`
   has six lines of headroom against D-002's budget. Making it uniform later is
   one tuple in the script; the operator's call, not a rewrite.
+
+  **Stated plainly, because the paragraph above could be read as claiming
+  more:** the title mode — the one this entry calls "the entire mechanism" —
+  covers 8 of 29 pointers. The other 21 get the number-only check that the
+  measurement above found insufficient against this very defect. That check
+  is not worthless there: it still catches a deleted section, a renumbering
+  that removes one, and a pointer into a file that no longer exists. But it
+  would not catch this bug in `CLAUDE.md` or in a plan, and the entry should
+  not pretend otherwise. The pre-handover review made this finding, and it is
+  recorded rather than silently narrowed.
 - **Two things kept deliberately out of scope.** Prose that names a section
   any other way — "section 2", "root §3" — is not recognised: every
   `SPECIFICATIONS.md` is read-only under rule 1, so a check that could go red
@@ -793,6 +813,10 @@ renumbering sweep still leaves the reference decodable.
     produced two incidents in this repository's short history.
   - *Check the number only.* Rejected on the measurement above — it is the
     version that passed the bug.
+  - *Requiring the title everywhere, now.* Not rejected — deferred to the
+    operator with the coverage stated above, since it is prose churn across
+    `CLAUDE.md`, three plans and three logs, and `CLAUDE.md` has six lines of
+    headroom against D-002's budget.
   - *Fold it into the `agent-frontmatter` script.* Rejected: that check asks
     whether a definition loads, this one asks whether a reference resolves,
     and they cover different file sets. One question per check keeps a red

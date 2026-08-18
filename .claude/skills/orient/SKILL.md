@@ -9,11 +9,6 @@ description: >-
 
 # Orientation — the session-start ritual
 
-Frontmatter carries `name` and `description` only, deliberately. What a
-skill's other frontmatter keys do and do not buy — and why none of them is
-used here — is in `.claude/docs/agents.md` §4 "A skill's frontmatter".
-Read it before adding one.
-
 **When to use.** At the start of a normal session, after `/clear`, or when
 the operator asks where we are. After an interruption (a usage limit, a
 crash, a killed console), or when the last session's claims are in doubt,
@@ -54,3 +49,8 @@ routine is skipping reading:
 6. Report to the operator: current step and status, what the in-progress
    diff contains, and what remains — then stop and wait for instructions.
    Touch nothing before reporting.
+
+---
+
+*Editing this file: frontmatter is `name` and `description` only — why is
+in `.claude/docs/agents.md` §4 "A skill's frontmatter".*

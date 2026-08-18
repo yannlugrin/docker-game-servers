@@ -9,11 +9,6 @@ description: >-
 
 # Handover — the pre-test sequence
 
-Frontmatter carries `name` and `description` only, deliberately. What a
-skill's other frontmatter keys do and do not buy — and why none of them is
-used here — is in `.claude/docs/agents.md` §4 "A skill's frontmatter".
-Read it before adding one.
-
 **When to use.** When the step is implemented and ready for the operator's
 manual test, or when they ask for the handover. The post-approval close is
 `/approve-step`, not this.
@@ -59,3 +54,8 @@ Hand the current step over for operator testing. In order:
    observe, including cost and cleanup if the test crosses the rule-9 action
    boundary; (c) state that you are waiting for the operator's verdict. Do
    not begin the next step.
+
+---
+
+*Editing this file: frontmatter is `name` and `description` only — why is
+in `.claude/docs/agents.md` §4 "A skill's frontmatter".*

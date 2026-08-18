@@ -15,9 +15,14 @@ small enough to load every run.
 - **when a rule's reason matters** — before applying one to an awkward case,
   and always before proposing to change one — section 6.
 
-`/handover-step` and `/approve-step` (from `step-004`) carry the mechanics of
-their own rituals. Until they exist, sections 0–5 are the reference the
-closes work from.
+`/handover-step` and `/approve-step` exist as of `step-004` and carry the
+**order** of their own rituals — what to run, in what sequence, and what only
+the ritual can know. **The shapes stay here and are not copied into them:**
+the compacted plan entry is §1, the tag message §5, the two milestone passes
+§3, and a close reads those sections rather than a transcription that can
+drift. `CLAUDE.md` carries no plan conventions — that section moved here at
+`step-002` (`DECISIONS.md` D-002), so §1 is the tie-breaker on entry shape,
+not `CLAUDE.md`.
 
 ---
 

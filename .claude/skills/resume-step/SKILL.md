@@ -11,11 +11,6 @@ description: >-
 
 # Resume — verify what is actually true
 
-Frontmatter carries `name` and `description` only, deliberately. What a
-skill's other frontmatter keys do and do not buy — and why none of them is
-used here — is in `.claude/docs/agents.md` §4 "A skill's frontmatter".
-Read it before adding one.
-
 Work was interrupted or the last session's claims are in doubt. Your job is
 to establish what is actually true, then stop.
 
@@ -46,19 +41,33 @@ In order:
    (before the first tag, the anchor is the repository root). `git log` and
    `git diff` from there to `HEAD`, plus `git status`, are the complete
    evidence of everything since — committed and uncommitted.
-2. **Cross-check the memory files.** Read `CLAUDE.md`'s pointers, the plan's
-   current-step entry and status, and the tail of the decision log, and
-   check each claim against the git evidence. They were written by the same
-   interrupted session, so a mismatch is a finding, never something to
-   reconcile silently — a status of `awaiting test` over a half-delivered
-   diff is precisely what you are looking for.
+2. **Read what `/orient` reads, then cross-check it.** This ritual replaces
+   `/orient`, so it performs the same session-start reading, not a narrower
+   one: `CLAUDE.md` in full, the **root** `PLAN.md` and `DECISIONS.md`, then
+   the active track's plan, log and specification, plus the specification
+   sections the current step names — the root specification included, on
+   every track. `CLAUDE.md` routes a resumed session here *before touching
+   anything*, so a ritual that read less would be how a session ends up
+   working from no specification at all.
+
+   Then check each claim in those files against the git evidence. They were
+   written by the same interrupted session, so a mismatch is a finding, never
+   something to reconcile silently — a status of `awaiting test` over a
+   half-delivered diff is precisely what you are looking for.
+
 3. **Working-tree forensics.** Examine uncommitted changes for half-written
    work (a file edited where its counterpart was not, a reference to
-   something that does not exist yet). Run `just verify`: green is cheap
-   evidence the tree is at least well-formed and the shipped behaviour still
-   passes; red localizes the interruption. If it reports that the harness is
-   not installed, `just setup` was interrupted too — say so rather than
-   running it.
+   something that does not exist yet). Run `just check`: green is cheap
+   evidence the tree is at least well-formed; red localizes the interruption.
+   If it reports that the harness is not installed, `just setup` was
+   interrupted too — say so rather than running it.
+
+   **The test half is a judgement, not a default.** Today `just test` is the
+   guard's selftest and costs a fraction of a second, so run it too. Once it
+   builds or starts this project's images it becomes a local write and a
+   multi-minute cost, inside the one ritual most likely to be running on a
+   broken tree — from then on run it only when you know what it costs, and
+   say what you skipped.
 4. **World state, inside the boundary.** The step may have touched things no
    file records — consult the current step's "how I test it" and cleanup
    notes in the plan for what it may have half-applied. All of the following
@@ -94,3 +103,8 @@ In order:
      status, what the in-progress diff contains, what remains — plus one
      line: verification found no discrepancies, and what was checked. Then
      wait for the operator's go.
+
+---
+
+*Editing this file: frontmatter is `name` and `description` only — why is
+in `.claude/docs/agents.md` §4 "A skill's frontmatter".*

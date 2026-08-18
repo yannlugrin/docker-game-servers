@@ -1,44 +1,23 @@
 #!/usr/bin/env python3
 """Every `<document>` §N pointer resolves, and names the section it points at.
 
-The failure this exists for was committed at `step-004`, in the very commit
-that created the target section: four rituals pointed at
-`.claude/docs/agents.md` §5, written from the numbering as it stood before a
-new section was inserted ahead of it in the same commit. Nothing was
-malformed, nothing was missing, and the reader following the pointer landed on
-the re-measure recipe with no way to know they had been sent to the wrong
-place.
+One shape is recognised: a backticked path ending in `.md`, then §N, then an
+optional quoted title. The path resolves from the citing file's own directory
+or from the repository root, the section must exist, and a quoted title must
+be a prefix of that section's heading. Inside `.claude/agents/` and
+`.claude/skills/` the title is **required** — that is the class where a
+pointer is followed by a session that will not re-read the target to check.
 
-**A number-only check would not have caught it, and this was measured rather
-than reasoned:** an earlier draft of this file checked that §N existed, and
-passed the defect, because §5 did exist. That is the whole argument for the
-title. A section number is a reference with no redundancy — any number that
-happens to exist looks right — while a number *and* a title cannot both be
-wrong in the same direction by accident.
+Two deliberate exclusions. Prose naming a section any other way — "section 2",
+"root §3" — is not recognised, because every `SPECIFICATIONS.md` is read-only
+under rule 1 and a check that could go red on a specification's own
+cross-references is a check nobody is allowed to turn green. And documents are
+scanned whole rather than line by line, because they wrap at ~76 columns and a
+line-based scan would silently stop checking the long titles most worth citing.
 
-So inside `.claude/agents/` and `.claude/skills/`, the class this repository's
-governance tooling lives in, a pointer **must** carry a quoted title, and it
-must be a prefix of that section's heading (a prefix, so a long heading can be
-cited by its distinctive opening rather than transcribed). Everywhere else a
-title is optional and checked when present: the plans, the logs and
-`CLAUDE.md` carry two dozen such pointers, and requiring titles there is prose
-churn in files this check exists to protect, not to rewrite.
-
-Deliberately narrow, for the same reason the frontmatter check is: exactly one
-shape is recognised, a backticked path ending in `.md` followed by §N and an
-optional quoted title. That shape is unambiguous, so this check makes no
-judgement calls and cannot become a false-positive machine. Prose that names a
-section any other way — "section 2", "root §3" — is out of scope on purpose:
-`SPECIFICATIONS.md` is read-only under rule 1, so a check that could go red on
-a specification's own cross-references would be a check nobody can turn green.
-
-The path resolves from the citing file's own directory, then from the
-repository root, then — for a bare filename with no slash, which is how these
-documents cite each other from inside `.claude/docs/` — from `.claude/docs/`.
-A path that resolves nowhere is reported too: a pointer into a file that does
-not exist is the same defect one step further along.
+Why a title and not just the number, why required in only one class, and the
+measurement that settled both: `DECISIONS.md` D-013.
 """
-
 from __future__ import annotations
 
 import re
@@ -62,6 +41,8 @@ EXCLUDED = (".claude/spec-work/", ".claude/refs/")
 # Where a title is not optional. These are the files whose whole purpose is to
 # be followed by a session that will not re-read the target to check.
 TITLE_REQUIRED = (".claude/agents/", ".claude/skills/")
+
+NEWLINE = "\n"
 
 
 def project_root() -> Path:
@@ -98,10 +79,7 @@ def flattened(text: str) -> str:
 
 
 def resolve(cited: str, citing: Path, root: Path) -> Path | None:
-    candidates = [citing.parent / cited, root / cited]
-    if "/" not in cited:
-        candidates.append(root / ".claude" / "docs" / cited)
-    for candidate in candidates:
+    for candidate in (citing.parent / cited, root / cited):
         if candidate.is_file():
             return candidate.resolve()
     return None
@@ -120,7 +98,7 @@ def main() -> int:
             cited, section, title = match.group(1), match.group(2), match.group(3)
             title = flattened(title) if title else ""
             checked += 1
-            where = f"{name}:{text.count(chr(10), 0, match.start()) + 1}"
+            where = f"{name}:{text.count(NEWLINE, 0, match.start()) + 1}"
             target = resolve(cited, citing, root)
             if target is None:
                 problems.append(f"{where}: `{cited}` resolves to no file")
