@@ -26,8 +26,8 @@ own read triggers.
 
 **A session resumed after an interruption** — usage limit, crash, killed
 console — or told the work was interrupted, runs `/resume-step` before
-touching anything and never trusts the transcript. Until `step-004`
-instantiates that skill, apply the routine above directly instead.
+touching anything and never trusts the transcript. The routine above is
+`/orient`; the handover and close are `/handover-step` and `/approve-step`.
 
 ## The rules
 
@@ -210,9 +210,10 @@ operator-supplied reference material (rule 3).
 - **`.claude/docs/permissions.md`** — the permission baseline, as measured.
   Read it **before changing `.claude/settings.json` or the guard's registry**,
   and **before relying on a permission mechanism to stop something**.
-- **`.claude/docs/agents.md`** — what a subagent definition actually buys, as
-  measured. Read it **before writing or editing an agent**, and **before
-  relying on its `tools:` list to prevent something**.
+- **`.claude/docs/agents.md`** — what an agent and a skill definition buy, as
+  measured. Read it **before writing or editing either**, **before relying on
+  an agent's `tools:` list to prevent something**, and **before testing
+  tooling you created in the same session**.
 - **`.claude/refs/image-contract.md`** — the image contract of a hosting
   platform that will consume these images. Read it **before designing a game
   image's runtime interface** (uid handling, state paths, stop behaviour,
@@ -246,8 +247,8 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
   (implementation code, a test suite) do not exist yet; a ritual may cite them
   as documented fallback names.
 - **Adopted:** `bash_guard.py` (`step-002`); `step-reviewer`,
-  `state-reviewer`, `optimize-memory` (`step-003`, D-011). **`step-004`:**
-  `orient`, `resume-step`, `handover-step`, `approve-step`.
+  `state-reviewer`, `optimize-memory` (`step-003`, D-011); `orient`,
+  `resume-step`, `handover-step`, `approve-step` (`step-004`, D-012).
 
 ## Current state
 
@@ -255,8 +256,8 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** none in progress; `step-003` is closed and tagged.
-- **Next step:** `step-004` — The session rituals (root track).
+- **Current step:** `step-004` — The session rituals (root track).
+- **Next step:** `step-005` — The same harness on the forge (root track).
 - **Live world-state:** no image built, none published, no CI. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work
   is on **`main`**, the default branch of

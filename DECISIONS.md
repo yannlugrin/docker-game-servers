@@ -651,3 +651,90 @@ renumbering sweep still leaves the reference decodable.
     pinned value becomes same-model the day implementation moves to it.
 - **Approved by:** implementer, within latitude (workflow choices left to the
   implementer — which tooling templates are adopted, rule 3)
+
+## D-012 — Adopt the four session rituals as skills
+
+- **Date:** 2026-08-18
+- **Step:** `step-004` — The session rituals
+- **Context:** Rule 3 says a ritual repeated every step is a skill, and four
+  templates were handed over for exactly the four moments this workflow has:
+  session start, resumption after an interruption, handover for testing, and
+  the post-approval close. Until now each was performed from `CLAUDE.md` and
+  `.claude/docs/workflow.md` directly — which works, and which is precisely
+  what an interrupted or context-compacted session does least reliably.
+- **Decision:** Adopt all four at `.claude/skills/<name>/SKILL.md` —
+  `orient`, `resume-step`, `handover-step`, `approve-step`. Where D-011 had a
+  selection question to answer, this one does not: all four triggers are
+  certain **and already firing**. Every step this repository has closed has
+  performed the handover and the close by hand, and `step-005` closes the
+  milestone. A ritual not adopted here is a ritual improvised in the moment
+  it is needed, which is the failure the rule names.
+- **How the templates were changed, and why each change:**
+  - **The governance placeholders resolve at invocation — with no track
+    table copied in.** Each skill states that the plan, the log and the
+    specification mean the active track's, and points at `CLAUDE.md`'s track
+    map for the resolution. Unlike an agent, a skill executes **in the
+    invoking session**, which has just read that map; a fourth, fifth, sixth
+    and seventh copy of it would be drift surface bought for nothing
+    (rule 11).
+  - **`orient`'s steps 1–2 were rewritten to `CLAUDE.md`'s multi-track
+    routine.** The template enumerated the single-track shape — the active
+    track's files only. The rule wins over a template's narrower
+    enumeration, so the instantiation carries the root plan, the root log and
+    the root specification as standing reading on every track, and the
+    "another track's files load only on a named cross-track dependency"
+    clause with them.
+  - **`approve-step` keeps its resolve-from-the-closed-step exception,
+    verbatim in substance.** It is the one that fails silently: step 3
+    advances the `Current state` pointer, so from there on the pointer is the
+    wrong answer, and step 5 names the closed step's track explicitly when it
+    spawns the milestone passes.
+  - **Two places take `just verify` where the template named the check entry
+    point:** `resume-step`'s working-tree forensics and `approve-step`'s
+    pre-commit gate. `just test` is currently the guard's own selftest and
+    costs a fraction of a second, and both moments want the strongest
+    evidence available — the forensic one because it localizes where an
+    interruption landed, the close because the commit it gates receives the
+    step tag and becomes the known-good state every later session anchors on.
+  - **`{{STATE_CHECKS}}` is filled with real commands, each marked free**:
+    the toolchain's presence, this project's own containers, images and
+    volumes by name, the `.local/` scratch root, the unpushed-commit-or-tag
+    question, and CI runs and published packages through the GitHub API. The
+    gated counterparts are named as things to request and never run.
+  - **One dead branch dropped:** `approve-step`'s "where no remote exists
+    yet". The remote exists, is public and is recorded as satisfied in
+    `PLAN.md`'s prerequisites. A branch that can never be taken is a branch
+    nobody re-checks when it stops being true.
+  - **The frontmatter rationale is a one-line pointer, not a block repeated
+    four times.** The templates each carried a dozen lines explaining which
+    frontmatter keys are omitted and why; that reasoning is a measured fact
+    about the tooling, so it lives once in `.claude/docs/agents.md` §4 and
+    each skill cites it.
+- **The check family was extended, and proven red before being trusted.**
+  `agent-frontmatter` now covers `.claude/skills/*/SKILL.md` alongside
+  `.claude/agents/*.md` — this step lands the first files of that class, and
+  rule 2 forbids the family arriving ahead of them. For a skill the name must
+  match the **directory**, since every file is `SKILL.md`. Both failure modes
+  were induced deliberately (a mismatched `name`, a missing frontmatter
+  block) and both took the check red; the family is otherwise unchanged, and
+  still checks only what is exact.
+- **Measured, and it shapes every later step's test instructions:** a skill
+  created mid-session is not loaded until the session restarts — `/orient`
+  answered `Unknown skill: orient` with the file on disk and passing the
+  frontmatter check. Same behaviour as an agent, recorded in
+  `.claude/docs/agents.md` §3 next to it.
+- **Alternatives considered:**
+  - *Adopt only `handover-step` and `approve-step`, the two with the nearest
+    triggers.* Rejected: `orient` runs at every session start and
+    `resume-step` at the first interruption, which is not a scheduled event.
+    The one ritual you cannot write when you need it is the recovery one.
+  - *Copy the agents' track table into each skill, for symmetry.* Rejected as
+    above: symmetry with an agent is not a reason when the reason the agent
+    carries a table does not apply to a skill.
+  - *Keep `allowed-tools` on the frontmatter as documentation of intent.*
+    Rejected: it was measured elsewhere to restrict nothing and was not
+    re-measured here, so writing it would assert an enforcement this
+    repository cannot back. The disciplines stay prose, and what binds stays
+    `.claude/settings.json` and the guard.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — which tooling templates are adopted, rule 3)

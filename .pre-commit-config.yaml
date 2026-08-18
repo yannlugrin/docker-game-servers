@@ -167,13 +167,17 @@ repos:
         pass_filenames: false
         always_run: true
 
-      # Governance frontmatter, arriving with the first files of its class
-      # (`.claude/agents/`). A malformed agent does not error — it silently
-      # never loads, and the ritual that names it then skips a step and
-      # reports success. Always-run for the same reason as the two above: a
-      # deletion or a rename is one of the failures, and a path-keyed hook
-      # would not see it. There is no standard tool for this shape, which is
-      # what sanctions the few lines of custom check.
+      # Governance frontmatter, over both classes that carry it:
+      # `.claude/agents/` from `step-003`, and `.claude/skills/*/SKILL.md`
+      # from `step-004`, which landed the first files of that class. A
+      # malformed agent does not error — it silently never loads, and the
+      # ritual that names it then skips a step and reports success. A
+      # malformed skill fails the same way one level up: the ritual itself
+      # is not found, and the step is handed over by improvisation.
+      # Always-run for the same reason as the two above: a deletion or a
+      # rename is one of the failures, and a path-keyed hook would not see
+      # it. There is no standard tool for this shape, which is what
+      # sanctions the few lines of custom check.
       #
       # `language: python` with the parser pinned here, rather than
       # `language: system`: this check is the repository's first third-party
@@ -184,7 +188,7 @@ repos:
       # because that file's own rule is that linters are pinned where
       # pre-commit installs them.
       - id: agent-frontmatter
-        name: agent definitions are well-formed
+        name: agent and skill definitions are well-formed
         entry: scripts/check_agent_frontmatter.py
         language: python
         additional_dependencies: ["pyyaml==6.0.3"]

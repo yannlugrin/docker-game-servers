@@ -43,6 +43,7 @@ does not duplicate them.
 | `.gitignore`, `.gitattributes` | What git ignores, and the repository's line-ending policy — LF everywhere, because these images ship shell entrypoints. |
 | `LICENSE` | MIT. |
 | `scripts/` | Small checks the harness runs that no off-the-shelf linter covers. |
+| `.claude/skills/` | The AI's own session rituals — orientation, resumption, handover and close. They encode this repository's process; none of them is a requirement source. |
 | `.claude/agents/` | Reviewers the AI runs on itself before handing work over and at milestone boundaries, plus the compaction pass that edits its own memory files. None of them commits. |
 | `.claude/` | Implementation-side working material: the AI's own memory, tooling and reference inputs — including `hooks/`, which holds the guard that gates what the AI may run. Nothing here is a requirement source, and a human reader can ignore it entirely. |
 
