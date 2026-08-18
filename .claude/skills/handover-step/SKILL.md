@@ -11,7 +11,8 @@ description: >-
 
 Frontmatter carries `name` and `description` only, deliberately. What a
 skill's other frontmatter keys do and do not buy — and why none of them is
-used here — is in `.claude/docs/agents.md` §5. Read it before adding one.
+used here — is in `.claude/docs/agents.md` §4 "A skill's frontmatter".
+Read it before adding one.
 
 **When to use.** When the step is implemented and ready for the operator's
 manual test, or when they ask for the handover. The post-approval close is
@@ -43,9 +44,10 @@ Hand the current step over for operator testing. In order:
 
    Two things that make this review silently not happen, both worth one
    command each: an agent or skill **created during this step** is not
-   loaded until the session restarts (`.claude/docs/agents.md` §3), and a
-   malformed frontmatter agent never loads at all — `just check` catches the
-   second, and only a restart catches the first.
+   loaded until the session restarts (`.claude/docs/agents.md` §3 "A new
+   agent or skill is picked up"), and a malformed frontmatter agent never
+   loads at all — `just check` catches the second, and only a restart
+   catches the first.
 4. **Tree clean:** everything above — the step's work, the sweep, the review
    fixes — is already in small, coherent commits with the track-qualified
    step id as subject prefix (committed as the work happened, not batched

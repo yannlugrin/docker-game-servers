@@ -195,6 +195,24 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Does every `<document>` §N pointer still name the section it points
+      # at? Added at `step-004`, after a pointer written from the numbering
+      # as it stood *before* a section was inserted ahead of it — in the same
+      # commit — shipped and was caught by the operator, not by the harness.
+      #
+      # Measured, and it is the reason the check reads titles rather than
+      # numbers: a first draft asserted only that §N existed, and passed the
+      # defect, because §5 did exist. A number alone carries no redundancy.
+      # Always-run and file-list-blind for a reason the others share and this
+      # one shows most clearly: renumbering a section breaks pointers in files
+      # the commit does not touch.
+      - id: section-references
+        name: section pointers name the section they point at
+        entry: scripts/check_section_references.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
       # The justfile is the harness's own entry point, and `just` is the
       # only tool that can parse it. `--fmt --check` reports both a syntax
       # error and a formatting drift without rewriting the file.

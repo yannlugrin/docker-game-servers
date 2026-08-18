@@ -13,7 +13,8 @@ description: >-
 
 Frontmatter carries `name` and `description` only, deliberately. What a
 skill's other frontmatter keys do and do not buy — and why none of them is
-used here — is in `.claude/docs/agents.md` §5. Read it before adding one.
+used here — is in `.claude/docs/agents.md` §4 "A skill's frontmatter".
+Read it before adding one.
 
 Work was interrupted or the last session's claims are in doubt. Your job is
 to establish what is actually true, then stop.
@@ -68,7 +69,7 @@ In order:
      containers, images and volumes, matched **by name**. Until the `sc` and
      `pz` tracks build one, nothing here belongs to this project, and
      everything listed is another project's work on a shared daemon
-     (`.claude/docs/environment.md` §3);
+     (`.claude/docs/environment.md` §3 "Docker on this host");
    - `ls -la .local/` — the gitignored scratch root holding local test state
      directories and downloaded game content;
    - `git status -sb` and `git ls-remote --tags origin` — whether an

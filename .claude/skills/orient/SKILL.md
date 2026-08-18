@@ -11,7 +11,8 @@ description: >-
 
 Frontmatter carries `name` and `description` only, deliberately. What a
 skill's other frontmatter keys do and do not buy — and why none of them is
-used here — is in `.claude/docs/agents.md` §5. Read it before adding one.
+used here — is in `.claude/docs/agents.md` §4 "A skill's frontmatter".
+Read it before adding one.
 
 **When to use.** At the start of a normal session, after `/clear`, or when
 the operator asks where we are. After an interruption (a usage limit, a

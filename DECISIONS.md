@@ -738,3 +738,65 @@ renumbering sweep still leaves the reference decodable.
     `.claude/settings.json` and the guard.
 - **Approved by:** implementer, within latitude (workflow choices left to the
   implementer — which tooling templates are adopted, rule 3)
+
+## D-013 — Section pointers are checked by their title, not their number
+
+- **Date:** 2026-08-18
+- **Step:** `step-004` — The session rituals
+- **Context:** The operator's review of `step-004` found four rituals pointing
+  at `.claude/docs/agents.md` **§5** where the section is §4. The pointers
+  were written from the numbering as it stood *before* a new section was
+  inserted ahead of it — **in the same commit**. Nothing was malformed,
+  nothing was missing, and the harness had no way to see it: a reference
+  correct when written and invalidated by an edit beside it. The same shape as
+  the sequencing a step lost when it moved tracks at the bootstrap
+  (`.claude/docs/workflow.md` §5 "The harness contract"), where three
+  consistency passes all came back clean because each asked *is this
+  internally consistent?* and none asked *did something stop being true?*
+- **Decision:** Adopt `scripts/check_section_references.py` as the
+  `section-references` hook. It recognises exactly one shape — a backticked
+  path ending in `.md`, then §N, then an optional quoted title — resolves the
+  path, and asserts the section exists and that the quoted title is a prefix
+  of its heading. Inside `.claude/agents/` and `.claude/skills/` the title is
+  **required**; elsewhere it is optional and checked when present.
+- **The measurement that chose the design, recorded because without it the
+  title looks like over-engineering:** the first draft checked only that §N
+  existed. Run against the defect as committed, **it passed** — §5 did exist.
+  A section number is a reference with no redundancy, so any number that
+  happens to exist looks right; a number and a title cannot both be wrong in
+  the same direction by accident. The title is not decoration, it is the
+  entire mechanism.
+- **Why the title is required in one class and optional elsewhere.** There are
+  25 such pointers in the repository and 6 of them are in the governance
+  class. That class is where a pointer is followed by a session that will not
+  re-read the target to check, and it is where the defect occurred. Requiring
+  titles in `CLAUDE.md`, the three plans and the logs would be prose churn in
+  the files this check exists to protect rather than rewrite — and `CLAUDE.md`
+  has six lines of headroom against D-002's budget. Making it uniform later is
+  one tuple in the script; the operator's call, not a rewrite.
+- **Two things kept deliberately out of scope.** Prose that names a section
+  any other way — "section 2", "root §3" — is not recognised: every
+  `SPECIFICATIONS.md` is read-only under rule 1, so a check that could go red
+  on a specification's own cross-references would be a check nobody is allowed
+  to turn green. And the check scans whole documents rather than single lines,
+  because these files wrap at ~76 columns: a line-based scan silently stops
+  checking exactly the long titles most worth citing.
+- **Proven red before being trusted**, on all four ways it can fail: the
+  defect as committed (right number, wrong section), a title dropped in the
+  class that requires one, a target section renamed under correct pointers,
+  and a pointer into a file that does not exist. Each took the check red with
+  a message naming the fix; the wrapped-title case stays green.
+- **Alternatives considered:**
+  - *No check — the staleness sweep plus re-reading the target section*, which
+    is what the operator offered if a check was not cheap. Rejected: it came
+    in at one narrow script with one exact rule, and the defect class has now
+    produced two incidents in this repository's short history.
+  - *Check the number only.* Rejected on the measurement above — it is the
+    version that passed the bug.
+  - *Fold it into the `agent-frontmatter` script.* Rejected: that check asks
+    whether a definition loads, this one asks whether a reference resolves,
+    and they cover different file sets. One question per check keeps a red
+    run's message unambiguous.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — the harness's shape and names, rule 3). The four-pointer fix
+  itself was the operator's instruction, not a choice.
