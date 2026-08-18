@@ -20,8 +20,9 @@ image recipes and tooling; the game content inside the images belongs to its
 publishers and is not relicensed.
 
 **No image is built yet.** This repository is at the start of implementation:
-the specifications are complete, the plans are written, the local check
-harness runs, and no image or CI workflow exists so far. For what exists at
+the specifications are complete, the plans are written, and the check harness
+runs both locally and on CI — over documents and tooling, since no image
+exists so far. For what exists at
 any moment, read the plans — they are the current-state record, and this file
 does not duplicate them.
 

@@ -66,6 +66,21 @@ Measured **2026-08-17** (`step-000`).
   daemon's own lifecycle) is measured here rather than assumed.
 - **Network:** reachable — PyPI and GitHub both fetched during `step-000`.
 
+Measured **2026-08-18** (`step-005`), from a fresh `--no-hardlinks` clone with
+`XDG_CACHE_HOME` pointed at an empty directory, so pip's, virtualenv's, Go's
+and pre-commit's caches were all cold:
+
+- **A cold `just setup` takes ~37 s**, and `just verify` after it ~2 s.
+- **It leaves ~474 MB in `~/.cache/pre-commit`**, of which ~317 MB is the Go
+  toolchain pre-commit fetches to build `actionlint` (there is no system `go`
+  here), plus ~130 MB of Go build cache outside that path.
+
+Re-measure with section 4's recipe when the hook set changes; these two
+figures are what `.github/workflows/ci.yml`'s cache is worth judging against,
+and the reasoning is `DECISIONS.md` D-014. **Isolate `XDG_CACHE_HOME`, not
+just `PRE_COMMIT_HOME`** — a first attempt did the latter and came out 14 s
+too fast.
+
 ## 3. Docker on this host carries other work
 
 Measured **2026-08-17** (`step-000`). At bootstrap the daemon already held
@@ -99,4 +114,10 @@ df -h / | tail -1; nproc; free -h | head -2; uname -r
 
 # Section 3 — what else lives on this daemon
 docker system df; docker context ls
+
+# Section 2 — a cold toolchain build, from a clone and an empty cache root
+tmp=$(mktemp -d); git clone --no-hardlinks . "$tmp/fresh"
+export XDG_CACHE_HOME="$tmp/cache"
+( cd "$tmp/fresh" && time just setup && time just verify )
+du -sh "$tmp"/cache/*; rm -rf "$tmp"
 ```

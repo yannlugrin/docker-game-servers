@@ -1,31 +1,18 @@
 # CI — this repository's own harness, run on the forge.
 #
-# The invariant this file exists to keep: **CI and the local runners can
-# never disagree about what "green" means.** So it restates no single check.
-# It installs the same pinned toolchain with the same documented setup
-# command and calls the same entry points a developer calls — `just check`,
-# `just test`. A check added to `.pre-commit-config.yaml` is a check CI runs
-# with nothing edited here.
+# It restates no single check: it installs the pinned toolchain with the same
+# documented `just setup` and calls the same entry points a developer calls,
+# so CI and a local run cannot disagree about what "green" means. Every run
+# is a clean checkout doing that setup in full, which is also how a fresh
+# setup is proven. The shape of this file — the matrix, the cache, the
+# triggers, and what a green run does and does not cover while this
+# repository holds no image — is `DECISIONS.md` D-014.
 #
-# **A fresh setup is proven on every run**, rather than by a job of its own:
-# each run is a clean checkout that executes `just setup` in full, building
-# the venv and installing `requirements.txt` from scratch. Only pre-commit's
-# downloaded hook environments are cached, and the key covers both files that
-# decide their content, so a change to either gives a cold build. Root §8's
-# scheduled jobs take this duty over when they arrive (`step-010`,
-# `step-011`).
-#
-# **There is deliberately no `schedule:` trigger here** (root §2.8, §8). The
-# schedules this repository will have are the ones root §8 requires — update
-# detection and the refresh — and they arrive with the steps that build them.
-# A keep-alive schedule invented now would be a scheduled workflow with no
-# job to do, and §2.8's disable-on-idle clock applies to it exactly as much.
-#
-# What this workflow does **not** cover, stated so a green badge is not read
-# as more than it is: at this step the repository contains no Dockerfile, no
-# image and no other workflow. Green here means the documents, the governance
-# tooling and the Bash guard are well-formed and the guard's own behaviour
-# passes — nothing about an image.
+# **There is deliberately no `schedule:` trigger** (root §2.8, root §8). The
+# schedules this repository will have are the ones root §8 requires, update
+# detection and the refresh, and they arrive with the steps that build them
+# (`step-010`, `step-011`). A keep-alive schedule invented now would be a
+# scheduled workflow with no job to do, on the same disable-on-idle clock.
 
 name: CI
 

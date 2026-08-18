@@ -869,20 +869,45 @@ renumbering sweep still leaves the reference decodable.
   their last step, and an exception for one of them is a thing to remember on
   the day `just test` grows a dependency. The cost is a cache restore.
 - **Rehearsed locally before the one run that can prove it**, since this
-  step's gate is a real push: a fresh `--no-hardlinks` clone with an empty
-  `PRE_COMMIT_HOME` — the closest thing to a cold runner this machine can
-  offer — ran `just setup` in **23 s** and `just verify` green. What that
-  rehearsal cannot cover is the runner itself: the `just` download, the
-  action versions and the workflow syntax are only exercised on the forge.
-- **The cache measured, because the deliverable asks for one and the number
-  argues with it:** a cold build of pre-commit's hook environments is 474 MB
-  here, of which **317 MB is the Go toolchain** pre-commit fetches for
-  actionlint (this machine has no `go`; a runner does, which is likely to
-  make CI's copy smaller). Against a 23 s cold build, a cache of that size is
-  close to break-even, and it is kept because the step's deliverables ask for
-  the toolchain cached. Recorded so a later session can drop or narrow it on
-  this evidence rather than on a hunch — and so the number can be compared
-  against a real run's timings.
+  step's gate is a real push: a fresh `--no-hardlinks` clone, with
+  `XDG_CACHE_HOME` pointed at an empty directory so pip's, virtualenv's, Go's
+  and pre-commit's caches were *all* cold — the closest thing to a runner
+  this machine can offer. `just setup` took **37 s**, `just verify` **2 s**,
+  green. What the rehearsal cannot cover is the runner itself: the `just`
+  download, the action versions and the workflow syntax are exercised only on
+  the forge.
+  **A first rehearsal reported 23 s and was wrong** — it isolated
+  `PRE_COMMIT_HOME` only, leaving `~/.cache/pip` and `~/.cache/go-build`
+  warm. The pre-handover review doubted the number against the volume of work
+  it claimed, and re-measuring under full isolation is what produced the 37 s
+  above. Kept in this entry because a measurement's method is the half that
+  decides whether it means anything.
+- **The cache measured, because the deliverable asks for one and the numbers
+  argue with it:** the cold build leaves **474 MB** in `~/.cache/pre-commit`,
+  of which **317 MB is the Go toolchain** pre-commit fetches to build
+  actionlint (this machine has no `go`; a runner does, so CI's copy may be
+  smaller), plus a further 130 MB of Go build cache *outside* the cached path
+  — which costs nothing, since a cache hit restores the already-built binary
+  and compiles nothing. Against a 37 s cold build, storing and restoring
+  474 MB through GitHub's cache service is at best break-even. It is
+  implemented because the step's deliverables ask for the toolchain cached,
+  and the numbers are recorded rather than buried: **the first real run's
+  own restore, save and setup timings are what should settle it**, and
+  dropping the three cache steps afterwards is a legitimate outcome. The
+  pre-handover review named the cache as this step's clearest deletion
+  candidate; it is put to the operator at handover rather than decided here,
+  because the deliverable is the plan's.
+- **One axis of CI/local divergence is accepted, not closed: the Python
+  interpreter.** D-015 goes to some trouble over `just` version drift, and
+  the review asked why Python escapes it — locally 3.14.4, on `ubuntu-24.04`
+  whatever the image ships, and every `language: python` hook builds against
+  it. Deliberately unpinned: `just setup` uses the ambient `python3` by
+  design (D-006), so pinning an interpreter *only in CI* would make CI less
+  like the documented path a contributor walks, not more. What that buys is
+  an early warning — CI meets a different interpreter than this machine, so a
+  hook that breaks on one is seen rather than hidden. What it costs is that a
+  wheel unavailable for one of the two can go red on one side alone; that is
+  a real failure worth seeing, not a false alarm to suppress.
 - **What a green run means here, recorded because a badge outlives its
   context:** at this step the repository contains no Dockerfile, no image and
   no workflow but this one. Green says the documents, the governance tooling
