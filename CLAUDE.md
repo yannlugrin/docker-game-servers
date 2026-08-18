@@ -256,7 +256,7 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** `step-004` — The session rituals (root track).
+- **Current step:** none in progress; `step-004` is closed and tagged.
 - **Next step:** `step-005` — The same harness on the forge (root track).
 - **Live world-state:** no image built, none published, no CI. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work

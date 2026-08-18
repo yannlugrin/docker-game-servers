@@ -170,56 +170,37 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   `pymarkdown` gained the `front-matter` extension. Detail in git history
   between tags `step-002` and `step-003`.
 
-### step-004 — The session rituals — `awaiting test`
+### step-004 — The session rituals — `done`
 
-- **Objective.** The four skills every later step runs, so that orientation,
-  resumption, handover and close stop being improvised.
-- **Spec sections implemented.** None — workflow tooling.
-- **Depends on.** `step-003` (`handover-step` runs the `step-reviewer` agent
-  and `approve-step` names the two milestone agents; instantiating the skills
-  first would leave dangling names, which the no-dangling-name rule
-  forbids), `step-002` (the liveness commands `resume-step` may run).
-- **Deliverables.**
-  - `orient`, `resume-step`, `handover-step`, `approve-step`, instantiated
-    at `.claude/skills/<name>/SKILL.md` per rule 3, every placeholder filled
-    with this repository's real commands and paths.
-  - The **governance placeholder semantics** of rule 3: `{{PLAN}}`,
-    `{{DECISIONS}}`, `{{SPEC}}` and `{{STEP_ID}}` are the exception to
-    literal filling. Each template is instantiated **once**,
-    repository-wide, and those placeholders resolve to the **active track at
-    invocation** — from the track map and `CLAUDE.md`'s `Current state`
-    pointer — never to one literal path. On a `pz`-track step, `{{SPEC}}`
-    includes the root specification. **One exception, and it is the one that
-    fails silently:** rituals fired as part of *closing* a step — the
-    milestone state review and the memory compaction above all — key on the
-    track of the step **just closed**, named explicitly by the close ritual,
-    never on the pointer, which the close ritual has already advanced. At a
-    cross-track milestone boundary, resolve-at-invocation would aim both
-    passes at the wrong track, and a state reviewer reading the wrong track's
-    plan reports nothing wrong.
-  - Where a template's own enumeration of a routine is narrower than the
-    rule it claims to execute, **the rule wins** and the enumeration is
-    rewritten to match (`orient`'s steps 1–2 against `CLAUDE.md`'s
-    multi-track session routine is the known instance).
-  - `CLAUDE.md`'s pointer for a resumed session updated from rule 3's
-    fallback routine to `/resume-step`, in the same commit (rule 6).
-  - **The `agent-frontmatter` check family extended to
-    `.claude/skills/*/SKILL.md`** — this step lands the first files of that
-    class, and rule 2's never-ahead rule makes the extension due here. A
-    malformed skill fails the same way a malformed agent does: it never
-    loads, and the ritual naming it silently skips a step.
-  - Each adoption logged.
-- **How I test it.** Free and local. **Restart the session before testing —
-  a new skill may only be picked up at session start.** Then **invoke each
-  ritual and see it do what it claims**, not read it: `/orient` delivers the
-  session-routine report and stops; `/resume-step` verifies the claimed
-  state against git rather than the transcript; `/handover-step` hands **this
-  very step** over — checks green, staleness sweep, `step-reviewer` over the
-  step's diff — which is its natural first use; and `/approve-step` closes
-  it once the operator approves, which is also the first exercise of the
-  compacted-entry and annotated-tag shape, and of the push attempt rule 6
-  makes at a close.
-- **Status.** `awaiting test`
+- **Outcome (approved 2026-08-18, tag `step-004`):** the four rituals every
+  later step runs exist at `.claude/skills/<name>/SKILL.md` — `orient`,
+  `resume-step`, `handover-step`, `approve-step` — so orientation, resumption,
+  handover and close stop being improvised (D-012). Where `step-003` had a
+  selection question, this one did not: all four triggers were already firing.
+  Six template departures are logged, two of them load-bearing: the governance
+  placeholders resolve at invocation **with no track table copied in**, a skill
+  executing in the session that has just read `CLAUDE.md`'s map; and `orient`'s
+  steps 1–2 were rewritten from the template's single-track shape to the
+  multi-track routine, a narrower enumeration losing to the rule it executes.
+  A defect the harness could not see drove the second half: four rituals
+  pointed at `.claude/docs/agents.md` §5 where the section is §4 — written from
+  the numbering as it stood before a section was inserted ahead of it, in the
+  same commit. `scripts/check_section_references.py` (D-013) now asserts a
+  backticked path, its §N **and** a quoted title where the class requires one;
+  the first draft checked the number only and **passed the defect as
+  committed**, which is the whole argument for the title. It covers 8 of 29
+  pointers, and requiring titles everywhere is deferred to the operator. The
+  `agent-frontmatter` family was extended to `.claude/skills/*/SKILL.md`, the
+  first files of its class, proven red on both failure modes first. **Measured:**
+  a skill created mid-session is not loaded until the session restarts, the same
+  as an agent — which shapes every later step's test instructions. The
+  pre-handover review found nine, seven applied: the heaviest were
+  `approve-step` transcribing some fifty lines of `.claude/docs/workflow.md` §1,
+  §5 and §3 and then naming `CLAUDE.md` as the tie-breaker — a document emptied
+  of plan conventions at `step-002` — and `resume-step` claiming `orient`'s
+  orientation without performing it, leaving a resumed session able to work from
+  no specification. Detail in git history between tags `step-003` and
+  `step-004`.
 
 ### step-005 — The same harness on the forge — `pending`
 
