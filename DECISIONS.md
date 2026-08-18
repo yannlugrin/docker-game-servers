@@ -824,3 +824,187 @@ renumbering sweep still leaves the reference decodable.
 - **Approved by:** implementer, within latitude (workflow choices left to the
   implementer — the harness's shape and names, rule 3). The four-pointer fix
   itself was the operator's instruction, not a choice.
+
+## D-014 — The CI workflow's shape: two gates, one definition, no schedule
+
+- **Date:** 2026-08-18
+- **Step:** `step-005` — The same harness on the forge
+- **Context:** The plan asks for a workflow that **reuses the harness entry
+  points** rather than restating a single check, for check and test as
+  separate jobs, for the toolchain cached, and for a proof that a fresh setup
+  still works — with the explicit instruction not to invent a schedule for
+  that proof, because root §8's own scheduled jobs (`step-010`, `step-011`)
+  inherit the duty when they arrive.
+- **Decision:** one workflow, `.github/workflows/ci.yml`, with:
+  - **Triggers** `push` narrowed to `main`, `pull_request`, and
+    `workflow_dispatch`. Narrowing `push` is what stops a pull request from a
+    branch of this repository producing two runs of the same commit;
+    `workflow_dispatch` is what lets the operator re-prove a fresh setup
+    without pushing. **No `schedule:`**, and the file says so in a comment
+    that names §2.8, so a later session does not read the absence as an
+    oversight and add one.
+  - **Two jobs from one definition**, a `strategy.matrix` over
+    `[check, test]`, `fail-fast: false`. They are separate gates in the
+    checks list — `just check` and `just test` — and they differ in exactly
+    one step. Written as two job blocks they would carry a duplicated
+    checkout, toolchain install and setup, which is precisely the material
+    that drifts; `fail-fast: false` keeps a failing `check` from cancelling
+    `test` and hiding half of what the run was asked to report.
+  - **Only pre-commit's hook environments cached**, keyed on
+    `.pre-commit-config.yaml` *and* `requirements.txt` — the two files that
+    decide what those environments contain. The venv is built and
+    `requirements.txt` installed from scratch on every run, so **the fresh
+    setup is the run itself**, not a job of its own, and a change to either
+    file gives a genuinely cold build.
+  - **The `check` leg owns the cache.** Both legs restore; only `check`
+    saves, and only when the restore missed. Two jobs racing to write one key
+    makes a green run noisy for no gain, and the save is deliberately not
+    conditioned on success: a run whose gate went red still built the
+    environments, and discarding them would make the next attempt pay again.
+  - **`runs-on: ubuntu-24.04`**, pinned rather than `ubuntu-latest`. §2.1
+    makes this project amd64-only, and a runner image that moves under a
+    floating label is the one variable a checksum cannot pin.
+- **Why `just setup` runs in the `test` leg too**, where `just test` needs
+  none of what it installs today: the two legs are the same harness up to
+  their last step, and an exception for one of them is a thing to remember on
+  the day `just test` grows a dependency. The cost is a cache restore.
+- **What a green run means here, recorded because a badge outlives its
+  context:** at this step the repository contains no Dockerfile, no image and
+  no workflow but this one. Green says the documents, the governance tooling
+  and the Bash guard are well-formed and the guard's behaviour passes. It
+  says nothing about an image, and the workflow's own header says so.
+- **Alternatives considered:**
+  - *Two explicit job blocks.* Rejected on the duplication above — the
+    shared half is exactly what must not drift.
+  - *A separate "fresh setup" job or a keep-alive schedule.* Rejected: the
+    plan forbids inventing a schedule, and every run is already a clean
+    checkout running the documented command in full.
+  - *One cache step per leg with the same key.* Rejected: harmless but noisy,
+    and a green run that logs a contention notice teaches a reader to skim.
+  - *`ubuntu-latest`.* Rejected for the pin above.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — the harness's shape and names, rule 3). The deliverables
+  themselves are the plan's.
+
+## D-015 — CI gets `just` from the project's own release, checksum-verified
+
+- **Date:** 2026-08-18
+- **Step:** `step-005` — The same harness on the forge
+- **Context:** `just` is the runner that invokes the setup command, so it
+  cannot be installed by it (D-006). Locally the operator provides it
+  (`.claude/docs/environment.md` §1). A hosted runner has nobody to, and the
+  runner images do not ship it, so CI has to fetch it — the one dependency of
+  this workflow that arrives from outside the pinned toolchain, in a file
+  that will hold registry credentials from `step-006` onward.
+- **Decision:** fetch the release archive from `casey/just` by pinned
+  version and verify it against the SHA-256 that release publishes, in a
+  `run:` block of six lines. Version and checksum sit together in the
+  workflow's `env:` so they can only move as a pair. The version pinned,
+  `1.45.0`, is the one measured on this machine — CI and the operator run the
+  same `just`, which matters because `just --fmt` is an unstable feature the
+  check family invokes.
+- **Actions are pinned by commit SHA**, with the version tag in a trailing
+  comment: `actions/checkout` and `actions/cache` only, both first-party. A
+  tag is a movable pointer, and this is the workflow file that later grows
+  publish rights — establishing the pin at the first workflow costs two
+  comments and nothing later.
+- **The rejected convenience, named because it is the obvious one:**
+  `rust-just` on PyPI would have made this a one-line `pipx install` and a
+  pinned dependency like any other. Its metadata was read rather than
+  assumed: the homepage points at `casey/just`, but the **repository** is
+  `gnpaone/rust-just` — a third party's repackaging of the binary. That is a
+  supply-chain link into a workflow that will publish public images, bought
+  to save five lines. Rejected on that ground alone; the packaging is
+  probably fine, and "probably fine" is not the standard for a link nobody
+  would notice going bad.
+- **Alternatives considered:**
+  - *A `setup-just` action.* Same objection one level up — a third-party
+    action, pinnable by SHA but still fetching what it likes, and it replaces
+    six auditable lines with a dependency.
+  - *An unverified `curl | tar`.* Rejected: pinning a version without
+    pinning the bytes pins nothing.
+  - *Installing `just` from a distribution package.* Not available at the
+    pinned version on the runner image, and it would let CI and this machine
+    run different `just` versions.
+- **The maintenance edge, stated rather than discovered later:** a `just`
+  upgrade on this machine now has a second place to move, and the two files
+  that name the version — this workflow and `.claude/docs/environment.md` —
+  will disagree silently if only one is updated. Nothing checks it today; the
+  staleness sweep at each step close is what is expected to catch it.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer, rule 3).
+
+## D-016 — actionlint is the workflow-validation family, ambient integrations off
+
+- **Date:** 2026-08-18
+- **Step:** `step-005` — The same harness on the forge
+- **Context:** Rule 2 requires a check family to arrive with the first file
+  of its class, in the step that lands it. `.github/workflows/ci.yml` is the
+  first workflow, and `check-yaml` proves only that it is YAML — every
+  interesting mistake in a workflow (a mistyped runner label, an input the
+  action does not define, a malformed expression, a bad `uses:` reference) is
+  valid YAML and is otherwise discovered by a red run on the forge, one push
+  at a time.
+- **Decision:** adopt `rhysd/actionlint` v1.7.12 as the `actionlint` hook,
+  pinned by revision like every other family, with
+  `args: [-shellcheck=, -pyflakes=]`.
+- **Why the two integrations are switched off, and why that is not a
+  weakening:** actionlint shells out to whichever `shellcheck` or `pyflakes`
+  is on PATH and silently skips them when absent. GitHub's runner images ship
+  shellcheck; this machine does not
+  (`.claude/docs/environment.md` §1). Left on, the same commit would be
+  checked more strictly on CI than locally — a local green and a red run on
+  the forge, which is the exact failure the workflow beside it exists to make
+  impossible. Shell gets a pinned family of its own with the first shell
+  script (rule 2, never ahead of need); until then the workflow's `run:`
+  blocks stay short enough to read.
+- **Measured against a deliberate defect, not assumed** — a throwaway
+  workflow carrying three planted errors, run through `just check` and then
+  deleted. Caught: `runs-on: ubuntu-latst` (with the valid label list, which
+  is also how `ubuntu-24.04` was confirmed to exist), and an undefined input
+  on `actions/checkout@v4`. **Not caught:** `github.event.hed_commit.message`
+  — `github.event` is an untyped payload, so any field name is plausible to
+  it. Recorded so the family's reach is known rather than believed: it checks
+  the workflow's structure and its references, not the truth of an expression
+  into the event payload.
+- **Alternatives considered:**
+  - *`check-yaml` alone.* Rejected — see the context; it passes every
+    mistake worth catching.
+  - *`actionlint-docker` or `actionlint-system`.* Rejected: the first needs a
+    daemon for a linter, the second takes whatever version is installed,
+    which is a family that cannot be pinned.
+  - *Adding a security linter (`zizmor`) alongside.* Deferred, not rejected:
+    its subject is permissions, untrusted inputs and injection in workflows
+    that handle secrets, and this workflow has none. `step-006` is where that
+    becomes a real question.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer — the harness's shape and names, rule 3).
+
+## D-017 — The first `detect-secrets` false positive: an inline pragma, no baseline
+
+- **Date:** 2026-08-18
+- **Step:** `step-005` — The same harness on the forge
+- **Context:** D-008 adopted `detect-secrets` deliberately without a
+  `.secrets.baseline`, and said a baseline would arrive "at the moment a real
+  false positive appears". It appeared here: the pinned SHA-256 of the `just`
+  release archive (D-015) is a 64-character hex string, and the entropy
+  heuristic cannot tell a published checksum from a leaked credential.
+- **Decision:** annotate the line with the tool's own
+  `# pragma: allowlist secret`, and keep the repository baseline-free. The
+  annotation sits beside the value with two lines saying what it is, where a
+  reviewer reading the workflow will see it; a baseline is a file of hashes
+  that must be regenerated whenever any scanned file changes, and it hides
+  the exemption in a place nobody reads. `.pre-commit-config.yaml`'s comment
+  was rewritten to record this outcome rather than keep promising a baseline.
+- **When a baseline becomes right:** when inline annotations become numerous
+  enough that no one can see them all — checksums for several pinned
+  downloads, say. One is not that.
+- **Alternatives considered:**
+  - *Generate `.secrets.baseline`.* Rejected on the maintenance and
+    visibility grounds above; deferred, not refused.
+  - *Move the checksum out of the workflow into a file the scan excludes.*
+    Rejected: an exclusion that hides a whole file is broader than the
+    exemption needed, and it separates the checksum from the version it must
+    move with.
+- **Approved by:** implementer, within latitude (workflow choices left to the
+  implementer, rule 3).

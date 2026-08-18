@@ -40,6 +40,7 @@ does not duplicate them.
 | `.pre-commit-config.yaml` | What "well-formed" means here — the single declaration both `just check` and the git commit hook run, so the two cannot disagree. |
 | `.pymarkdown.yaml` | Markdown lint settings, tuned to these documents as they already are. Each departure from the defaults says why, and is logged in `DECISIONS.md`. |
 | `requirements.txt` | The pinned toolchain `just setup` installs into `./.venv`. |
+| `.github/workflows/` | CI: the same harness, run on GitHub Actions. `ci.yml` installs the pinned toolchain with the documented setup command and calls the same entry points, so CI and a local run cannot disagree about what "green" means. |
 | `.gitignore`, `.gitattributes` | What git ignores, and the repository's line-ending policy — LF everywhere, because these images ship shell entrypoints. |
 | `LICENSE` | MIT. |
 | `scripts/` | Small checks the harness runs that no off-the-shelf linter covers. |
@@ -54,8 +55,8 @@ the files live, not how far a change's effects reach — so CI belongs to the
 root track even when it publishes an image another track owns.
 
 As the repository grows, this map grows with it: `docs/` (human-facing
-guides), `steamcmd/Dockerfile`, each game's `Dockerfile` and entrypoint, and
-`.github/workflows/`. Each arrives with the plan step that creates it.
+guides), `steamcmd/Dockerfile`, and each game's `Dockerfile` and entrypoint.
+Each arrives with the plan step that creates it.
 
 ## Working on this repository
 
@@ -94,6 +95,14 @@ Bash guard under `.claude/hooks/`, whose registry decides which commands the
 implementing AI may run unattended and which need the repository owner's
 approval: the test runs every case and then checks that no rule goes untested.
 Tests arrive with the artifacts they cover, never ahead of them.
+
+The same two entry points run on GitHub Actions — on every push to `main`,
+on every pull request, and on demand — as two separate gates. CI installs
+the toolchain from scratch on each run with the same `just setup`, so a
+fresh clone is proven to work every time; nothing runs there that you cannot
+run here. Today the repository holds no image and no other workflow, so a
+green run says the documents, the tooling and the Bash guard are sound, and
+nothing yet about a built image.
 
 ## Authority order
 

@@ -90,10 +90,12 @@ repos:
       # would fit the commit hook and silently skip a secret sitting
       # uncommitted in the working tree — the case that matters most.
       #
-      # Deliberately run with no `.secrets.baseline`: a baseline is an
-      # allowlist for known false positives, and there are none yet.
-      # Introduce one at the moment a real false positive appears, rather
-      # than maintaining a file of hashes in anticipation (rule 11).
+      # Still no `.secrets.baseline`, and `step-005` is where that was
+      # tested: the first false positive — a published SHA-256 checksum in
+      # `.github/workflows/ci.yml` — is annotated at the line with this
+      # tool's own `pragma: allowlist secret`, which says *why* beside the
+      # value instead of in a file of hashes regenerated on every change.
+      # A baseline arrives if inline annotations ever outgrow that. D-017.
       - id: detect-secrets
 
   # --- The documents themselves ---
@@ -127,6 +129,25 @@ repos:
       # quote the specification's wording stay consistent with it. D-009.
       - id: codespell
         args: [--ignore-words-list=unparseable]
+
+  # --- GitHub Actions workflows, arriving with the repository's first one ---
+  # `check-yaml` above proves only that a workflow file is YAML. actionlint
+  # knows the workflow schema, the expression language, the runner labels and
+  # the action reference syntax — the errors that are otherwise discovered by
+  # a red run on the forge, one push at a time.
+  #
+  # `-shellcheck=` and `-pyflakes=` switch off actionlint's two ambient
+  # integrations, deliberately. It shells out to whichever `shellcheck` or
+  # `pyflakes` happens to be on PATH: GitHub's runners ship shellcheck and
+  # this machine does not, so leaving them on would let a local run and CI
+  # disagree about green — the one thing `.github/workflows/ci.yml` exists to
+  # prevent. Shell gets a pinned family of its own with the first shell
+  # script; until then a `run:` block stays small enough to read. D-016.
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+        args: [-shellcheck=, -pyflakes=]
 
   # --- Python, arriving with the repository's first Python files ---
   # `.claude/hooks/bash_guard.py` and `scripts/`. Lint only: `ruff-format` is

@@ -41,7 +41,13 @@ Two consequences the harness rests on:
 
 - **`just` is a prerequisite, not a pinned dependency.** It is the runner
   that invokes the setup command, so it cannot be installed by it. Everything
-  downstream of it *is* pinned.
+  downstream of it *is* pinned. **On CI it has no operator to provide it**, so
+  `.github/workflows/ci.yml` pins the version *and* its published SHA-256 and
+  fetches it from the just project's release (`DECISIONS.md` D-015). That
+  pin's version is the one in the table above: **re-measuring `just` here
+  means updating the workflow's `JUST_VERSION` and `JUST_SHA256` too**, or CI
+  and this machine run different `just` versions — which matters, because
+  `just --fmt` is an unstable feature the check family invokes.
 - **`bash` 5.3 is available**, which is what lets `just check` read a
   NUL-delimited file list with `mapfile -d ''`. A machine with bash older
   than 4.4 would need a different reader.

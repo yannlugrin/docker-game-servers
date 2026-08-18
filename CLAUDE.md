@@ -259,7 +259,8 @@ produced is not one of them** (`.claude/docs/workflow.md` §4).*
 - **Current step:** `step-005` — The same harness on the forge (root track).
 - **Next step:** `step-sc-001` on the `sc` track, which closing `step-005`
   unblocks; `step-006` on this one.
-- **Live world-state:** no image built, none published, no CI. The last
+- **Live world-state:** no image built, none published; CI is one workflow,
+  `.github/workflows/ci.yml`, which runs the harness only. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work
   is on **`main`**, the default branch of
   `git@github.com:yannlugrin/docker-game-servers.git` (public), and pushed.
