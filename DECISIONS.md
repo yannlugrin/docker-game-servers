@@ -868,6 +868,21 @@ renumbering sweep still leaves the reference decodable.
   none of what it installs today: the two legs are the same harness up to
   their last step, and an exception for one of them is a thing to remember on
   the day `just test` grows a dependency. The cost is a cache restore.
+- **Rehearsed locally before the one run that can prove it**, since this
+  step's gate is a real push: a fresh `--no-hardlinks` clone with an empty
+  `PRE_COMMIT_HOME` — the closest thing to a cold runner this machine can
+  offer — ran `just setup` in **23 s** and `just verify` green. What that
+  rehearsal cannot cover is the runner itself: the `just` download, the
+  action versions and the workflow syntax are only exercised on the forge.
+- **The cache measured, because the deliverable asks for one and the number
+  argues with it:** a cold build of pre-commit's hook environments is 474 MB
+  here, of which **317 MB is the Go toolchain** pre-commit fetches for
+  actionlint (this machine has no `go`; a runner does, which is likely to
+  make CI's copy smaller). Against a 23 s cold build, a cache of that size is
+  close to break-even, and it is kept because the step's deliverables ask for
+  the toolchain cached. Recorded so a later session can drop or narrow it on
+  this evidence rather than on a hunch — and so the number can be compared
+  against a real run's timings.
 - **What a green run means here, recorded because a badge outlives its
   context:** at this step the repository contains no Dockerfile, no image and
   no workflow but this one. Green says the documents, the governance tooling

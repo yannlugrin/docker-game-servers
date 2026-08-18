@@ -202,7 +202,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   no specification. Detail in git history between tags `step-003` and
   `step-004`.
 
-### step-005 — The same harness on the forge — `in progress`
+### step-005 — The same harness on the forge — `awaiting test`
 
 - **Objective.** CI running the harness entry points on GitHub Actions — the
   step that finishes the bootstrap.
@@ -240,7 +240,7 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   authorised and the run comes back green. Test: authorise the push, then
   watch the Actions run (`gh run watch`). Cost: a GitHub write (the push)
   plus Actions minutes. Cleanup: none; a failed run is fixed forward.
-- **Status.** `in progress`
+- **Status.** `awaiting test`
 
 *Nothing in this milestone is exempt from the small-step rule. If any of
 these six is still too big for a single test — **or cut in the wrong place
