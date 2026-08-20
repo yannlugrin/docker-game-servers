@@ -78,163 +78,73 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
 
 ### step-000 — The harness skeleton, local only — `done`
 
-- **Outcome (approved 2026-08-17, tag `step-000`):** the repository checks
-  itself from a fresh clone. `just setup` installs a pinned toolchain into
-  `./.venv` and wires the commit hooks; `just check [scope]` is one entry
-  point taking a scope, passing its file list explicitly so untracked files
-  are seen without ever writing to the index; `just test` states that no
-  behaviour of this repository's own exists yet; `just verify` runs both.
-  `.pre-commit-config.yaml` is the single declaration both `just check` and
-  the commit hook run, with `.claude/spec-work/` and `.claude/refs/` excluded
-  by path. Nothing it runs rewrites a file. D-006 settles the venv bootstrap
-  and why `just` is a prerequisite rather than a pinned dependency; D-007 what
-  `check` covers — three well-formedness families plus hygiene guards admitted
-  on blast radius, with three hook behaviours measured rather than assumed;
-  D-008 adopts `detect-secrets`, closing the absence of any mechanical guard
-  for rule 5 that a grep of all three plans had exposed. First
-  `.claude/docs/` file: `environment.md`. Detail in git history between
-  `a49f8ed` (the last pre-step commit — `step-000` is the first step tag) and
-  tag `step-000`.
+- **Outcome (approved 2026-08-17, tag `step-000`):** `just setup`/`check`/
+  `test`/`verify` exist and check the repository from a fresh clone, seeing
+  untracked files without ever writing to the index. `check` covers
+  well-formedness and hygiene guards on blast radius (D-007); `detect-secrets`
+  runs without a baseline (D-008); the venv bootstrap is D-006. Nothing it
+  runs rewrites a file. **Hands markdown/prose lint to `step-001`**,
+  deliberately deferred. First `.claude/docs/` file: `environment.md`. Detail
+  in git history between `a49f8ed` and tag `step-000`.
 
 ### step-001 — The governance and prose lint — `done`
 
-- **Outcome (approved 2026-08-17, tag `step-001`):** the documents are linted
-  like the code they effectively are — `pymarkdown` v0.9.39 for structure,
-  `codespell` v2.4.3 for spelling, both pinned by revision and both
-  report-only, which now holds for the whole harness: no hook rewrites
-  anything, so a failing `check` cannot edit a read-only specification.
-  Configured to the documents as they already are, in three bends (D-009);
-  with those, every other rule of both tools reports zero across the thirteen
-  governance and human-facing documents. Two bends were measured rather than
-  reasoned — `md013`'s table exemption is inert until the `markdown-tables`
-  extension is enabled, since CommonMark has no tables, and `--config` must be
-  explicit because 0.9.39 does not auto-discover `.pymarkdown.yaml`. The
-  `.claude/docs/` note this step owed **for any repairing hook** is
-  deliberately absent: none was adopted, so the condition never fired. One
-  read-only specification line was rewrapped on the operator's authorisation,
-  no word changed, retiring a fourth bend. Detail in git history between tags
-  `step-000` and `step-001`.
+- **Outcome (approved 2026-08-17, tag `step-001`):** `pymarkdown` and
+  `codespell`, pinned and report-only, configured to the documents as they
+  already are in three measured bends (D-009); every other rule of both tools
+  reports zero across the governance documents. One read-only specification
+  line was rewrapped, no word changed, on operator authorisation. No
+  repairing hook was adopted, so the `.claude/docs/` note this step owed
+  never fired. Detail in git history between tags `step-000` and `step-001`.
 
 ### step-002 — The permission and hook baseline — `done`
 
 - **Outcome (approved 2026-08-17, tag `step-002`):** rule 9's boundary is
-  enforced mechanically and every mechanism was measured rather than assumed.
-  `.claude/hooks/bash_guard.py` is instantiated from the template with **only
-  its `REGISTRY` edited**: `git` and `docker` keep the template's rules, `gh`
-  is expressed as grants because rule 9 rules API reads free and gates writes,
-  `steamcmd` as a vocabulary grant; `just` and `pre-commit` get no entry,
-  because what keeps them safe is rule 2's no-gated-act invariant, which lives
-  outside the guard. Gated twice: `--liveness` in the commit path on every
-  commit (`always_run`, since a rename would skip a path-keyed hook), and
-  `--selftest` as `just test` — 133 registry cases, 174 engine cases, 57/57
-  rules and grants covered. The operator applied the settings baseline (D-010):
-  broad allow per registry tool, no `ask` for anything the guard gates, an
-  eight-entry `deny` backstop, `defaultMode: acceptEdits`. Python arrived as a
-  check family (`ruff check` only — `ruff-format` rewrites and would reflow the
-  vendored guard), and governance well-formedness gained
-  `scripts/check_settings_hooks.py`.
-  **Measured, and three findings changed what is believed:** a hook **fails
-  open** — with the guard non-executable a refused command ran unprompted;
-  installing settings does **not** activate a hook in the session that wrote
-  them; and both mode-dependent behaviours differ between `auto` and
-  `acceptEdits`, including that **the implementer can edit its own permission
-  boundary** under what ships. This baseline stops mistakes, not a determined
-  agent. Open and deliberately not applied: the hardening in
-  `.claude/docs/permissions.md` §7. Detail in git history between tags
+  enforced mechanically (D-010) — the guard at `.claude/hooks/bash_guard.py`
+  and the settings baseline the operator applied, both measured rather than
+  assumed. A hook fails open, and the implementer can edit its own permission
+  boundary under what ships, so this baseline stops mistakes, not a
+  determined agent. **Hands `.claude/docs/permissions.md` §7's hardening
+  forward** as an open obligation — proposed, not applied, tracked in
+  `CLAUDE.md`'s "Open obligations". Detail in git history between tags
   `step-001` and `step-002`.
 
 ### step-003 — The reviewer agents — `done`
 
-- **Outcome (approved 2026-08-17, tag `step-003`):** three agents exist at
-  `.claude/agents/` — `step-reviewer`, `state-reviewer`, `optimize-memory` —
-  so the milestone close at `step-005` finds its passes already built rather
-  than improvising them (D-011). `code-reviewer` and `test-reviewer` stay
-  unadopted, their triggers being genuinely absent, and remain on
-  `CLAUDE.md`'s not-yet-adopted list so a ritual citing them does not dangle.
-  Four template departures are logged: governance placeholders resolve at
-  invocation through a track table, with the track **named at spawn** for the
-  two close passes; `optimize-memory`'s budget follows D-002's 280/~250, a
-  template enumeration narrower than its rule losing to the rule; the
-  architecture vocabulary is seeded from the specification and says so; and
-  `tools:` was left as set after checking this build's inventory.
-  **Both probes were run, not argued** — `.claude/docs/agents.md` carries them
-  with version, method and re-measure recipe: `CLAUDE.md` **does** reach a
-  subagent, arriving as project instructions before its first tool call and
-  never fetched with a tool, so **the pre-committed inlining branch does not
-  fire**; and `tools:` **binds by omission**. Recorded with the limit that
-  outlives the result — `tools:` restricts which tools exist, not what they
-  do, and `Bash` writes, so a reviewer's read-only discipline rests on its
-  prose. Also measured: a new agent loads only at session start, so no step
-  can test an agent it creates. The governance **frontmatter parse** family
-  arrived with the first files of its class, deliberately narrow, and
-  `pymarkdown` gained the `front-matter` extension. Detail in git history
-  between tags `step-002` and `step-003`.
+- **Outcome (approved 2026-08-17, tag `step-003`):** `step-reviewer`,
+  `state-reviewer`, `optimize-memory` adopted at `.claude/agents/` (D-011),
+  so `step-005`'s milestone close finds its passes already built. Both probes
+  ran rather than were argued (`.claude/docs/agents.md`): `CLAUDE.md` reaches
+  a subagent, and `tools:` binds by omission. **Hands `code-reviewer` and
+  `test-reviewer` forward, unadopted** on `CLAUDE.md`'s not-yet-adopted list,
+  until implementation code and a test suite exist to trigger them. Detail in
+  git history between tags `step-002` and `step-003`.
 
 ### step-004 — The session rituals — `done`
 
-- **Outcome (approved 2026-08-18, tag `step-004`):** the four rituals every
-  later step runs exist at `.claude/skills/<name>/SKILL.md` — `orient`,
-  `resume-step`, `handover-step`, `approve-step` — so orientation, resumption,
-  handover and close stop being improvised (D-012). Where `step-003` had a
-  selection question, this one did not: all four triggers were already firing.
-  Six template departures are logged, two of them load-bearing: the governance
-  placeholders resolve at invocation **with no track table copied in**, a skill
-  executing in the session that has just read `CLAUDE.md`'s map; and `orient`'s
-  steps 1–2 were rewritten from the template's single-track shape to the
-  multi-track routine, a narrower enumeration losing to the rule it executes.
-  A defect the harness could not see drove the second half: four rituals
-  pointed at `.claude/docs/agents.md` §5 where the section is §4 — written from
-  the numbering as it stood before a section was inserted ahead of it, in the
-  same commit. `scripts/check_section_references.py` (D-013) now asserts a
-  backticked path, its §N **and** a quoted title where the class requires one;
-  the first draft checked the number only and **passed the defect as
-  committed**, which is the whole argument for the title. It covers 8 of 29
-  pointers, and requiring titles everywhere is deferred to the operator. The
-  `agent-frontmatter` family was extended to `.claude/skills/*/SKILL.md`, the
-  first files of its class, proven red on both failure modes first. **Measured:**
-  a skill created mid-session is not loaded until the session restarts, the same
-  as an agent — which shapes every later step's test instructions. The
-  pre-handover review found nine, seven applied: the heaviest were
-  `approve-step` transcribing some fifty lines of `.claude/docs/workflow.md` §1,
-  §5 and §3 and then naming `CLAUDE.md` as the tie-breaker — a document emptied
-  of plan conventions at `step-002` — and `resume-step` claiming `orient`'s
-  orientation without performing it, leaving a resumed session able to work from
-  no specification. Detail in git history between tags `step-003` and
-  `step-004`.
+- **Outcome (approved 2026-08-18, tag `step-004`):** `orient`, `resume-step`,
+  `handover-step`, `approve-step` adopted at `.claude/skills/` (D-012), used
+  by every step from here on. `scripts/check_section_references.py` (D-013)
+  was added after a number-only check was measured to pass the very defect —
+  a stale `§5` pointer — it exists to catch; required in `.claude/agents/`
+  and `.claude/skills/`, optional elsewhere. A skill or agent created
+  mid-session loads only after a restart (measured, shapes every later
+  step's test instructions). Detail in git history between tags `step-003`
+  and `step-004`.
 
 ### step-005 — The same harness on the forge — `done`
 
-- **Outcome (approved 2026-08-20, tag `step-005`):** the harness runs on the
-  forge, and the run that proved it found a defect nothing local could.
-  `.github/workflows/ci.yml` reuses the entry points rather than restating a
-  check — `just setup`, then `just check` and `just test` as two gates from
-  one matrix definition, so CI and a local run cannot disagree about green.
-  Every run is a clean checkout doing the documented setup in full, which is
-  how a fresh setup is proven without inventing the schedule §2.8 forbids.
-  D-014 carries the shape: triggers narrowed to `main` plus pull requests and
-  dispatch, one run per ref with `main` exempt from cancellation,
-  `contents: read`, `ubuntu-24.04` pinned, and **no cache** — 474 MB of hook
-  environments against a 37 s cold setup, measured, implemented, then dropped
-  on the operator's ruling before the first run rather than after. D-015
-  fetches `just` from its own release checksum-verified, rejecting both a
-  third-party action and `apt` (Ubuntu freezes universe, so `ubuntu-24.04`
-  cannot offer the pinned version, and `just --fmt` is version-sensitive);
-  actions are SHA-pinned, and `.github/dependabot.yml` is the updater without
-  which a pin only looks maintained. D-016 adds actionlint as the
-  workflow-validation family, arriving with the first workflow file and with
-  its two ambient integrations off so CI cannot be stricter than a local run;
-  D-017 settles the first `detect-secrets` false positive inline.
-  **The first run failed, on exactly the divergence D-014 had accepted:** the
-  vendored guard calls `PurePath.full_match`, added in Python 3.13, and
-  `ubuntu-24.04` ships 3.12.3 — `just check` passed and `just test` died,
-  because only the guard needs it, and this machine's 3.14.4 could never have
-  shown it. The floor was declared nowhere; CI now installs 3.14 and the
-  requirement is stated in `README.md` and `.claude/docs/environment.md` §1.
-  Patching the guard was deliberately not done and reported instead, its
-  `step-002` instantiation having changed only its `REGISTRY`. Green at
-  1m14s and 1m03s. `.pre-commit-config.yaml`'s commentary was cut from 238
-  lines to 119 in the same step, the reasoning living in the decision log.
-  Detail in git history between tags `step-004` and `step-005`.
+- **Outcome (approved 2026-08-20, tag `step-005`):** `.github/workflows/ci.yml`
+  reuses `just setup`/`check`/`test` as two gates from one matrix definition
+  (D-014), fetching `just` checksum-verified from its own release (D-015),
+  actionlint added with its ambient integrations off (D-016), the first
+  `detect-secrets` false positive settled inline (D-017). The first run
+  failed on a Python-version divergence nothing local could show; CI now
+  installs 3.14, matching this machine, and the floor is stated in
+  `README.md` and `.claude/docs/environment.md` §1. Green at 1m14s/1m3s,
+  uncached (474 MB measured against a 37 s cold setup). **Hands `step-006`
+  a green, pushed CI** — the project is bootstrapped. Detail in git history
+  between tags `step-004` and `step-005`.
 
 *Nothing in this milestone is exempt from the small-step rule. If any of
 these six is still too big for a single test — **or cut in the wrong place

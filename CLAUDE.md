@@ -126,15 +126,14 @@ sequencing comes from steps naming dependencies. On approval the closing commit
 gets an **annotated tag** named by the step id; a step's number **freezes when
 it enters `in progress`**, while `pending` steps may be renumbered, with a
 sweep (both shapes: `.claude/docs/workflow.md` §5). The `step-*` namespace is
-this
-workflow's — the operator creates other tags, so anything reasoning about
-steps matches `step-*` explicitly. **Everything a change makes stale updates
-in the same commit, on your own initiative:** plan status, decision entries,
-this file's pointers, `README.md`'s file map, any human-facing document
-touched; what a step taught a future session goes into `.claude/docs/`. You
-commit locally; pushing happens only when the operator asks — **one standing
-exception: at a step close, attempt the push**, so the permission gate puts
-the publish question to them. Cite it; never extend it.
+this workflow's — the operator creates other tags, so anything reasoning
+about steps matches `step-*` explicitly. **Everything a change makes stale
+updates in the same commit, on your own initiative:** plan status, decision
+entries, this file's pointers, `README.md`'s file map, any human-facing
+document touched; what a step taught a future session goes into
+`.claude/docs/`. You commit locally; pushing happens only when the operator
+asks — **one standing exception: at a step close, attempt the push**, so the
+permission gate puts the publish question to them. Cite it; never extend it.
 
 **7. Language.** Repository files, code and comments in English. Converse with
 the operator in whichever language they use.
@@ -196,11 +195,10 @@ would be lost by deleting something, say so first.
 
 ## Where things live
 
-`README.md` carries the full file map. `docs/` and the per-image READMEs are
-**human** deliverables; `.claude/docs/` is **your** memory; `.claude/hooks/`,
-`.claude/skills/`, `.claude/agents/` hold the guard, the rituals and the
-reviewers; `.claude/spec-work/` is **never read** (rule 1); `.claude/refs/` is
-operator-supplied reference material (rule 3).
+`README.md` carries the full file map; rule 3 states the human/machine split
+and the `.claude/refs/` policy. `.claude/hooks/`, `.claude/skills/`,
+`.claude/agents/` hold the guard, the rituals and the reviewers;
+`.claude/spec-work/` is **never read** (rule 1).
 
 - **`.claude/docs/workflow.md`** — rule mechanics and reasoning; its own
   header lists when to read which section.
@@ -210,15 +208,13 @@ operator-supplied reference material (rule 3).
 - **`.claude/docs/permissions.md`** — the permission baseline, as measured.
   Read it **before changing `.claude/settings.json` or the guard's registry**,
   and **before relying on a permission mechanism to stop something**.
-- **`.claude/docs/agents.md`** — what an agent and a skill definition buy, as
-  measured. Read it **before writing or editing either**, **before relying on
-  an agent's `tools:` list to prevent something**, and **before testing
-  tooling you created in the same session**.
+- **`.claude/docs/agents.md`** — what an agent or skill definition buys, as
+  measured. Read it **before writing or editing either**, before relying on
+  `tools:` to prevent something, and before testing tooling made this session.
 - **`.claude/refs/image-contract.md`** — the image contract of a hosting
   platform that will consume these images. Read it **before designing a game
-  image's runtime interface** (uid handling, state paths, stop behaviour,
-  health and save probes) and **before writing per-image documentation**. The
-  images should satisfy it but are not limited to it; where it asks for what
+  image's runtime interface** and **before writing per-image documentation**.
+  Images should satisfy it but are not limited to it; where it asks for what
   the specification does not require, or the two conflict, ask.
 
 ## Track map
@@ -238,17 +234,16 @@ carries a specification document (root §6). Each new image adds one here.
 ## Tooling templates not yet instantiated
 
 *Temporary block, deleted with `.claude/spec-work/handoff/assets/` and every
-pointer naming it, in the same commit as the last adoption or drop (rule 3).*
-That directory holds starter templates and is **rule 1's one standing
-exception**: readable while a template remains un-instantiated. How to
+pointer naming it, in the same commit as the last adoption or drop (rule 3)* —
+that directory holds starter templates and is **rule 1's one standing
+exception**, readable while a template remains un-instantiated. How to
 instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 
 - **Not yet adopted:** `code-reviewer`, `test-reviewer` — their triggers
   (implementation code, a test suite) do not exist yet; a ritual may cite them
   as documented fallback names.
-- **Adopted:** `bash_guard.py` (`step-002`); `step-reviewer`,
-  `state-reviewer`, `optimize-memory` (`step-003`, D-011); `orient`,
-  `resume-step`, `handover-step`, `approve-step` (`step-004`, D-012).
+- **Adopted:** the guard and seven reviewer/ritual tools — `PLAN.md`
+  `step-002` through `step-004`, `DECISIONS.md` D-011/D-012.
 
 ## Current state
 
@@ -256,18 +251,18 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** none in progress. `step-005` closed Milestone 1, so the
-  two passes of `.claude/docs/workflow.md` §3 come before any next step.
-- **Next step:** `step-sc-001` on the `sc` track, which closing `step-005`
-  unblocked; `step-006` on this one.
-- **Live world-state:** no image built, none published. CI is
-  `.github/workflows/ci.yml`, running the harness only, **green on `main`**;
-  `.github/dependabot.yml` keeps its SHA-pinned actions moving. The last
-  approved state is the newest `step-*` tag — find it, never assume it. Work
-  is on **`main`**, the default branch of
-  `git@github.com:yannlugrin/docker-game-servers.git` (public), and pushed.
-  **`main` is the project**; the repository's other branches are never read
-  (rule 1).
+- **Current step:** none in progress. `step-005` closed Milestone 1; its
+  whole-state review and memory-compaction pass (`.claude/docs/workflow.md`
+  §3) are both done.
+- **Next step:** `step-sc-001` (`sc` track) or `step-006` (this track), both
+  unblocked by `step-005` — the operator picks.
+- **Live world-state:** no image built, none published. CI
+  (`.github/workflows/ci.yml`) runs the harness only, green on `main`, kept
+  moving by `.github/dependabot.yml`. The last approved state is the newest
+  `step-*` tag — find it, never assume it. Work is on **`main`**, the default
+  branch of `git@github.com:yannlugrin/docker-game-servers.git` (public), and
+  pushed. **`main` is the project**; the repository's other branches are
+  never read (rule 1).
 - **Open obligations:** `PLAN.md`'s external prerequisites — the GHCR package
   visibility flips, and a Docker Hub credential only if base-pull limits bite.
   Plus the permission hardening of `.claude/docs/permissions.md` §7, proposed

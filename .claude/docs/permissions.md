@@ -313,25 +313,6 @@ in the allow list is a loose end (section 7).
   proposal depends on the answer. The cheap method is a `deny` rule, whose
   effect the implementer can observe directly without an operator prompt.
 
-## 7. Proposed hardening — not applied, for the operator
-
-Section 1 measured that the implementer can edit `.claude/settings.json` and
-can `chmod -x` the guard, neither with a prompt. Two changes would close the
-casual half of that, and both are the operator's call:
-
-1. **An `ask` rule on the boundary's own files** — the settings file and
-   `.claude/hooks/**`. `ask` rather than `deny`, so the operator can still
-   approve a legitimate registry change in-exchange; a `deny` cannot be lifted
-   in the exchange that needs it. This also makes mechanical what the guard's
-   docstring already requires in prose: *every rule change is the operator's
-   call*. Needs the path-spelling probe above first.
-2. **Drop `Bash(chmod:*)` from the allow list.** It is rarely needed, and it is
-   the one allowed command that can disable the guard outright. Prompting on it
-   costs almost nothing.
-
-Neither is applied. Both are recorded here so the gap is visible rather than
-discovered.
-
 ## 6. Re-measure recipe
 
 Run after any Claude Code update, and update the version stamp with the
@@ -354,3 +335,22 @@ touch ../escaped-probe.txt && echo "NO SANDBOX" && rm -f ../escaped-probe.txt
 
 Then re-run section 4's three commands and confirm silence, a grant, and a
 refusal **naming its rule**.
+
+## 7. Proposed hardening — not applied, for the operator
+
+Section 1 measured that the implementer can edit `.claude/settings.json` and
+can `chmod -x` the guard, neither with a prompt. Two changes would close the
+casual half of that, and both are the operator's call:
+
+1. **An `ask` rule on the boundary's own files** — the settings file and
+   `.claude/hooks/**`. `ask` rather than `deny`, so the operator can still
+   approve a legitimate registry change in-exchange; a `deny` cannot be lifted
+   in the exchange that needs it. This also makes mechanical what the guard's
+   docstring already requires in prose: *every rule change is the operator's
+   call*. Needs the path-spelling probe above first.
+2. **Drop `Bash(chmod:*)` from the allow list.** It is rarely needed, and it is
+   the one allowed command that can disable the guard outright. Prompting on it
+   costs almost nothing.
+
+Neither is applied. Both are recorded here so the gap is visible rather than
+discovered.

@@ -21,7 +21,7 @@ the ritual can know. **The shapes stay here and are not copied into them:**
 the compacted plan entry is §1, the tag message §5, the two milestone passes
 §3, and a close reads those sections rather than a transcription that can
 drift. `CLAUDE.md` carries no plan conventions — that section moved here at
-`step-002` (`DECISIONS.md` D-002), so §1 is the tie-breaker on entry shape,
+bootstrap (`DECISIONS.md` D-002), so §1 is the tie-breaker on entry shape,
 not `CLAUDE.md`.
 
 ---
