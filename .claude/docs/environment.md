@@ -37,8 +37,16 @@ Measured **2026-08-17** (`step-000`).
 | `node`, `npm` | **absent** (an `nvm` shell function exists but loads nothing) | nothing yet — a hook needing node makes `pre-commit` fetch its own |
 | `uv`, `pipx` | **absent** | nothing — the venv bootstrap does not need them |
 
-Two consequences the harness rests on:
+Three consequences the harness rests on:
 
+- **Python 3.13 is a floor, not a preference.**
+  `.claude/hooks/bash_guard.py` calls `PurePath.full_match`, added in 3.13,
+  and declares that requirement nowhere. Measured the hard way: the first CI
+  run died on `ubuntu-24.04`'s Python 3.12.3, while `just check` passed on
+  the same runner, because only the guard needs it (`DECISIONS.md` D-014).
+  `.github/workflows/ci.yml` therefore installs **3.14**, matching the row
+  above — so **re-measuring `python3` here means checking that pin too**,
+  exactly as for `just`.
 - **`just` is a prerequisite, not a pinned dependency.** It is the runner
   that invokes the setup command, so it cannot be installed by it. Everything
   downstream of it *is* pinned. **On CI it has no operator to provide it**, so

@@ -72,6 +72,16 @@ jobs:
         # `just check` enumerates from git, so this must be a real repository.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The Bash guard needs `PurePath.full_match`, which is Python 3.13+;
+      # `ubuntu-24.04` ships 3.12.3, and the first CI run died on exactly
+      # that. Pinned to this machine's version so the guard, the venv and
+      # every `language: python` hook meet the interpreter they were measured
+      # against. D-014.
+      - name: Install Python, matched to the development machine
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
       - name: Install just, verified against its published checksum
         run: |
           set -euo pipefail

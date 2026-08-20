@@ -905,17 +905,32 @@ renumbering sweep still leaves the reference decodable.
   real run's setup timings ever argue for one, and `step-006` onward — which
   will cache image layers, not hook environments — is where the question
   genuinely returns.
-- **One axis of CI/local divergence is accepted, not closed: the Python
-  interpreter.** D-015 goes to some trouble over `just` version drift, and
-  the review asked why Python escapes it — locally 3.14.4, on `ubuntu-24.04`
-  whatever the image ships, and every `language: python` hook builds against
-  it. Deliberately unpinned: `just setup` uses the ambient `python3` by
-  design (D-006), so pinning an interpreter *only in CI* would make CI less
-  like the documented path a contributor walks, not more. What that buys is
-  an early warning — CI meets a different interpreter than this machine, so a
-  hook that breaks on one is seen rather than hidden. What it costs is that a
-  wheel unavailable for one of the two can go red on one side alone; that is
-  a real failure worth seeing, not a false alarm to suppress.
+- **The Python interpreter was left unpinned, and the first run killed that
+  — amended 2026-08-20.** The original decision deliberately did not pin it:
+  `just setup` uses the ambient `python3` by design (D-006), so pinning one
+  *only in CI* would make CI less like the documented path a contributor
+  walks, and the divergence was argued to buy an early warning — "a hook that
+  breaks on one interpreter is seen rather than hidden".
+  **The warning fired on the very first run, which is the best possible
+  outcome for the argument and the end of it.** `.claude/hooks/bash_guard.py`
+  calls `PurePath.full_match`, added in **Python 3.13**; `ubuntu-24.04` ships
+  **3.12.3**; `just test` died with `AttributeError` while `just check`
+  passed, because only the guard needs it. So the guard has a floor that
+  **nothing declared** — not the file, not `requirements.txt`, not the
+  README.
+  CI now installs Python **3.14** with `actions/setup-python`, matching this
+  machine, so the guard, the venv and every `language: python` hook meet the
+  interpreter they were measured against. That is the same argument D-015
+  makes for `just`, and it should have been made here first: reproducibility
+  beats an early-warning channel nobody had asked for. The floor itself is
+  now stated in the README's prerequisites and in
+  `.claude/docs/environment.md` §1, which is where a contributor on 3.12
+  finds out before their commit hook does.
+  **Not done, and reported to the operator instead:** patching the guard to
+  drop `full_match`. It is a vendored file whose `step-002` instantiation
+  changed **only its `REGISTRY`**, and that invariant is what keeps a future
+  template refresh a diff against the template rather than against our edits.
+  A one-line portability fix is not worth spending it.
 - **What a green run means here, recorded because a badge outlives its
   context:** at this step the repository contains no Dockerfile, no image and
   no workflow but this one. Green says the documents, the governance tooling

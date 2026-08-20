@@ -62,8 +62,8 @@ Each arrives with the plan step that creates it.
 ## Working on this repository
 
 Prerequisites, none of them installed by the setup command because they are
-what runs it: [`just`](https://github.com/casey/just), `python3` with the
-`venv` module, and `git`.
+what runs it: [`just`](https://github.com/casey/just), `python3` **3.13 or
+newer** with the `venv` module, and `git`.
 
 ```sh
 just setup           # install the pinned toolchain, wire the commit hooks
