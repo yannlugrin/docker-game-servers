@@ -26,6 +26,18 @@ on:
 permissions:
   contents: read
 
+# One run per ref. A pull request supersedes its own earlier runs — the older
+# commit's result is about to be irrelevant, and letting it finish costs
+# minutes to answer a question nobody will ask.
+#
+# `main` is exempt deliberately: cancelling there would leave commits on the
+# default branch with no recorded result, and the default branch is where
+# "has this been proven" is asked — of a tagged step close, and of the
+# schedules root §8 adds at `step-010` and `step-011`. D-014.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 env:
   # `just` is the runner that invokes the setup command, so it cannot be
   # installed by it, and no runner image ships it. Fetched from the just

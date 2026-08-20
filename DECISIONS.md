@@ -855,6 +855,18 @@ renumbering sweep still leaves the reference decodable.
     scratch, so **the fresh setup is the run itself** rather than a job of
     its own. Why the deliverable's "toolchain cached" is not met is the
     measurement below.
+  - **One run per ref, and `main` exempt from cancellation.**
+    `cancel-in-progress` is an expression, not a flag: a pull request
+    supersedes its own earlier runs, because the older commit's answer is
+    about to be irrelevant and finishing it spends minutes on a question
+    nobody will ask. Cancelling on the default branch would instead leave
+    commits there with no recorded result — and that is exactly where the
+    question is asked, of the commit a step tag closes and of the scheduled
+    runs root §8 adds at `step-010` and `step-011`. Grouping on
+    `github.ref` separates a pull request (`refs/pull/N/merge`) from a push,
+    so the narrowed `push:` trigger and the `pull_request:` trigger cannot
+    cancel each other. Added 2026-08-20, on the operator noticing its
+    absence.
   - **`runs-on: ubuntu-24.04`**, pinned rather than `ubuntu-latest`. §2.1
     makes this project amd64-only, and a runner image that moves under a
     floating label is the one variable a checksum cannot pin.
