@@ -146,9 +146,10 @@ templates not yet adopted) survives although no template remains
 un-instantiated, delete it and flag the leftover assets directory for
 removal — an expired exception is stale memory like any other.
 
-**This project's budget is D-002's: under 280 lines, targeting ~250, not the
-cap** — read that entry for why 220 is unreachable here. The headroom is the
-point, so a compaction that leaves the file at 279 has restored nothing. The
+**This project's budget is D-018's: a single 300-line cap, not the template's
+default** — read that entry, and D-002 behind it, for why 220 is unreachable
+here and why the old ~250 target was retired. The headroom is the point, so a
+compaction that leaves the file at 299 has restored nothing. The
 budget yields to one thing only: the action-boundary enumeration is carried
 whole, and if the two collide, the enumeration stays and the trimming happens
 elsewhere. Report an over-budget file you could not trim rather than

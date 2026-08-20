@@ -98,6 +98,8 @@ change, since a closed or superseded entry has no open "Context" or
   compressing rule 9's enumeration, and keeping 220 with the file over budget
   and no ruling.
 - **Approved by:** operator
+- **Superseded in part by D-018** (2026-08-20): the budget is now a single
+  300-line cap. The extraction and its reasoning stand.
 - Detail in git history, at tag `step-000` (`CLAUDE.md` fell from 301 to 254
   lines by the extraction alone).
 
@@ -394,3 +396,30 @@ change, since a closed or superseded entry has no open "Context" or
   not that.
 - **Approved by:** implementer, within latitude (rule 3)
 - Detail in git history, at tag `step-005`.
+
+## D-018 — `CLAUDE.md`'s budget revised to a single 300-line cap
+
+- **Date:** 2026-08-20
+- **Step:** Milestone 1 close (no step — the whole-state review's finding)
+- **Decision:** Replace D-002's **280 hard / ~250 target** with a single
+  **300-line cap**, and drop the second number. The dual figure was the
+  problem: the milestone-close compaction was measured against a ~250 target
+  that D-002's own reasoning had already shown unreachable — rule 9's
+  enumeration plus the eleven rules run past it — so a pass that correctly
+  applied rule 3's eviction order and landed at 272 read as a shortfall
+  instead of a floor. One number that can actually be met keeps the figure a
+  signal rather than a standing complaint. 300 is set from the measurement,
+  not chosen round: the file grew 263 → 277 across the six foundation steps,
+  and **nearly all of it was rule text gaining clauses as measured facts
+  landed** — work the foundation milestone completes. What still grows is
+  bounded and known: one Track map row per new image, and `Current state` is
+  a closed list (`.claude/docs/workflow.md` §4) that churns rather than
+  accumulates. Deleting the tooling-templates block when the last template is
+  adopted or dropped returns ~10 lines. Rejected: keeping 280 (Milestone 2's
+  builder and `pz` content would breach it mid-step, which D-002 itself calls
+  the outcome to avoid); 320 (buys room by weakening the signal, with no
+  measurement behind it); and moving rule text out to reach 250, which D-002
+  already judged self-defeating — a rule that is not loaded is a rule that is
+  not followed. **Revisit at the next milestone close**, on the same
+  measurement rather than on feel.
+- **Approved by:** operator

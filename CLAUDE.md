@@ -72,7 +72,7 @@ enforcement mechanism at the step introducing it and record the measurement in
 the track's directory. Repository-wide: exactly one `CLAUDE.md` — this file —
 plus context-specific knowledge in its own file under `.claude/docs/`,
 referenced from here with **when to read it** and read only then. Plain paths,
-never `@` imports. This file loads every run, so it stays **within D-002's
+never `@` imports. This file loads every run, so it stays **within D-018's
 budget, with headroom**; when it binds, things leave in this order, not one of
 your choosing: context-specific matter a read-trigger can reach, the templates
 block once its directory is gone, then per-track detail the track's plan

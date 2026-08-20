@@ -92,7 +92,7 @@ In order:
 6. **Report, then attempt the push.** Show the step summary and what the
    close commit and tag contain — with `CLAUDE.md`'s line count and its
    change since the last close, so growth is visible at the moment it
-   happens and in front of the operator. The budget is D-002's. Over it,
+   happens and in front of the operator. The budget is D-018's. Over it,
    present **both** remedies and let them rule: what could move out, and
    raising the budget. Never resolve it by compressing something that
    cannot be compressed without loss — the number is a signal, and a gate
