@@ -41,7 +41,7 @@ does not duplicate them.
 | `.pre-commit-config.yaml` | What "well-formed" means here — the single declaration both `just check` and the git commit hook run, so the two cannot disagree. |
 | `.pymarkdown.yaml` | Markdown lint settings, tuned to these documents as they already are. Each departure from the defaults says why, and is logged in `DECISIONS.md`. |
 | `requirements.txt` | The pinned toolchain `just setup` installs into `./.venv`. |
-| `.github/workflows/` | CI: the same harness, run on GitHub Actions. `ci.yml` installs the pinned toolchain with the documented setup command and calls the same entry points, so CI and a local run cannot disagree about what "green" means. |
+| `.github/` | CI and dependency automation. `workflows/ci.yml` installs the pinned toolchain with the documented setup command and calls the same entry points, so CI and a local run cannot disagree about what "green" means; `dependabot.yml` keeps the workflow's SHA-pinned actions moving. |
 | `.gitignore`, `.gitattributes` | What git ignores, and the repository's line-ending policy — LF everywhere, because these images ship shell entrypoints. |
 | `LICENSE` | MIT. |
 | `scripts/` | Small checks the harness runs that no off-the-shelf linter covers. |

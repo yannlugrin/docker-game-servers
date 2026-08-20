@@ -1,0 +1,14 @@
+# Actions are pinned by commit SHA (DECISIONS.md D-015). A pin with no
+# updater never moves and nobody notices, so this is the other half of that
+# decision: Dependabot opens a PR when an action moves, rewriting the SHA and
+# its trailing version comment together.
+#
+# `github-actions` only. The rest of the toolchain has its own updaters —
+# `pre-commit autoupdate` for the hook revisions, and `requirements.txt` is
+# reviewed when the harness changes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

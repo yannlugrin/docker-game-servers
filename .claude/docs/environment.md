@@ -75,11 +75,13 @@ and pre-commit's caches were all cold:
   toolchain pre-commit fetches to build `actionlint` (there is no system `go`
   here), plus ~130 MB of Go build cache outside that path.
 
-Re-measure with section 4's recipe when the hook set changes; these two
-figures are what `.github/workflows/ci.yml`'s cache is worth judging against,
-and the reasoning is `DECISIONS.md` D-014. **Isolate `XDG_CACHE_HOME`, not
-just `PRE_COMMIT_HOME`** — a first attempt did the latter and came out 14 s
-too fast.
+Re-measure with section 4's recipe when the hook set changes. **These two
+figures are why `.github/workflows/ci.yml` caches nothing**: 474 MB through
+GitHub's cache service to save 37 s is at best break-even, so every CI run
+builds the toolchain cold (`DECISIONS.md` D-014). A future run whose setup
+times argue otherwise is what would reopen it. **Isolate `XDG_CACHE_HOME`,
+not just `PRE_COMMIT_HOME`** — a first attempt did the latter and came out
+14 s too fast.
 
 ## 3. Docker on this host carries other work
 

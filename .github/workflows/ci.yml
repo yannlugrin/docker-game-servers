@@ -1,66 +1,63 @@
 # CI — this repository's own harness, run on the forge.
 #
-# It restates no single check: it installs the pinned toolchain with the same
-# documented `just setup` and calls the same entry points a developer calls,
-# so CI and a local run cannot disagree about what "green" means. Every run
-# is a clean checkout doing that setup in full, which is also how a fresh
-# setup is proven. The shape of this file — the matrix, the cache, the
-# triggers, and what a green run does and does not cover while this
-# repository holds no image — is `DECISIONS.md` D-014.
+# It restates no check: it installs the pinned toolchain with the documented
+# `just setup` and calls the same entry points a developer calls, so CI and a
+# local run cannot disagree about what "green" means. Every run is a clean
+# checkout doing that setup in full, which is also how a fresh setup is
+# proven. Shape and trade-offs: DECISIONS.md D-014, D-015.
 #
-# **There is deliberately no `schedule:` trigger** (root §2.8, root §8). The
-# schedules this repository will have are the ones root §8 requires, update
-# detection and the refresh, and they arrive with the steps that build them
-# (`step-010`, `step-011`). A keep-alive schedule invented now would be a
-# scheduled workflow with no job to do, on the same disable-on-idle clock.
+# There is deliberately no `schedule:` (root §2.8). The schedules root §8
+# requires arrive with the steps that build them (`step-010`, `step-011`); a
+# keep-alive schedule invented now would be a scheduled workflow with no job
+# to do, on the same disable-on-idle clock.
 
 name: CI
 
-# `push` is narrowed to the default branch so a pull request from a branch of
-# this repository gets one run, not two.
 on:
   push:
+    # Narrowed to the default branch so a pull request from a branch of this
+    # repository gets one run, not two.
     branches: [main]
   pull_request:
   workflow_dispatch:
 
-# This workflow reads the repository and nothing else: it builds nothing and
-# publishes nothing. Publication arrives at `step-006`, which asks for the
-# token scope it needs in its own workflow file.
+# Reads the repository and nothing else. Publication arrives at `step-006`,
+# which asks for the token scope it needs in its own workflow file.
 permissions:
   contents: read
 
 env:
   # `just` is the runner that invokes the setup command, so it cannot be
-  # installed by it — locally the operator provides it
-  # (`.claude/docs/environment.md` §1). A runner has nobody to, so it is
-  # fetched here from the just project's own release, pinned by version *and*
-  # by the SHA-256 that release publishes: an unverified download into a
-  # workflow that will later hold publish credentials is a supply chain, not
-  # a convenience. Both values move together; `JUST_SHA256` is the
-  # `x86_64-unknown-linux-musl` line of that release's `SHA256SUMS`.
+  # installed by it, and no runner image ships it. Fetched from the just
+  # project's own release, pinned by version *and* by the SHA-256 that
+  # release publishes — release assets are mutable under a fixed tag, and
+  # this file gains publish credentials at `step-006`. Both values move
+  # together; JUST_SHA256 is that release's x86_64-unknown-linux-musl line.
+  # Keep in step with `.claude/docs/environment.md` §1. D-015.
   JUST_VERSION: "1.45.0"
-  # The `pragma` is for `detect-secrets`, which reads any long hex string as
-  # a possible credential and cannot tell a published checksum from one.
+  # The pragma is for detect-secrets, which cannot tell a published checksum
+  # from a credential.
   JUST_SHA256: "dc3f958aaf8c6506dd90426e9b03f86dd15e74a6467ee0e54929f750af3d9e49" # pragma: allowlist secret
 
 jobs:
-  # One job definition, two jobs — `just check` and `just test` are separate
-  # gates that differ only in their last step, and a matrix is what keeps
-  # their setup from drifting apart into two ideas of a fresh install.
+  # One job definition, two gates. `just check` and `just test` differ in
+  # exactly one step, and a matrix is what keeps the shared half from
+  # drifting into two ideas of a fresh install.
   harness:
     name: just ${{ matrix.entrypoint }}
+    # Pinned rather than `ubuntu-latest`: §2.1 makes this project amd64-only,
+    # and a runner image moving under a floating label is the one variable a
+    # checksum cannot pin.
     runs-on: ubuntu-24.04
     strategy:
       # Both gates always report. A failing `check` that cancels `test` hides
-      # half of what a run was asked to tell us.
+      # half of what the run was asked to tell us.
       fail-fast: false
       matrix:
         entrypoint: [check, test]
     steps:
       - name: Check out the repository
-        # `just check` enumerates from git, so the checkout has to be a real
-        # repository — the default depth is enough, no history is read.
+        # `just check` enumerates from git, so this must be a real repository.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install just, verified against its published checksum
@@ -75,29 +72,10 @@ jobs:
           rm "${archive}"
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
-      - name: Restore the pre-commit hook environments
-        id: precommit-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/pre-commit
-          # The two files that decide what those environments contain: the
-          # hook revisions, and the pre-commit version that builds them.
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', 'requirements.txt') }}
-
+      # Uncached, deliberately: a cold setup measures 37 s against 474 MB of
+      # hook environments, so a cache round-trip is at best break-even. D-014.
       - name: Install the toolchain — the documented setup command, in full
         run: just setup
 
       - name: just ${{ matrix.entrypoint }}
         run: just ${{ matrix.entrypoint }}
-
-      # Saved by one leg only, and only when the restore missed: both legs
-      # build the same environments, and two jobs racing to write one key
-      # makes a green run noisy for nothing. Not `if: success()` — a run whose
-      # gate failed still built the environments, and throwing them away would
-      # make the next attempt pay for them again.
-      - name: Save the pre-commit hook environments
-        if: ${{ !cancelled() && matrix.entrypoint == 'check' && steps.precommit-cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/pre-commit
-          key: ${{ steps.precommit-cache.outputs.cache-primary-key }}

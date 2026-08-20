@@ -850,17 +850,11 @@ renumbering sweep still leaves the reference decodable.
     checkout, toolchain install and setup, which is precisely the material
     that drifts; `fail-fast: false` keeps a failing `check` from cancelling
     `test` and hiding half of what the run was asked to report.
-  - **Only pre-commit's hook environments cached**, keyed on
-    `.pre-commit-config.yaml` *and* `requirements.txt` — the two files that
-    decide what those environments contain. The venv is built and
-    `requirements.txt` installed from scratch on every run, so **the fresh
-    setup is the run itself**, not a job of its own, and a change to either
-    file gives a genuinely cold build.
-  - **The `check` leg owns the cache.** Both legs restore; only `check`
-    saves, and only when the restore missed. Two jobs racing to write one key
-    makes a green run noisy for no gain, and the save is deliberately not
-    conditioned on success: a run whose gate went red still built the
-    environments, and discarding them would make the next attempt pay again.
+  - **No cache at all.** Every run builds the venv, installs
+    `requirements.txt` and builds the pre-commit hook environments from
+    scratch, so **the fresh setup is the run itself** rather than a job of
+    its own. Why the deliverable's "toolchain cached" is not met is the
+    measurement below.
   - **`runs-on: ubuntu-24.04`**, pinned rather than `ubuntu-latest`. §2.1
     makes this project amd64-only, and a runner image that moves under a
     floating label is the one variable a checksum cannot pin.
@@ -882,21 +876,23 @@ renumbering sweep still leaves the reference decodable.
   it claimed, and re-measuring under full isolation is what produced the 37 s
   above. Kept in this entry because a measurement's method is the half that
   decides whether it means anything.
-- **The cache measured, because the deliverable asks for one and the numbers
-  argue with it:** the cold build leaves **474 MB** in `~/.cache/pre-commit`,
-  of which **317 MB is the Go toolchain** pre-commit fetches to build
-  actionlint (this machine has no `go`; a runner does, so CI's copy may be
-  smaller), plus a further 130 MB of Go build cache *outside* the cached path
-  — which costs nothing, since a cache hit restores the already-built binary
-  and compiles nothing. Against a 37 s cold build, storing and restoring
-  474 MB through GitHub's cache service is at best break-even. It is
-  implemented because the step's deliverables ask for the toolchain cached,
-  and the numbers are recorded rather than buried: **the first real run's
-  own restore, save and setup timings are what should settle it**, and
-  dropping the three cache steps afterwards is a legitimate outcome. The
-  pre-handover review named the cache as this step's clearest deletion
-  candidate; it is put to the operator at handover rather than decided here,
-  because the deliverable is the plan's.
+- **The cache was measured, and the measurement killed it — an amendment
+  made by the operator, 2026-08-20.** A cold build leaves **474 MB** in
+  `~/.cache/pre-commit`, of which **317 MB is the Go toolchain** pre-commit
+  fetches to build actionlint (this machine has no `go`; a runner does, so
+  CI's copy may be smaller), plus a further 130 MB of Go build cache
+  *outside* any cached path. Against a **37 s** cold `just setup`, moving
+  474 MB through GitHub's cache service is at best break-even. It was first
+  implemented anyway, because the step's deliverable asks for the toolchain
+  cached, with the numbers recorded rather than buried and the deletion put
+  to the operator at handover — the pre-handover review had named it this
+  step's clearest deletion candidate. **The operator ruled it dropped before
+  the first run rather than after**, which also removes the whole
+  restore/save split the matrix had forced. This is a deliberate deviation
+  from a plan deliverable, logged here as its reason: re-add a cache if a
+  real run's setup timings ever argue for one, and `step-006` onward — which
+  will cache image layers, not hook environments — is where the question
+  genuinely returns.
 - **One axis of CI/local divergence is accepted, not closed: the Python
   interpreter.** D-015 goes to some trouble over `just` version drift, and
   the review asked why Python escapes it — locally 3.14.4, on `ubuntu-24.04`
@@ -919,12 +915,18 @@ renumbering sweep still leaves the reference decodable.
   - *A separate "fresh setup" job or a keep-alive schedule.* Rejected: the
     plan forbids inventing a schedule, and every run is already a clean
     checkout running the documented command in full.
-  - *One cache step per leg with the same key.* Rejected: harmless but noisy,
-    and a green run that logs a contention notice teaches a reader to skim.
+  - *Caching the hook environments*, either as one `actions/cache` step per
+    leg or as the restore/save split the matrix forces (both legs restore,
+    the `check` leg alone saves, so two jobs do not race for one key, and a
+    red run still keeps what it built — `save-always` having been deprecated
+    in favour of exactly that split). Both were written and then dropped on
+    the measurement above: three steps and a contention question, to save
+    37 s at 474 MB.
   - *`ubuntu-latest`.* Rejected for the pin above.
 - **Approved by:** implementer, within latitude (workflow choices left to the
   implementer — the harness's shape and names, rule 3). The deliverables
-  themselves are the plan's.
+  themselves are the plan's, which is why **the cache drop is the operator's,
+  taken 2026-08-20**: it deviates from one.
 
 ## D-015 — CI gets `just` from the project's own release, checksum-verified
 
@@ -944,10 +946,18 @@ renumbering sweep still leaves the reference decodable.
   same `just`, which matters because `just --fmt` is an unstable feature the
   check family invokes.
 - **Actions are pinned by commit SHA**, with the version tag in a trailing
-  comment: `actions/checkout` and `actions/cache` only, both first-party. A
-  tag is a movable pointer, and this is the workflow file that later grows
-  publish rights — establishing the pin at the first workflow costs two
-  comments and nothing later.
+  comment — GitHub's own documented hardening, and what Dependabot and
+  Renovate emit. A tag is a movable pointer, and this is the workflow file
+  that later grows publish rights. Only `actions/checkout` remains after the
+  D-014 cache drop.
+- **`.github/dependabot.yml` is the other half of that pin, added 2026-08-20
+  on the operator's ruling.** A SHA pin with no updater never moves and
+  nobody notices — strictly worse than a tag, since it looks maintained. The
+  original decision pinned and did not build the thing that makes pinning
+  work; monthly `github-actions` updates close it, and Dependabot rewrites
+  the SHA and its version comment together. Scoped to actions alone: the hook
+  revisions have `pre-commit autoupdate`, and `requirements.txt` is reviewed
+  when the harness changes.
 - **The rejected convenience, named because it is the obvious one:**
   `rust-just` on PyPI would have made this a one-line `pipx install` and a
   pinned dependency like any other. Its metadata was read rather than
@@ -963,9 +973,27 @@ renumbering sweep still leaves the reference decodable.
     six auditable lines with a dependency.
   - *An unverified `curl | tar`.* Rejected: pinning a version without
     pinning the bytes pins nothing.
-  - *Installing `just` from a distribution package.* Not available at the
-    pinned version on the runner image, and it would let CI and this machine
-    run different `just` versions.
+  - *`apt-get install just` on the runner.* The obvious question, since this
+    machine's own `just` **is** apt's — `1.45.0-1` from Ubuntu 26.04's
+    `resolute/universe`. It fails on the runner for a structural reason:
+    Ubuntu freezes universe at release and does not move a package to a new
+    upstream version afterwards, so `ubuntu-24.04` (frozen April 2024) cannot
+    offer 1.45.0 whatever it offers. `just --fmt` is an unstable feature the
+    check family invokes, so an older `just` means `just --fmt --check` goes
+    green here and red on CI — the exact divergence this workflow exists to
+    prevent. No runner image ships `just` preinstalled either; verified
+    against `actions/runner-images`.
+  - *Moving the runner to `ubuntu-26.04`, where apt would give the same
+    `1.45.0-1`.* Genuinely attractive and deliberately deferred, not
+    rejected: that image also ships Python 3.14.4 and Bash 5.3.9, this
+    machine's exact versions, so it would close the accepted interpreter
+    divergence in D-014 as well. Two things stop it today — the image is
+    **public preview**, and **actionlint 1.7.12 does not know the label**
+    (measured: it rejects `ubuntu-26.04` as unknown, listing 24.04 and 22.04
+    only), so adopting it means an `actionlint.yaml` suppressing a real check
+    to allow a runner that may still move. Revisit when the image is GA and
+    actionlint has learned it; at that point this whole `env:` block and the
+    download step collapse into one `apt-get install`.
 - **The maintenance edge, stated rather than discovered later:** a `just`
   upgrade on this machine now has a second place to move, and the two files
   that name the version — this workflow and `.claude/docs/environment.md` —
