@@ -202,45 +202,39 @@ memory-compaction pass (`CLAUDE.md`, rule 3).
   no specification. Detail in git history between tags `step-003` and
   `step-004`.
 
-### step-005 — The same harness on the forge — `awaiting test`
+### step-005 — The same harness on the forge — `done`
 
-- **Objective.** CI running the harness entry points on GitHub Actions — the
-  step that finishes the bootstrap.
-- **Spec sections implemented.** §2.8 (the idle-schedule fact, honoured by
-  *not* inventing a schedule here), §8 in part (the forge is GitHub; this
-  step establishes the workflow ground the image jobs later build on).
-- **Depends on.** `step-000` and `step-001` (the entry points and families
-  it runs), `step-004` (the close ritual it will be closed by).
-- **Deliverables.**
-  - A GitHub Actions workflow, **written from scratch — there is no existing
-    workflow of the operator's to copy or adapt** — that **reuses the
-    harness entry points** rather than restating a single check: CI and the
-    local runners must never be able to disagree about what "green" means.
-  - Check and test as **separate jobs once both exist**; the toolchain
-    cached.
-  - A way of proving a **fresh setup** still works. That proof may later
-    ride a scheduled job the specification already requires (§8's refresh
-    and update detection) rather than becoming a second scheduled workflow
-    of its own — but none of those jobs can exist at this step, so until
-    they do, **CI's own per-run fresh setup** (a clean checkout plus the
-    documented setup command) is the proof, and the §8 schedule takes the
-    duty over when it arrives. **Do not invent a temporary schedule now.**
-  - The workflow-validation check family arrives with this, the first
-    workflow file (rule 2, never-ahead).
-  - Recorded deliberately: this first green run covers **only the harness
-    over documents and the guard** — no Dockerfile, no image, no workflow
-    but its own. That is what "bootstrapped" means here, and it is why the
-    run is worth having before the builder rather than after it.
-- **How I test it.** **This is the one foundation step nothing local can
-  exercise, so its gate is a real run.** External prerequisites needed *at
-  bootstrap*, not late: the GitHub repository and its remote (verified
-  present and public), the operator's authorisation of the first push, **and
-  a branch topology on which Actions will actually run** — see the
-  prerequisites table. The workflow stays **unverified** until the push is
-  authorised and the run comes back green. Test: authorise the push, then
-  watch the Actions run (`gh run watch`). Cost: a GitHub write (the push)
-  plus Actions minutes. Cleanup: none; a failed run is fixed forward.
-- **Status.** `awaiting test`
+- **Outcome (approved 2026-08-20, tag `step-005`):** the harness runs on the
+  forge, and the run that proved it found a defect nothing local could.
+  `.github/workflows/ci.yml` reuses the entry points rather than restating a
+  check — `just setup`, then `just check` and `just test` as two gates from
+  one matrix definition, so CI and a local run cannot disagree about green.
+  Every run is a clean checkout doing the documented setup in full, which is
+  how a fresh setup is proven without inventing the schedule §2.8 forbids.
+  D-014 carries the shape: triggers narrowed to `main` plus pull requests and
+  dispatch, one run per ref with `main` exempt from cancellation,
+  `contents: read`, `ubuntu-24.04` pinned, and **no cache** — 474 MB of hook
+  environments against a 37 s cold setup, measured, implemented, then dropped
+  on the operator's ruling before the first run rather than after. D-015
+  fetches `just` from its own release checksum-verified, rejecting both a
+  third-party action and `apt` (Ubuntu freezes universe, so `ubuntu-24.04`
+  cannot offer the pinned version, and `just --fmt` is version-sensitive);
+  actions are SHA-pinned, and `.github/dependabot.yml` is the updater without
+  which a pin only looks maintained. D-016 adds actionlint as the
+  workflow-validation family, arriving with the first workflow file and with
+  its two ambient integrations off so CI cannot be stricter than a local run;
+  D-017 settles the first `detect-secrets` false positive inline.
+  **The first run failed, on exactly the divergence D-014 had accepted:** the
+  vendored guard calls `PurePath.full_match`, added in Python 3.13, and
+  `ubuntu-24.04` ships 3.12.3 — `just check` passed and `just test` died,
+  because only the guard needs it, and this machine's 3.14.4 could never have
+  shown it. The floor was declared nowhere; CI now installs 3.14 and the
+  requirement is stated in `README.md` and `.claude/docs/environment.md` §1.
+  Patching the guard was deliberately not done and reported instead, its
+  `step-002` instantiation having changed only its `REGISTRY`. Green at
+  1m14s and 1m03s. `.pre-commit-config.yaml`'s commentary was cut from 238
+  lines to 119 in the same step, the reasoning living in the decision log.
+  Detail in git history between tags `step-004` and `step-005`.
 
 *Nothing in this milestone is exempt from the small-step rule. If any of
 these six is still too big for a single test — **or cut in the wrong place

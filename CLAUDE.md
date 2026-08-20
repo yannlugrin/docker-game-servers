@@ -256,12 +256,13 @@ instantiate: `step-003`/`step-004` in `PLAN.md`, `.claude/docs/workflow.md` §2.
 obligations, `.claude/docs/` pointers — and nothing else; **what a closed step
 produced is not one of them** (`.claude/docs/workflow.md` §4).*
 
-- **Current step:** `step-005` — The same harness on the forge (root track).
+- **Current step:** none in progress. `step-005` closed Milestone 1, so the
+  two passes of `.claude/docs/workflow.md` §3 come before any next step.
 - **Next step:** `step-sc-001` on the `sc` track, which closing `step-005`
-  unblocks; `step-006` on this one.
-- **Live world-state:** no image built, none published; CI is one workflow,
-  `.github/workflows/ci.yml`, which runs the harness only and **has never
-  run** — unverified until `step-005`'s push. The last
+  unblocked; `step-006` on this one.
+- **Live world-state:** no image built, none published. CI is
+  `.github/workflows/ci.yml`, running the harness only, **green on `main`**;
+  `.github/dependabot.yml` keeps its SHA-pinned actions moving. The last
   approved state is the newest `step-*` tag — find it, never assume it. Work
   is on **`main`**, the default branch of
   `git@github.com:yannlugrin/docker-game-servers.git` (public), and pushed.
